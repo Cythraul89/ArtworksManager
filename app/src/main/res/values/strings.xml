@@ -1,5 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hello World</string>
-    <string name="hello_world">Hello, World!</string>
+    <string name="app_name">Artworks</string>
+
+    <!-- Bottom Nav -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_collection">Collection</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Dashboard -->
+    <string name="total_artworks">Total artworks</string>
+    <string name="by_medium">By Medium</string>
+    <string name="by_artist">By Artist</string>
+    <string name="recently_added">Recently Added</string>
+    <string name="see_all">See all</string>
+    <string name="add_artwork">Add Artwork</string>
+    <string name="no_artworks_yet">No artworks yet.\nTap + to add your first one.</string>
+
+    <!-- Collection -->
+    <string name="search_artworks">Search artworks…</string>
+    <string name="filter_sort">Filter &amp; Sort</string>
+    <string name="view_grid">Grid view</string>
+    <string name="view_list">List view</string>
+    <string name="no_results">No artworks match your search.</string>
+    <string name="sort_by">Sort by</string>
+    <string name="sort_title">Title (A–Z)</string>
+    <string name="sort_artist">Artist</string>
+    <string name="sort_date">Date acquired</string>
+    <string name="filter_medium">Medium</string>
+    <string name="reset">Reset</string>
+    <string name="apply">Apply</string>
+
+    <!-- Detail -->
+    <string name="medium">Medium</string>
+    <string name="dimensions">Dimensions</string>
+    <string name="location">Location</string>
+    <string name="acquired">Acquired</string>
+    <string name="price">Price</string>
+    <string name="description">Description</string>
+    <string name="delete_artwork">Delete artwork?</string>
+    <string name="delete_confirm">This will permanently remove "%s" and cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="artwork_deleted">Artwork deleted</string>
+
+    <!-- Add / Edit -->
+    <string name="add_artwork_title">Add Artwork</string>
+    <string name="edit_artwork_title">Edit Artwork</string>
+    <string name="field_title">Title *</string>
+    <string name="field_artist">Artist name</string>
+    <string name="field_year">Year</string>
+    <string name="field_medium">Medium / Technique</string>
+    <string name="field_height">Height (cm)</string>
+    <string name="field_width">Width (cm)</string>
+    <string name="field_depth">Depth (cm)</string>
+    <string name="field_location">Location</string>
+    <string name="field_acquisition_date">Acquisition date</string>
+    <string name="field_price">Purchase price (€)</string>
+    <string name="field_description">Description / Notes</string>
+    <string name="save_artwork">Save Artwork</string>
+    <string name="error_title_required">Title is required</string>
+    <string name="artwork_saved">Artwork saved</string>
+    <string name="discard_changes">Discard changes?</string>
+    <string name="keep_editing">Keep editing</string>
+    <string name="discard">Discard</string>
+    <string name="photo_tap_hint">Tap to add photo</string>
+    <string name="take_photo">Take photo</string>
+    <string name="choose_gallery">Choose from gallery</string>
+    <string name="dimensions_label">Dimensions</string>
+
+    <!-- Settings -->
+    <string name="export_collection">Export collection</string>
+    <string name="export_description">Generate a PDF of all artworks</string>
+    <string name="backup">Backup</string>
+    <string name="nextcloud_backup">Nextcloud backup</string>
+    <string name="nextcloud_coming_soon">Nextcloud integration coming soon</string>
+    <string name="about">About</string>
+    <string name="app_version">App version 1.0.0</string>
+    <string name="export_generating">Generating PDF…</string>
+    <string name="export_error">Could not generate PDF</string>
+
+    <!-- Mediums array -->
+    <string-array name="mediums">
+        <item>Oil</item>
+        <item>Watercolour</item>
+        <item>Acrylic</item>
+        <item>Gouache</item>
+        <item>Sculpture</item>
+        <item>Print</item>
+        <item>Drawing</item>
+        <item>Photograph</item>
+        <item>Digital</item>
+        <item>Mixed media</item>
+        <item>Other</item>
+    </string-array>
 </resources>
