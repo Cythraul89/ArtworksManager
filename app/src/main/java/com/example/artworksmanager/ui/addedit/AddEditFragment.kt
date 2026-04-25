@@ -60,7 +60,7 @@ class AddEditFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val isEdit = args.artworkId != -1L
+        val isEdit = args.artworkId != 0L
         binding.toolbar.title = if (isEdit) "Edit Artwork" else "Add Artwork"
         binding.toolbar.setNavigationOnClickListener { confirmDiscard() }
 
@@ -99,7 +99,7 @@ class AddEditFragment : Fragment() {
                 viewModel.savedId.collect { id ->
                     if (id != null) {
                         Snackbar.make(requireView(), com.example.artworksmanager.R.string.artwork_saved, Snackbar.LENGTH_SHORT).show()
-                        if (args.artworkId == -1L) {
+                        if (args.artworkId == 0L) {
                             // New artwork — navigate forward to detail
                             findNavController().navigate(
                                 AddEditFragmentDirections.actionAddEditToDetail(id)

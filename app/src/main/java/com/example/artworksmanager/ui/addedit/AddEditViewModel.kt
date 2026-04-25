@@ -18,7 +18,7 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
     val savedId: StateFlow<Long?> = _savedId
 
     fun load(id: Long) {
-        if (id == -1L) return
+        if (id == 0L) return
         viewModelScope.launch {
             _artwork.value = repository.getById(id)
         }
@@ -41,7 +41,7 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
     ) {
         viewModelScope.launch {
             val artwork = Artwork(
-                id = if (id == -1L) 0 else id,
+                id = id,
                 title = title,
                 artist = artist,
                 year = year,
@@ -55,7 +55,7 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
                 description = description,
                 photoPath = photoPath
             )
-            val savedId = if (id == -1L) repository.insert(artwork)
+            val savedId = if (id == 0L) repository.insert(artwork)
                          else { repository.update(artwork); id }
             _savedId.value = savedId
         }

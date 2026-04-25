@@ -62,7 +62,7 @@
         tools:layout="@layout/fragment_add_edit">
         <argument
             android:name="artworkId"
-            android:defaultValue="-1"
+            android:defaultValue="0"
             app:argType="long" />
         <action
             android:id="@+id/action_addEdit_to_detail"
