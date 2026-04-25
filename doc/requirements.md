@@ -26,6 +26,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Artwork detail view** — full-screen view of all recorded details and the photo
 - **Search** — find artworks by title or artist name
 - **Filter & sort** — filter by medium or year; sort by title, artist, or acquisition date
+- **Export to PDF** — generate a printable PDF of the full catalogue or a single artwork's details
 - **Dashboard / overview** — summary statistics:
   - Total number of artworks
   - Breakdown by medium
@@ -35,7 +36,8 @@ A single private individual who owns a personal art collection of up to 1000 art
 
 - Multiple photos per artwork
 - Tags / custom categories
-- Export collection as PDF or CSV
+- Export collection as CSV
+- Nextcloud backup — optional sync of the local database and photos to a user-configured Nextcloud instance as an off-device backup
 - Estimated current value field separate from purchase price
 - Provenance / ownership history notes
 - Condition field (excellent, good, fair, poor)
@@ -43,7 +45,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 ## Out of Scope
 
 - Multi-user access or sharing with others
-- Cloud sync or online backup (all data stored locally on device)
+- Mandatory cloud dependency (app must be fully functional without any internet connection)
 - Public marketplace or valuation services
 - Collections larger than 1000 artworks
 
@@ -57,9 +59,9 @@ A single private individual who owns a personal art collection of up to 1000 art
 
 ## Non-Functional Requirements
 
-- **Min Android version:** Android 7.0 (API 24)
+- **Min Android version:** Android 13 (API 33)
 - **Target devices:** Android smartphones (portrait-first, tablet-friendly)
-- **Offline support:** Full offline — all data stored locally using a local database (no internet required)
+- **Offline support:** Full offline operation is a hard requirement — all data stored locally; the app must work completely without an internet connection
 - **Storage:** Photos stored on-device; collection data in a local SQLite/Room database
 - **Performance:** Collection list should load and scroll smoothly for up to 1000 artworks
 - **Languages / localisation:** English (single language for initial version)
