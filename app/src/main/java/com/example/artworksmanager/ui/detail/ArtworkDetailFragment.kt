@@ -40,7 +40,7 @@ class ArtworkDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel.load(args.artworkId)
+        viewModel.load(args.artworkId.toLong())
 
         binding.toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
         binding.toolbar.setOnMenuItemClickListener { item ->

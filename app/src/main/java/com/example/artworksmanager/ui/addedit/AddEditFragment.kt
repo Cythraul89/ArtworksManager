@@ -60,7 +60,7 @@ class AddEditFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val isEdit = args.artworkId != 0L
+        val isEdit = args.artworkId != 0
         binding.toolbar.title = if (isEdit) "Edit Artwork" else "Add Artwork"
         binding.toolbar.setNavigationOnClickListener { confirmDiscard() }
 
@@ -83,7 +83,7 @@ class AddEditFragment : Fragment() {
         binding.saveButton.setOnClickListener { trySave() }
 
         if (isEdit) {
-            viewModel.load(args.artworkId)
+            viewModel.load(args.artworkId.toLong())
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     viewModel.artwork.collect { artwork ->
@@ -99,10 +99,10 @@ class AddEditFragment : Fragment() {
                 viewModel.savedId.collect { id ->
                     if (id != null) {
                         Snackbar.make(requireView(), com.example.artworksmanager.R.string.artwork_saved, Snackbar.LENGTH_SHORT).show()
-                        if (args.artworkId == 0L) {
+                        if (args.artworkId == 0) {
                             // New artwork — navigate forward to detail
                             findNavController().navigate(
-                                AddEditFragmentDirections.actionAddEditToDetail(id)
+                                AddEditFragmentDirections.actionAddEditToDetail(id.toInt())
                             )
                         } else {
                             // Edit — pop back to existing detail (it auto-reloads from DB)
@@ -206,7 +206,7 @@ class AddEditFragment : Fragment() {
         binding.titleLayout.error = null
 
         viewModel.save(
-            id           = args.artworkId,
+            id           = args.artworkId.toLong(),
             title        = title,
             artist       = binding.artistInput.text?.toString()?.trim() ?: "",
             year         = binding.yearInput.text?.toString()?.toIntOrNull(),

@@ -29,7 +29,7 @@ class DashboardFragment : Fragment() {
 
     private val recentAdapter = RecentArtworkAdapter { artwork ->
         findNavController().navigate(
-            DashboardFragmentDirections.actionDashboardToDetail(artwork.id)
+            DashboardFragmentDirections.actionDashboardToDetail(artwork.id.toInt())
         )
     }
 
