@@ -7,11 +7,9 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.R
@@ -54,14 +52,13 @@ class SettingsFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             val artworks = viewModel.allArtworks.value
-            withContext(Dispatchers.IO) {
-                try {
-                    PdfExporter(requireContext()).buildAndShare(artworks)
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), R.string.export_error, Toast.LENGTH_SHORT).show()
-                    }
-                }
+            val ctx = requireContext()
+            try {
+                val exporter = PdfExporter(ctx)
+                val uri = withContext(Dispatchers.IO) { exporter.generateUri(artworks) }
+                exporter.share(uri)
+            } catch (e: Exception) {
+                Toast.makeText(ctx, R.string.export_error, Toast.LENGTH_SHORT).show()
             }
             binding.exportProgress.visibility = View.GONE
             binding.exportRow.isEnabled = true

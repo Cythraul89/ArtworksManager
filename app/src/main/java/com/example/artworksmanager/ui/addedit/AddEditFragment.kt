@@ -1,10 +1,7 @@
 package com.example.artworksmanager.ui.addedit
 
-import android.app.Activity
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
