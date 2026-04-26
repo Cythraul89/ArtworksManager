@@ -17,9 +17,7 @@ import com.example.artworksmanager.data.ArtworkRepository
 import com.example.artworksmanager.databinding.FragmentSettingsBinding
 import com.example.artworksmanager.util.PdfExporter
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -53,10 +51,12 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             try {
-                // Collect the first real emission from the DB flow rather than
-                // reading .value, which may still be emptyList() before the
-                // upstream query has run.
-                val artworks = viewModel.allArtworks.first()
+                // Query Room directly rather than reading the StateFlow's cached
+                // value: getAllArtworks().first() suspends until Room emits the
+                // real result, so it works even on the very first tap.
+                val artworks = withContext(Dispatchers.IO) {
+                    viewModel.loadArtworksNow()
+                }
                 if (artworks.isEmpty()) {
                     Toast.makeText(ctx, "No artworks to export", Toast.LENGTH_SHORT).show()
                 } else {
@@ -78,11 +78,10 @@ class SettingsFragment : Fragment() {
     }
 }
 
-class SettingsViewModel(repository: ArtworkRepository) : ViewModel() {
-    // Eagerly starts the DB query as soon as the ViewModel is created so that
-    // .value is populated by the time the user taps Export.
-    val allArtworks = repository.getAllArtworks()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+class SettingsViewModel(private val repository: ArtworkRepository) : ViewModel() {
+
+    /** One-shot DB read — suspends until Room emits the first result. */
+    suspend fun loadArtworksNow() = repository.getAllArtworks().first()
 
     companion object {
         fun factory(repository: ArtworkRepository) = object : ViewModelProvider.Factory {
