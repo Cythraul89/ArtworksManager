@@ -27,6 +27,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Search** — find artworks by title or artist name
 - **Filter & sort** — filter by medium or year; sort by title, artist, or acquisition date
 - **Export to PDF** — generate a printable PDF of the full catalogue or a single artwork's details
+- **Export backup** — create a zip archive containing the Room database file and all artwork photos; the archive can be saved to any location supported by the Android Storage Access Framework (e.g. local storage, SD card, connected cloud drive)
 - **Dashboard / overview** — summary statistics:
   - Total number of artworks
   - Breakdown by medium
@@ -66,3 +67,4 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Performance:** Collection list should load and scroll smoothly for up to 1000 artworks
 - **Languages / localisation:** English (single language for initial version)
 - **Accessibility:** Adequate contrast and content descriptions on images
+- **Dark mode:** The app must follow the device system dark/light mode setting; all screens must be legible and visually consistent in both modes
