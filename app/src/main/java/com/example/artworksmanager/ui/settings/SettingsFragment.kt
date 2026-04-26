@@ -1,10 +1,12 @@
 package com.example.artworksmanager.ui.settings
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
@@ -15,15 +17,19 @@ import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.R
 import com.example.artworksmanager.data.ArtworkRepository
 import com.example.artworksmanager.databinding.FragmentSettingsBinding
+import com.example.artworksmanager.util.BackupExporter
 import com.example.artworksmanager.util.PdfExporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Fragment for the settings screen, providing PDF export and a placeholder for
- * future Nextcloud sync integration.
+ * Fragment for the settings screen, providing PDF export, zip backup export,
+ * and a placeholder for future Nextcloud sync integration.
  */
 class SettingsFragment : Fragment() {
 
@@ -34,6 +40,10 @@ class SettingsFragment : Fragment() {
         SettingsViewModel.factory((requireActivity().application as ArtworksManagerApp).repository)
     }
 
+    private val createBackupDocument = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri -> if (uri != null) writeBackupToUri(uri) }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -43,6 +53,7 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.exportRow.setOnClickListener { exportPdf() }
+        binding.backupExportRow.setOnClickListener { launchBackupPicker() }
         binding.nextcloudRow.setOnClickListener {
             Toast.makeText(requireContext(), R.string.nextcloud_coming_soon, Toast.LENGTH_SHORT).show()
         }
@@ -56,9 +67,6 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             try {
-                // Query Room directly rather than reading the StateFlow's cached
-                // value: getAllArtworks().first() suspends until Room emits the
-                // real result, so it works even on the very first tap.
                 val artworks = withContext(Dispatchers.IO) {
                     viewModel.loadArtworksNow()
                 }
@@ -74,6 +82,32 @@ class SettingsFragment : Fragment() {
             }
             binding.exportProgress.visibility = View.GONE
             binding.exportRow.isEnabled = true
+        }
+    }
+
+    /** Opens the SAF file-picker so the user chooses where to save the backup zip. */
+    private fun launchBackupPicker() {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        createBackupDocument.launch("artworks_backup_$timestamp.zip")
+    }
+
+    /** Writes the backup zip to the SAF [uri] chosen by the user. */
+    private fun writeBackupToUri(uri: Uri) {
+        binding.backupProgress.visibility = View.VISIBLE
+        binding.backupExportRow.isEnabled = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = requireContext()
+            try {
+                withContext(Dispatchers.IO) {
+                    BackupExporter(ctx).writeTo(uri)
+                }
+                Toast.makeText(ctx, R.string.backup_success, Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(ctx, R.string.backup_error, Toast.LENGTH_SHORT).show()
+            }
+            binding.backupProgress.visibility = View.GONE
+            binding.backupExportRow.isEnabled = true
         }
     }
 
