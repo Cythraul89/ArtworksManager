@@ -18,7 +18,7 @@ The app uses a **bottom navigation bar** with three top-level destinations:
 |--------------|---------------|------------------------------------|
 | Dashboard    | `dashboard`   | Stats overview + quick add         |
 | Collection   | `collections` | Browse, search, filter artworks    |
-| Settings     | `settings`    | Export PDF, Nextcloud backup, prefs|
+| Settings     | `settings`    | Export PDF, backup export/import, about |
 
 ---
 
@@ -44,12 +44,14 @@ The app uses a **bottom navigation bar** with three top-level destinations:
   Confirm dialog → back to Collection List
 
 
-┌─────────────┐
-│  Settings   │
-│─────────────│
-│ Export PDF  │──▶ system share / save dialog
-│ Nextcloud   │──▶ Nextcloud config screen
-└─────────────┘
+┌──────────────────┐
+│     Settings     │
+│──────────────────│
+│ Export PDF       │──▶ system share sheet
+│ Export backup    │──▶ SAF "Create Document" picker → writes zip
+│ Import backup    │──▶ SAF "Open Document" picker → confirm dialog → restore
+│ Nextcloud        │──▶ toast "coming soon"
+└──────────────────┘
 ```
 
 ---
