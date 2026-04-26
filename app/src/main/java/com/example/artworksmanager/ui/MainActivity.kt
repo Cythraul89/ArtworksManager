@@ -11,6 +11,10 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.artworksmanager.R
 import com.example.artworksmanager.databinding.ActivityMainBinding
 
+/**
+ * Single-activity host that owns the Navigation component and bottom navigation bar.
+ * The bottom nav is hidden automatically on non-top-level destinations.
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding

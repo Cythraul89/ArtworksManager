@@ -11,6 +11,10 @@ import com.example.artworksmanager.databinding.ItemArtworkGridBinding
 import com.example.artworksmanager.databinding.ItemArtworkListBinding
 import java.io.File
 
+/**
+ * RecyclerView adapter for the collection screen, supporting both a two-column grid layout
+ * and a single-column list layout toggled via [isGridLayout].
+ */
 class ArtworkAdapter(private val onClick: (Artwork) -> Unit) :
     ListAdapter<Artwork, RecyclerView.ViewHolder>(DIFF) {
 

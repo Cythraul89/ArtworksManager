@@ -2,6 +2,10 @@ package com.example.artworksmanager.data
 
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Single source of truth for artwork data, delegating all persistence to [ArtworkDao].
+ * ViewModels interact with the repository rather than the DAO directly.
+ */
 class ArtworkRepository(private val dao: ArtworkDao) {
 
     fun getAllArtworks(): Flow<List<Artwork>> = dao.getAllArtworks()

@@ -3,6 +3,10 @@ package com.example.artworksmanager.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * Room entity representing a single artwork in the collection.
+ * All fields except [id] and [title] are optional to support partial records.
+ */
 @Entity(tableName = "artworks")
 data class Artwork(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

@@ -7,6 +7,10 @@ import com.example.artworksmanager.data.Artwork
 import com.example.artworksmanager.data.ArtworkRepository
 import kotlinx.coroutines.flow.*
 
+/**
+ * ViewModel for [CollectionFragment] that combines search, medium filter, artist filter,
+ * and sort order into a single reactive [artworks] state flow.
+ */
 class CollectionViewModel(private val repository: ArtworkRepository) : ViewModel() {
 
     private val _searchQuery  = MutableStateFlow("")
@@ -46,6 +50,7 @@ class CollectionViewModel(private val repository: ArtworkRepository) : ViewModel
     fun setFilterArtist(a: String) { _filterArtist.value = a }
     fun setSortBy(s: String)      { _sortBy.value = s }
 
+    /** Applies medium filter and sort order in one atomic update, as triggered by the filter sheet. */
     fun applyFilter(medium: String, sortBy: String) {
         _filterMedium.value = medium
         _sortBy.value = sortBy

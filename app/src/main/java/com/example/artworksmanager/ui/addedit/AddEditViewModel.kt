@@ -9,6 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for [AddEditFragment] that handles loading an existing artwork for editing
+ * and persisting the form data as a new or updated record.
+ */
 class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() {
 
     private val _artwork = MutableStateFlow<Artwork?>(null)
@@ -17,6 +21,7 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
     private val _savedId = MutableStateFlow<Long?>(null)
     val savedId: StateFlow<Long?> = _savedId
 
+    /** Fetches the artwork with the given [id] and exposes it via [artwork]. No-op when [id] is 0. */
     fun load(id: Long) {
         if (id == 0L) return
         viewModelScope.launch {
@@ -24,6 +29,10 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
         }
     }
 
+    /**
+     * Inserts a new artwork when [id] is 0, or updates the existing record otherwise.
+     * Emits the saved row ID via [savedId] when the operation completes.
+     */
     fun save(
         id: Long,
         title: String,

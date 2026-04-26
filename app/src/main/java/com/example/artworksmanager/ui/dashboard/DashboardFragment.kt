@@ -18,6 +18,10 @@ import com.example.artworksmanager.databinding.FragmentDashboardBinding
 import com.google.android.material.chip.Chip
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment for the home dashboard, showing collection statistics, medium chips,
+ * top-artist rows, and a horizontally scrolling carousel of recent artworks.
+ */
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
@@ -65,6 +69,7 @@ class DashboardFragment : Fragment() {
         binding.contentGroup.visibility = if (count == 0) View.GONE else View.VISIBLE
     }
 
+    /** Rebuilds the medium chip group; tapping a chip navigates to the collection pre-filtered by that medium. */
     private fun updateMediumChips(mediums: List<MediumCount>) {
         binding.mediumChipGroup.removeAllViews()
         mediums.forEach { mc ->
@@ -83,6 +88,7 @@ class DashboardFragment : Fragment() {
         }
     }
 
+    /** Rebuilds the top-artists list; tapping a row navigates to the collection pre-filtered by that artist. */
     private fun updateArtists(artists: List<ArtistCount>) {
         binding.artistsContainer.removeAllViews()
         artists.forEach { ac ->

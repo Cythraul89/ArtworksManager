@@ -32,6 +32,10 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Fragment for creating a new artwork or editing an existing one, identified by the
+ * [AddEditFragmentArgs.artworkId] nav argument (0 means new).
+ */
 class AddEditFragment : Fragment() {
 
     private var _binding: FragmentAddEditBinding? = null
@@ -132,6 +136,7 @@ class AddEditFragment : Fragment() {
         }
     }
 
+    /** Populates all form fields from an existing [Artwork] when editing. */
     private fun prefill(a: com.example.artworksmanager.data.Artwork) {
         binding.titleInput.setText(a.title)
         binding.artistInput.setText(a.artist)
@@ -223,6 +228,7 @@ class AddEditFragment : Fragment() {
             .show(parentFragmentManager, "date_picker")
     }
 
+    /** Validates the form and, if valid, delegates persistence to the ViewModel. */
     private fun trySave() {
         val title = binding.titleInput.text?.toString()?.trim() ?: ""
         if (title.isEmpty()) {
@@ -249,6 +255,7 @@ class AddEditFragment : Fragment() {
         )
     }
 
+    /** Shows a discard-changes dialog if the user has entered any data; pops back immediately otherwise. */
     private fun confirmDiscard() {
         val dirty = binding.titleInput.text?.isNotEmpty() == true ||
                     binding.artistInput.text?.isNotEmpty() == true

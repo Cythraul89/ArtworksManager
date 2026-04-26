@@ -8,6 +8,11 @@ import com.example.artworksmanager.databinding.BottomSheetFilterBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 
+/**
+ * Bottom sheet that lets the user choose a medium filter and a sort order for the collection.
+ * Callers populate [currentMedium], [currentSort], and [availableMediums] before showing the sheet,
+ * and receive the result through the [onApply] callback.
+ */
 class FilterSortBottomSheet : BottomSheetDialogFragment() {
 
     var currentMedium: String = ""

@@ -17,6 +17,10 @@ import com.example.artworksmanager.R
 import com.example.artworksmanager.databinding.FragmentCollectionBinding
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment that displays the full artwork collection with search, filter, and sort capabilities.
+ * Accepts optional pre-set filter arguments from the Dashboard via Safe Args.
+ */
 class CollectionFragment : Fragment() {
 
     private var _binding: FragmentCollectionBinding? = null
@@ -95,6 +99,7 @@ class CollectionFragment : Fragment() {
         }
     }
 
+    /** Switches the RecyclerView between a two-column grid and a linear list. */
     private fun setGridLayout(grid: Boolean) {
         adapter.isGridLayout = grid
         binding.recyclerView.layoutManager = if (grid)
