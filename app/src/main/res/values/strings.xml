@@ -85,6 +85,13 @@
     <string name="backup_export_description">Save database and photos as a zip file</string>
     <string name="backup_success">Backup saved successfully</string>
     <string name="backup_error">Could not create backup</string>
+    <string name="backup_import">Import backup</string>
+    <string name="backup_import_description">Restore collection from a zip backup</string>
+    <string name="import_confirm_title">Replace collection?</string>
+    <string name="import_confirm_message">This will permanently replace all current artworks and photos with the contents of the backup. This cannot be undone.</string>
+    <string name="import_replace">Replace</string>
+    <string name="import_success">Imported %d artworks</string>
+    <string name="import_error">Could not import backup</string>
 
     <!-- Mediums array -->
     <string-array name="mediums">

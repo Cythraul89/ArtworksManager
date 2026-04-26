@@ -40,6 +40,19 @@ interface ArtworkDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(artwork: Artwork): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(artworks: List<Artwork>)
+
+    @Query("DELETE FROM artworks")
+    suspend fun deleteAll()
+
+    /** Atomically replaces the entire collection with [artworks]. */
+    @Transaction
+    suspend fun replaceAll(artworks: List<Artwork>) {
+        deleteAll()
+        insertAll(artworks)
+    }
+
     @Update
     suspend fun update(artwork: Artwork)
 

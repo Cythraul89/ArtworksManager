@@ -12,13 +12,14 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.R
 import com.example.artworksmanager.data.ArtworkRepository
 import com.example.artworksmanager.databinding.FragmentSettingsBinding
 import com.example.artworksmanager.util.BackupExporter
+import com.example.artworksmanager.util.BackupImporter
 import com.example.artworksmanager.util.PdfExporter
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,7 +30,7 @@ import java.util.Locale
 
 /**
  * Fragment for the settings screen, providing PDF export, zip backup export,
- * and a placeholder for future Nextcloud sync integration.
+ * zip backup import, and a placeholder for future Nextcloud sync integration.
  */
 class SettingsFragment : Fragment() {
 
@@ -44,6 +45,10 @@ class SettingsFragment : Fragment() {
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri -> if (uri != null) writeBackupToUri(uri) }
 
+    private val openBackupDocument = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) confirmAndImport(uri) }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -54,6 +59,7 @@ class SettingsFragment : Fragment() {
 
         binding.exportRow.setOnClickListener { exportPdf() }
         binding.backupExportRow.setOnClickListener { launchBackupPicker() }
+        binding.backupImportRow.setOnClickListener { openBackupDocument.launch(arrayOf("application/zip")) }
         binding.nextcloudRow.setOnClickListener {
             Toast.makeText(requireContext(), R.string.nextcloud_coming_soon, Toast.LENGTH_SHORT).show()
         }
@@ -67,9 +73,7 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             try {
-                val artworks = withContext(Dispatchers.IO) {
-                    viewModel.loadArtworksNow()
-                }
+                val artworks = withContext(Dispatchers.IO) { viewModel.loadArtworksNow() }
                 if (artworks.isEmpty()) {
                     Toast.makeText(ctx, "No artworks to export", Toast.LENGTH_SHORT).show()
                 } else {
@@ -110,6 +114,39 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    /** Shows a confirmation dialog before replacing the collection with [uri]. */
+    private fun confirmAndImport(uri: Uri) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.import_confirm_title)
+            .setMessage(R.string.import_confirm_message)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.import_replace) { _, _ -> doImport(uri) }
+            .show()
+    }
+
+    /** Reads the backup zip at [uri], replaces the current collection, and reports the result. */
+    private fun doImport(uri: Uri) {
+        binding.backupImportProgress.visibility = View.VISIBLE
+        binding.backupImportRow.isEnabled = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = requireContext()
+            try {
+                val artworks = withContext(Dispatchers.IO) { BackupImporter(ctx).importFrom(uri) }
+                withContext(Dispatchers.IO) { viewModel.replaceAll(artworks) }
+                Toast.makeText(
+                    ctx,
+                    ctx.getString(R.string.import_success, artworks.size),
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(ctx, R.string.import_error, Toast.LENGTH_SHORT).show()
+            }
+            binding.backupImportProgress.visibility = View.GONE
+            binding.backupImportRow.isEnabled = true
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -118,12 +155,16 @@ class SettingsFragment : Fragment() {
 
 /**
  * ViewModel for [SettingsFragment] that provides a one-shot artwork query
- * used to populate the PDF export.
+ * used to populate the PDF export and backup, and a replace-all for import.
  */
 class SettingsViewModel(private val repository: ArtworkRepository) : ViewModel() {
 
     /** One-shot DB read — suspends until Room emits the first result. */
     suspend fun loadArtworksNow() = repository.getAllArtworks().first()
+
+    /** Atomically clears the collection and inserts [artworks]. */
+    suspend fun replaceAll(artworks: List<com.example.artworksmanager.data.Artwork>) =
+        repository.replaceAll(artworks)
 
     companion object {
         fun factory(repository: ArtworkRepository) = object : ViewModelProvider.Factory {
