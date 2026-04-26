@@ -18,7 +18,7 @@ import com.example.artworksmanager.databinding.FragmentSettingsBinding
 import com.example.artworksmanager.util.PdfExporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,12 +51,19 @@ class SettingsFragment : Fragment() {
         binding.exportRow.isEnabled = false
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val artworks = viewModel.allArtworks.value
             val ctx = requireContext()
             try {
-                val exporter = PdfExporter(ctx)
-                val uri = withContext(Dispatchers.IO) { exporter.generateUri(artworks) }
-                exporter.share(uri)
+                // Collect the first real emission from the DB flow rather than
+                // reading .value, which may still be emptyList() before the
+                // upstream query has run.
+                val artworks = viewModel.allArtworks.first()
+                if (artworks.isEmpty()) {
+                    Toast.makeText(ctx, "No artworks to export", Toast.LENGTH_SHORT).show()
+                } else {
+                    val exporter = PdfExporter(ctx)
+                    val uri = withContext(Dispatchers.IO) { exporter.generateUri(artworks) }
+                    exporter.share(uri)
+                }
             } catch (e: Exception) {
                 Toast.makeText(ctx, R.string.export_error, Toast.LENGTH_SHORT).show()
             }
@@ -72,8 +79,10 @@ class SettingsFragment : Fragment() {
 }
 
 class SettingsViewModel(repository: ArtworkRepository) : ViewModel() {
+    // Eagerly starts the DB query as soon as the ViewModel is created so that
+    // .value is populated by the time the user taps Export.
     val allArtworks = repository.getAllArtworks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     companion object {
         fun factory(repository: ArtworkRepository) = object : ViewModelProvider.Factory {
