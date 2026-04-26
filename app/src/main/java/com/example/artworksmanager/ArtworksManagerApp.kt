@@ -6,8 +6,8 @@ import com.example.artworksmanager.data.ArtworkDatabase
 import com.example.artworksmanager.data.ArtworkRepository
 
 /**
- * Application subclass that initialises the database and repository singletons and
- * locks the UI to light mode on startup.
+ * Application subclass that initialises the database and repository singletons.
+ * The UI follows the system dark/light mode setting.
  */
 class ArtworksManagerApp : Application() {
     val database by lazy { ArtworkDatabase.getDatabase(this) }
@@ -15,6 +15,6 @@ class ArtworksManagerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
     }
 }
