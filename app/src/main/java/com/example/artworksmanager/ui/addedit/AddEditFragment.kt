@@ -1,10 +1,14 @@
 package com.example.artworksmanager.ui.addedit
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.*
+import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -48,6 +52,13 @@ class AddEditFragment : Fragment() {
             currentPhotoPath = pendingCameraPath
             showPhotoPreview(currentPhotoPath)
         }
+    }
+
+    private val requestCameraPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) launchCamera()
+        else Toast.makeText(requireContext(), "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -98,12 +109,10 @@ class AddEditFragment : Fragment() {
                     if (id != null) {
                         Snackbar.make(requireView(), com.example.artworksmanager.R.string.artwork_saved, Snackbar.LENGTH_SHORT).show()
                         if (args.artworkId == 0) {
-                            // New artwork — navigate forward to detail
                             findNavController().navigate(
                                 AddEditFragmentDirections.actionAddEditToDetail(id.toInt())
                             )
                         } else {
-                            // Edit — pop back to existing detail (it auto-reloads from DB)
                             findNavController().popBackStack()
                         }
                     }
@@ -141,9 +150,18 @@ class AddEditFragment : Fragment() {
                 getString(com.example.artworksmanager.R.string.take_photo),
                 getString(com.example.artworksmanager.R.string.choose_gallery)
             )) { _, which ->
-                if (which == 0) launchCamera() else launchGallery()
+                if (which == 0) checkCameraPermissionAndLaunch() else launchGallery()
             }
             .show()
+    }
+
+    private fun checkCameraPermissionAndLaunch() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED) {
+            launchCamera()
+        } else {
+            requestCameraPermission.launch(Manifest.permission.CAMERA)
+        }
     }
 
     private fun launchGallery() {
