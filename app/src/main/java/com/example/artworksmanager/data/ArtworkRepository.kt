@@ -19,4 +19,7 @@ class ArtworkRepository(private val dao: ArtworkDao) {
     suspend fun insert(artwork: Artwork): Long = dao.insert(artwork)
     suspend fun update(artwork: Artwork) = dao.update(artwork)
     suspend fun delete(artwork: Artwork) = dao.delete(artwork)
+
+    /** Atomically replaces the entire collection — used by backup import. */
+    suspend fun replaceAll(artworks: List<Artwork>) = dao.replaceAll(artworks)
 }

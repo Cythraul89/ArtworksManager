@@ -17,6 +17,25 @@
 
 > Rationale: neutral off-white background keeps the focus on artwork photos; indigo and gold give a gallery/museum feel without being garish.
 
+## Dark Mode Palette
+
+The app follows the device system dark/light setting (`MODE_NIGHT_FOLLOW_SYSTEM`). When dark mode is active the following overrides replace the light palette:
+
+| Role                  | Name               | Hex       |
+|-----------------------|--------------------|-----------|
+| Primary               | Lighter Indigo     | `#7B78D9` |
+| Primary variant       | Mid Indigo         | `#5A57B0` |
+| Secondary / accent    | Bright Gold        | `#D4A855` |
+| Background            | Near Black         | `#121218` |
+| Surface               | Dark Surface       | `#1E1E28` |
+| Error                 | Soft Red           | `#CF6679` |
+| On Primary            | White              | `#FFFFFF` |
+| On Background / text  | Near White         | `#E8E8EF` |
+| Secondary text        | Muted Grey         | `#9090A0` |
+| Divider / border      | Dark Divider       | `#3A3A4A` |
+
+> The primary colour is lightened in dark mode to maintain contrast against the dark background while preserving the indigo/gold brand identity.
+
 ---
 
 ## Typography

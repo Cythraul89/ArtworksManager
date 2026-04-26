@@ -1,7 +1,7 @@
 # Screen: Settings
 
 ## Purpose
-Access app-level actions: exporting the collection as PDF and configuring optional Nextcloud backup.
+Access app-level actions: exporting the collection as PDF, exporting and importing a full zip backup, and viewing app information.
 
 ## Wireframe
 
@@ -12,23 +12,32 @@ Access app-level actions: exporting the collection as PDF and configuring option
 │                                 │
 │  EXPORT                         │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │ 📄  Export collection       │ │  ← Tapping opens export options sheet
-│ │     Generate a PDF of all   │ │
+│ │ 📄  Export collection       │ │  ← Generates PDF immediately; opens share sheet
+│ │     Generate a PDF of all   │ │    Progress spinner replaces icon while generating
 │ │     artworks                │ │
 │ └─────────────────────────────┘ │
 │                                 │
-│  BACKUP                         │
+│  BACKUP                         │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │ ☁  Nextcloud backup   OFF ▸│ │  ← Toggle row; navigates to Nextcloud config
-│ └─────────────────────────────┘ │
-│ ┌─────────────────────────────┐ │
-│ │ ↑  Back up now              │ │  ← Enabled only when Nextcloud is configured
-│ │    Last backup: never       │ │
+│ │ 💾  Export backup           │ │  ← Opens SAF "Create document" file picker
+│ │     Save database and       │ │    Default filename: artworks_backup_YYYYMMDD_HHmmss.zip
+│ │     photos as a zip file    │ │    Progress spinner while writing
+│ ├─────────────────────────────┤ │
+│ │ ⬇   Import backup           │ │  ← Opens SAF "Open document" file picker (zip only)
+│ │     Restore collection      │ │    Progress spinner while reading
+│ │     from a zip backup       │ │
+│ ├─────────────────────────────┤ │
+│ │ ☁   Nextcloud backup  Coming│ │  ← Placeholder; tap shows "coming soon" toast
+│ │     soon                    │ │
 │ └─────────────────────────────┘ │
 │                                 │
-│  ABOUT                          │
+│  ABOUT                          │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │     App version: 1.0.0      │ │
+│ │  Version              0.0.2 │ │
+│ ├─────────────────────────────┤ │
+│ │  License   GNU General      │ │
+│ │            Public License   │ │
+│ │            v3.0 (GPL-3.0)   │ │
 │ └─────────────────────────────┘ │
 │                                 │
 ├──────────────┬──────────┬───────┤
@@ -36,54 +45,71 @@ Access app-level actions: exporting the collection as PDF and configuring option
 └──────────────┴──────────┴───────┘
 ```
 
-## Export Options Bottom Sheet
+## Export PDF Behaviour
+
+Tapping **Export collection** immediately starts generating the PDF (no options sheet):
+- Each artwork renders on its own A4 page: photo (EXIF orientation-corrected), title, artist/year, then all non-empty fields
+- A progress spinner is shown in the row while generating
+- On completion the system share sheet opens (save to Files, print, share via email, etc.)
+- If the collection is empty a toast "No artworks to export" is shown instead
+
+## Export Backup Behaviour
+
+Tapping **Export backup** opens the Android Storage Access Framework *Create Document* picker with the suggested filename `artworks_backup_YYYYMMDD_HHmmss.zip`. After the user selects a save location the zip is written containing:
 
 ```
-┌─────────────────────────────────┐
-│  Export as PDF             ✕    │
-│─────────────────────────────────│
-│  Include                        │
-│  ☑ All artworks                 │
-│  ☑ Artwork photos               │
-│  ☑ Prices                       │
-│                                 │
-│  Layout                         │
-│  ● One artwork per page         │
-│  ○ Compact list                 │
-│                                 │
-│  ┌─────────────────────────────┐│
-│  │      GENERATE PDF           ││
-│  └─────────────────────────────┘│
-└─────────────────────────────────┘
+artworks.json       ← all artwork records as pretty-printed JSON
+photos/             ← directory containing every artwork photo
+  <filename>.jpg
+  ...
 ```
-After generation: system share sheet (save to files, print, share via email, etc.)
 
-## Nextcloud Configuration Screen
+`artworks.json` structure:
+```json
+{
+  "exportedAt": "2026-04-26T14:30:00",
+  "count": 3,
+  "artworks": [
+    {
+      "id": 1,
+      "title": "Sunflowers",
+      "artist": "Van Gogh",
+      "year": 1888,
+      "medium": "Oil",
+      "heightCm": 92.1,
+      "widthCm": 73.0,
+      "location": "Living room",
+      "acquisitionDate": "2024-03-15",
+      "purchasePrice": 1500.0,
+      "description": "Replica",
+      "photo": "1714123456789.jpg",
+      "createdAt": "2026-01-10T09:00:00"
+    }
+  ]
+}
+```
+
+A success toast is shown on completion; an error toast on failure.
+
+## Import Backup Behaviour
+
+Tapping **Import backup** opens the SAF *Open Document* picker filtered to `application/zip`. After the user selects a file a confirmation dialog is shown:
 
 ```
-┌─────────────────────────────────┐
-│  ←   Nextcloud Backup           │
-├─────────────────────────────────┤
-│                                 │
-│  ┌─────────────────────────────┐│
-│  │ Server URL                  ││  e.g. https://cloud.example.com
-│  └─────────────────────────────┘│
-│                                 │
-│  ┌─────────────────────────────┐│
-│  │ Username                    ││
-│  └─────────────────────────────┘│
-│                                 │
-│  ┌─────────────────────────────┐│
-│  │ App password          👁    ││  ← Use a Nextcloud app password, not account password
-│  └─────────────────────────────┘│
-│                                 │
-│  ┌─────────────────────────────┐│
-│  │      TEST CONNECTION        ││  ← Secondary button
-│  └─────────────────────────────┘│
-│                                 │
-│  ┌─────────────────────────────┐│
-│  │         SAVE                ││  ← Enabled after successful connection test
-│  └─────────────────────────────┘│
-│                                 │
-└─────────────────────────────────┘
+┌──────────────────────────────────┐
+│  Replace collection?             │
+│                                  │
+│  This will permanently replace   │
+│  all current artworks and photos │
+│  with the contents of the        │
+│  backup. This cannot be undone.  │
+│                                  │
+│  [Cancel]           [Replace]    │
+└──────────────────────────────────┘
 ```
+
+On **Replace**:
+1. Photos are extracted from `photos/` in the zip to the app's internal storage
+2. `artworks.json` is parsed and artworks are reconstructed with correct local photo paths
+3. The entire current collection is atomically replaced (delete all + insert all in one Room transaction)
+4. A toast shows `"Imported N artworks"` on success, or an error toast on failure

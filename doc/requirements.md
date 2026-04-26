@@ -26,7 +26,9 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Artwork detail view** — full-screen view of all recorded details and the photo
 - **Search** — find artworks by title or artist name
 - **Filter & sort** — filter by medium or year; sort by title, artist, or acquisition date
-- **Export to PDF** — generate a printable PDF of the full catalogue or a single artwork's details
+- **Export to PDF** — generate a printable PDF of the full catalogue; each artwork gets its own page with photo (orientation-corrected), title, artist, year, and all recorded fields
+- **Export backup** — create a zip archive containing `artworks.json` (all artwork records as human-readable JSON) and all artwork photos; the archive can be saved to any location supported by the Android Storage Access Framework (e.g. local storage, SD card, connected cloud drive)
+- **Import backup** — restore the collection from a previously exported backup zip; replaces the entire current collection after user confirmation
 - **Dashboard / overview** — summary statistics:
   - Total number of artworks
   - Breakdown by medium
@@ -56,6 +58,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 3. **Artwork detail** — displays the photo and all recorded fields; action buttons to edit or delete
 4. **Add / Edit artwork** — form with all fields, photo picker/camera, and a save button
 5. **Search results** — filtered view of the collection list based on a search query
+6. **Settings** — export PDF, export/import zip backup, about info (version, license)
 
 ## Non-Functional Requirements
 
@@ -66,3 +69,4 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Performance:** Collection list should load and scroll smoothly for up to 1000 artworks
 - **Languages / localisation:** English (single language for initial version)
 - **Accessibility:** Adequate contrast and content descriptions on images
+- **Dark mode:** The app must follow the device system dark/light mode setting; all screens must be legible and visually consistent in both modes

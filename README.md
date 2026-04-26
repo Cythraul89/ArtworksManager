@@ -1,59 +1,51 @@
-# Hello World Android App
+# ArtworksManager
 
-A basic Android application built with Kotlin.
+A personal artwork catalogue app for Android. Record, browse, and manage a private art collection of up to 1,000 artworks — fully offline, no account required.
 
-## Prerequisites
+## Features
 
-- [Android Studio](https://developer.android.com/studio) (Hedgehog or newer)
-- JDK 8 or higher (bundled with Android Studio)
-- Android SDK 24+ (installed via Android Studio's SDK Manager)
+- **Add / Edit / Delete** artworks with title, artist, year, medium, dimensions, location, acquisition date, purchase price, photo, and notes
+- **Browse** the collection in grid or list view with real-time search, filter by medium, and sort by title, artist, or date
+- **Dashboard** with total count, breakdown by medium and artist, and a recently-added strip
+- **Export PDF** — one A4 page per artwork, photos orientation-corrected via EXIF
+- **Export backup** — saves a zip containing `artworks.json` (human-readable) and all artwork photos to any location via the Android Storage Access Framework
+- **Import backup** — restores a collection from a previously exported zip
+- **Dark mode** — follows the system light/dark setting
 
-## Opening the Project
+## Requirements
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Cythraul89/ArtworksManager.git
-   cd ArtworksManager
-   ```
-2. Open Android Studio and select **File → Open**
-3. Navigate to the cloned folder and click **OK**
-4. Wait for Gradle to sync (bottom status bar will show progress)
+| Tool | Version |
+|------|---------|
+| Android Studio | Ladybug or newer |
+| JDK | 11 (bundled with Android Studio) |
+| Android SDK (min) | API 33 (Android 13) |
+| Android SDK (target) | API 35 (Android 15) |
+| Gradle | 8.13 |
+| Android Gradle Plugin | 8.13.2 |
 
-## Modifying the App
+## Getting Started
 
-### Changing the displayed text
-Edit `app/src/main/res/values/strings.xml` and update the `hello_world` value:
-```xml
-<string name="hello_world">Your new text here</string>
+```bash
+git clone https://github.com/Cythraul89/ArtworksManager.git
+cd ArtworksManager
 ```
 
-### Changing the layout
-Edit `app/src/main/res/layout/activity_main.xml` to adjust the UI. The main `TextView` can be restyled (font size, colour, position) directly in this file or via Android Studio's visual layout editor.
+1. Open **Android Studio** → **File → Open** → select the cloned folder
+2. Wait for Gradle to sync
+3. Click **Run ▶** (or `Shift+F10`) to launch on a connected device or emulator
 
-### Adding new screens
-1. Right-click the `com.example.helloworld` package in Android Studio → **New → Activity → Empty Views Activity**
-2. Android Studio will generate the Activity class and layout file automatically
-3. Link to the new screen from `MainActivity.kt` using an `Intent`:
-   ```kotlin
-   startActivity(Intent(this, YourNewActivity::class.java))
-   ```
+### Physical device
 
-### Changing the app name or package
-- **App name:** update `app_name` in `app/src/main/res/values/strings.xml`
-- **Package:** use Android Studio's refactor tool — right-click the package → **Refactor → Rename**
+1. Enable **Developer Options** (tap *Build number* 7 times in **Settings → About phone**)
+2. Enable **USB Debugging**
+3. Connect via USB, accept the prompt, then select the device in Android Studio and click **Run ▶**
 
-## Building the App
+## Building
 
-### From Android Studio
-- **Run on a device/emulator:** click the green **Run ▶** button (or `Shift+F10`)
-- **Build a debug APK:** **Build → Build Bundle(s) / APK(s) → Build APK(s)**
-  - Output: `app/build/outputs/apk/debug/app-debug.apk`
-- **Build a release APK:** **Build → Generate Signed Bundle / APK**, follow the signing wizard
-
-### From the command line
 ```bash
 # Debug APK
 ./gradlew assembleDebug
+# Output: app/build/outputs/apk/debug/app-debug.apk
 
 # Release APK (requires a signing keystore configured in app/build.gradle)
 ./gradlew assembleRelease
@@ -62,23 +54,54 @@ Edit `app/src/main/res/layout/activity_main.xml` to adjust the UI. The main `Tex
 ./gradlew installDebug
 ```
 
-### Running on a physical device
-1. Enable **Developer Options** on your Android device (tap *Build number* 7 times in Settings → About phone)
-2. Enable **USB Debugging** in Developer Options
-3. Connect via USB and accept the prompt on the device
-4. Select the device in Android Studio's toolbar and click **Run ▶**
+A signed release APK can also be generated from Android Studio via **Build → Generate Signed Bundle / APK**.
 
 ## Project Structure
 
 ```
 app/src/main/
-├── java/com/example/helloworld/
-│   └── MainActivity.kt          # Main screen logic
+├── java/com/example/artworksmanager/
+│   ├── ArtworksManagerApp.kt          Application class (DB + repository singletons)
+│   ├── data/                          Room database, DAO, entity, repository
+│   ├── ui/
+│   │   ├── MainActivity.kt            Single-activity host, Navigation Component
+│   │   ├── addedit/                   Add / Edit artwork screen
+│   │   ├── collection/                Collection list, search, filter/sort
+│   │   ├── dashboard/                 Stats overview + recently added
+│   │   ├── detail/                    Artwork detail view
+│   │   └── settings/                  PDF export, backup export/import, about
+│   └── util/
+│       ├── BackupExporter.kt          Zip backup creation
+│       ├── BackupImporter.kt          Zip backup restoration
+│       └── PdfExporter.kt             PDF generation
 └── res/
-    ├── layout/
-    │   └── activity_main.xml    # Main screen layout
-    └── values/
-        ├── strings.xml          # Text strings
-        ├── colors.xml           # Colour palette
-        └── themes.xml           # App theme
+    ├── layout/                        XML layouts for all screens
+    ├── navigation/                    Nav graph (Safe Args)
+    ├── values/                        Strings, colours (light), themes
+    ├── values-night/                  Dark mode colour overrides
+    └── xml/
+        └── file_paths.xml             FileProvider path configuration
+doc/
+├── architecture.md                    Architecture overview and design decisions
+├── requirements.md                    Functional and non-functional requirements
+└── designs/                           Per-screen wireframes and design system
 ```
+
+See [`doc/architecture.md`](doc/architecture.md) for a detailed description of the MVVM architecture, data flow, and key design decisions.
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [`doc/architecture.md`](doc/architecture.md) | Architecture, tech stack, data flow, design decisions |
+| [`doc/requirements.md`](doc/requirements.md) | Functional and non-functional requirements |
+| [`doc/designs/design-system.md`](doc/designs/design-system.md) | Colour palette (light + dark), typography, components |
+| [`doc/designs/screen-settings.md`](doc/designs/screen-settings.md) | Settings screen wireframe and backup behaviour |
+
+## License
+
+Copyright (C) 2026 Cythraul89
+
+This program is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License** as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but **without any warranty**; without even the implied warranty of merchantability or fitness for a particular purpose. See the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.html) for more details.

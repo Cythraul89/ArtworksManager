@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.*
 import android.graphics.pdf.PdfDocument
+import android.media.ExifInterface
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.example.artworksmanager.data.Artwork
@@ -39,6 +40,25 @@ class PdfExporter(private val context: Context) {
         context.startActivity(Intent.createChooser(intent, "Export collection"))
     }
 
+    /** Decodes [path] and rotates the bitmap to match its EXIF orientation tag. */
+    private fun loadOrientedBitmap(path: String): Bitmap? {
+        val bmp = BitmapFactory.decodeFile(path) ?: return null
+        val degrees = when (
+            ExifInterface(path).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
+            )
+        ) {
+            ExifInterface.ORIENTATION_ROTATE_90  -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else                                 -> 0f
+        }
+        if (degrees == 0f) return bmp
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+            .also { bmp.recycle() }
+    }
+
     private fun generate(artworks: List<Artwork>): File {
         val doc = PdfDocument()
         artworks.forEachIndexed { idx, artwork -> renderPage(doc, artwork, idx + 1) }
@@ -58,7 +78,7 @@ class PdfExporter(private val context: Context) {
 
         // Photo
         if (a.photoPath.isNotEmpty()) {
-            val bmp = BitmapFactory.decodeFile(a.photoPath)
+            val bmp = loadOrientedBitmap(a.photoPath)
             if (bmp != null) {
                 val maxH = 220f
                 val scale = minOf(maxH / bmp.height, (pageWidth - margin * 2) / bmp.width)
