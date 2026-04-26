@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/dashboardFragment">
+
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.example.artworksmanager.ui.dashboard.DashboardFragment"
+        android:label="@string/nav_dashboard"
+        tools:layout="@layout/fragment_dashboard">
+        <action
+            android:id="@+id/action_dashboard_to_addEdit"
+            app:destination="@id/addEditFragment" />
+        <action
+            android:id="@+id/action_dashboard_to_detail"
+            app:destination="@id/artworkDetailFragment" />
+        <action
+            android:id="@+id/action_dashboard_to_collection"
+            app:destination="@id/collectionFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/collectionFragment"
+        android:name="com.example.artworksmanager.ui.collection.CollectionFragment"
+        android:label="@string/nav_collection"
+        tools:layout="@layout/fragment_collection">
+        <argument
+            android:name="filterMedium"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="filterArtist"
+            android:defaultValue=""
+            app:argType="string" />
+        <action
+            android:id="@+id/action_collection_to_detail"
+            app:destination="@id/artworkDetailFragment" />
+        <action
+            android:id="@+id/action_collection_to_addEdit"
+            app:destination="@id/addEditFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/artworkDetailFragment"
+        android:name="com.example.artworksmanager.ui.detail.ArtworkDetailFragment"
+        android:label="@string/nav_collection"
+        tools:layout="@layout/fragment_artwork_detail">
+        <argument
+            android:name="artworkId"
+            app:argType="integer" />
+        <action
+            android:id="@+id/action_detail_to_addEdit"
+            app:destination="@id/addEditFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addEditFragment"
+        android:name="com.example.artworksmanager.ui.addedit.AddEditFragment"
+        android:label="@string/add_artwork_title"
+        tools:layout="@layout/fragment_add_edit">
+        <argument
+            android:name="artworkId"
+            android:defaultValue="0"
+            app:argType="integer" />
+        <action
+            android:id="@+id/action_addEdit_to_detail"
+            app:destination="@id/artworkDetailFragment"
+            app:popUpTo="@id/addEditFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.artworksmanager.ui.settings.SettingsFragment"
+        android:label="@string/nav_settings"
+        tools:layout="@layout/fragment_settings" />
+
+</navigation>
