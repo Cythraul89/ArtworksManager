@@ -91,7 +91,7 @@ class SettingsFragment : Fragment() {
         createBackupDocument.launch("artworks_backup_$timestamp.zip")
     }
 
-    /** Writes the backup zip to the SAF [uri] chosen by the user. */
+    /** Fetches artworks and writes the backup zip to the SAF [uri] chosen by the user. */
     private fun writeBackupToUri(uri: Uri) {
         binding.backupProgress.visibility = View.VISIBLE
         binding.backupExportRow.isEnabled = false
@@ -99,9 +99,8 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             try {
-                withContext(Dispatchers.IO) {
-                    BackupExporter(ctx).writeTo(uri)
-                }
+                val artworks = withContext(Dispatchers.IO) { viewModel.loadArtworksNow() }
+                withContext(Dispatchers.IO) { BackupExporter(ctx).writeTo(uri, artworks) }
                 Toast.makeText(ctx, R.string.backup_success, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(ctx, R.string.backup_error, Toast.LENGTH_SHORT).show()
