@@ -3,6 +3,7 @@ package com.example.artworksmanager.ui.addedit
 import android.net.Uri
 import android.os.Bundle
 import android.view.*
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -146,7 +147,7 @@ class AddEditFragment : Fragment() {
     }
 
     private fun launchGallery() {
-        pickMedia.launch(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)
+        pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
 
     private fun launchCamera() {
