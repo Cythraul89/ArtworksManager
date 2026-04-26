@@ -75,7 +75,7 @@
     <string name="nextcloud_backup">Nextcloud backup</string>
     <string name="nextcloud_coming_soon">Nextcloud integration coming soon</string>
     <string name="about">About</string>
-    <string name="app_version">App version 1.0.0</string>
+    <string name="app_version">App version 0.0.1</string>
     <string name="export_generating">Generating PDF…</string>
     <string name="export_error">Could not generate PDF</string>
 
