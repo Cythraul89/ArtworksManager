@@ -21,6 +21,10 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Fragment that displays all fields of a single artwork and provides toolbar actions
+ * to edit or delete it.
+ */
 class ArtworkDetailFragment : Fragment() {
 
     private var _binding: FragmentArtworkDetailBinding? = null
@@ -59,6 +63,7 @@ class ArtworkDetailFragment : Fragment() {
         }
     }
 
+    /** Populates every visible field and hides rows whose data is empty. */
     private fun bindArtwork(a: Artwork) {
         binding.toolbar.title = a.title
         binding.title.text  = a.title
@@ -111,6 +116,7 @@ class ArtworkDetailFragment : Fragment() {
         )
     }
 
+    /** Shows a confirmation dialog before permanently deleting the current artwork. */
     private fun showDeleteDialog() {
         val artwork = viewModel.artwork.value ?: return
         MaterialAlertDialogBuilder(requireContext())

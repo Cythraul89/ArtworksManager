@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
+/**
+ * ViewModel for [DashboardFragment] that exposes aggregated collection statistics
+ * and the recent-artworks carousel as observable state flows.
+ */
 class DashboardViewModel(private val repository: ArtworkRepository) : ViewModel() {
 
     val totalCount: StateFlow<Int> = repository.getCount()

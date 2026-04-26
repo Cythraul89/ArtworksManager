@@ -10,6 +10,10 @@ import com.example.artworksmanager.data.Artwork
 import com.example.artworksmanager.databinding.ItemRecentArtworkBinding
 import java.io.File
 
+/**
+ * Horizontal-carousel adapter for the dashboard's recent-artworks strip.
+ * Each card shows the artwork photo and title; tapping fires [onClick].
+ */
 class RecentArtworkAdapter(private val onClick: (Artwork) -> Unit) :
     ListAdapter<Artwork, RecentArtworkAdapter.ViewHolder>(DIFF) {
 

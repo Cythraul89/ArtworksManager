@@ -12,6 +12,10 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Generates a single-page-per-artwork A4 PDF of the collection and exposes it
+ * via a [FileProvider] URI ready for sharing.
+ */
 class PdfExporter(private val context: Context) {
 
     private val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
@@ -19,11 +23,13 @@ class PdfExporter(private val context: Context) {
     private val pageHeight = 842
     private val margin     = 40f
 
+    /** Generates the PDF for [artworks] and returns a [FileProvider] URI pointing to it. */
     fun generateUri(artworks: List<Artwork>): Uri {
         val file = generate(artworks)
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }
 
+    /** Opens the system share chooser for the given PDF [uri]. */
     fun share(uri: Uri) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"

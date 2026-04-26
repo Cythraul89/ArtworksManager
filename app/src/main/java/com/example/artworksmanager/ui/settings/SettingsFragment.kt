@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Fragment for the settings screen, providing PDF export and a placeholder for
+ * future Nextcloud sync integration.
+ */
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
@@ -44,6 +48,7 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    /** Fetches all artworks, generates a PDF via [PdfExporter], and opens the system share sheet. */
     private fun exportPdf() {
         binding.exportProgress.visibility = View.VISIBLE
         binding.exportRow.isEnabled = false
@@ -78,6 +83,10 @@ class SettingsFragment : Fragment() {
     }
 }
 
+/**
+ * ViewModel for [SettingsFragment] that provides a one-shot artwork query
+ * used to populate the PDF export.
+ */
 class SettingsViewModel(private val repository: ArtworkRepository) : ViewModel() {
 
     /** One-shot DB read — suspends until Room emits the first result. */
