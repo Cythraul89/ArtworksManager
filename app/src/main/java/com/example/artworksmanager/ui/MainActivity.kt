@@ -27,7 +27,9 @@ class MainActivity : AppCompatActivity() {
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             binding.navHostFragment.updatePadding(top = bars.top)
             binding.bottomNav.updatePadding(bottom = bars.bottom)
-            WindowInsetsCompat.CONSUMED
+            // Return insets (not CONSUMED) so IME insets propagate to fragments
+            // where individual scroll views can adjust their bottom padding.
+            insets
         }
 
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
