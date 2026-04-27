@@ -94,6 +94,7 @@ See [`doc/architecture.md`](doc/architecture.md) for a detailed description of t
 | Document | Description |
 |----------|-------------|
 | [`doc/architecture.md`](doc/architecture.md) | Architecture, tech stack, data flow, design decisions |
+| [`doc/class-diagram.md`](doc/class-diagram.md) | Mermaid class diagram of all classes and relationships |
 | [`doc/requirements.md`](doc/requirements.md) | Functional and non-functional requirements |
 | [`doc/designs/design-system.md`](doc/designs/design-system.md) | Colour palette (light + dark), typography, components |
 | [`doc/designs/screen-settings.md`](doc/designs/screen-settings.md) | Settings screen wireframe and backup behaviour |
