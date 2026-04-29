@@ -33,7 +33,7 @@ Access app-level actions: exporting the collection as PDF, exporting and importi
 │                                 │
 │  ABOUT                          │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │  Version              0.0.2 │ │
+│ │  Version              0.0.3 │ │
 │ ├─────────────────────────────┤ │
 │ │  License   GNU General      │ │
 │ │            Public License   │ │

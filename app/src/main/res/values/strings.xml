@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Artworks</string>
+    <string name="app_name">AWoMa</string>
 
     <!-- Bottom Nav -->
     <string name="nav_dashboard">Dashboard</string>
@@ -76,7 +76,7 @@
     <string name="nextcloud_coming_soon">Nextcloud integration coming soon</string>
     <string name="about">About</string>
     <string name="app_version_label">Version</string>
-    <string name="app_version_value">0.0.2</string>
+    <string name="app_version_value">0.0.3</string>
     <string name="license_label">License</string>
     <string name="license_value">GNU General Public License v3.0 (GPL-3.0)</string>
     <string name="export_generating">Generating PDF…</string>
