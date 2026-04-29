@@ -9,6 +9,9 @@
 
     <!-- Dashboard -->
     <string name="total_artworks">Total artworks</string>
+    <string name="collection_value">Collection Value</string>
+    <string name="live_rates">live rates</string>
+    <string name="rates_unavailable">Offline – conversion unavailable</string>
     <string name="by_medium">By Medium</string>
     <string name="by_artist">By Artist</string>
     <string name="recently_added">Recently Added</string>

@@ -9,6 +9,9 @@ data class MediumCount(val medium: String, val count: Int)
 /** Projection used by [ArtworkDao.getTopArtists] to group artworks by artist. */
 data class ArtistCount(val artist: String, val count: Int)
 
+/** Projection used by [ArtworkDao.getPriceTotals] to sum purchase prices per currency. */
+data class CurrencyTotal(val currency: String, val total: Double)
+
 /** Room DAO providing all database operations for the [Artwork] entity. */
 @Dao
 interface ArtworkDao {
@@ -36,6 +39,10 @@ interface ArtworkDao {
 
     @Query("SELECT DISTINCT medium FROM artworks WHERE medium != '' ORDER BY medium")
     fun getDistinctMediums(): Flow<List<String>>
+
+    /** Returns the sum of [Artwork.purchasePrice] grouped by [Artwork.currency], highest total first. */
+    @Query("SELECT currency, SUM(purchasePrice) as total FROM artworks WHERE purchasePrice IS NOT NULL GROUP BY currency ORDER BY total DESC")
+    fun getPriceTotals(): Flow<List<CurrencyTotal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(artwork: Artwork): Long
