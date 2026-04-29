@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -52,18 +53,20 @@ class DashboardViewModel(
 
     /**
      * Per-currency price totals. Artworks with an empty currency field are bucketed
-     * under the global preference currency rather than shown as a blank group.
+     * under the current preference currency. Re-evaluates whenever the preference changes.
      */
-    val priceTotals: StateFlow<List<CurrencyTotal>> = repository.getPriceTotals()
-        .map { rawList ->
-            val defaultCode = preferences.currency.code
-            val merged = mutableMapOf<String, Double>()
-            rawList.forEach { ct ->
-                val code = ct.currency.ifEmpty { defaultCode }
-                merged[code] = (merged[code] ?: 0.0) + ct.total
+    val priceTotals: StateFlow<List<CurrencyTotal>> = preferences.currencyFlow
+        .flatMapLatest { currency ->
+            repository.getPriceTotals().map { rawList ->
+                val defaultCode = currency.code
+                val merged = mutableMapOf<String, Double>()
+                rawList.forEach { ct ->
+                    val code = ct.currency.ifEmpty { defaultCode }
+                    merged[code] = (merged[code] ?: 0.0) + ct.total
+                }
+                merged.entries.sortedByDescending { it.value }
+                              .map { CurrencyTotal(it.key, it.value) }
             }
-            merged.entries.sortedByDescending { it.value }
-                          .map { CurrencyTotal(it.key, it.value) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -71,16 +74,20 @@ class DashboardViewModel(
     val valueState: StateFlow<ValueState> = _valueState
 
     init {
-        // Fetch exchange rates once per ViewModel lifetime, then recompute on every
-        // priceTotals emission (collection changes) using the already-fetched rates.
+        // Re-fetch rates and recompute whenever the preference currency changes.
+        // flatMapLatest cancels the previous rate-fetch + collection when the currency changes.
         viewModelScope.launch {
-            val targetCurrency = preferences.currency.code
-            val rates = withContext(Dispatchers.IO) {
-                ExchangeRateService.fetchRates(targetCurrency)
-            }
-            priceTotals.collect { totals ->
-                _valueState.value = computeValueState(totals, targetCurrency, rates)
-            }
+            preferences.currencyFlow
+                .flatMapLatest { currency ->
+                    _valueState.value = ValueState.Loading
+                    val rates = withContext(Dispatchers.IO) {
+                        ExchangeRateService.fetchRates(currency.code)
+                    }
+                    priceTotals.map { totals ->
+                        computeValueState(totals, currency.code, rates)
+                    }
+                }
+                .collect { _valueState.value = it }
         }
     }
 
