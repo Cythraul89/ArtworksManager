@@ -65,6 +65,7 @@ class BackupImporter(private val context: Context) {
                 title       = o.getString("title"),
                 artist      = o.optString("artist", ""),
                 year        = if (o.has("year")) o.getInt("year") else null,
+                type        = o.optString("type", ""),
                 medium      = o.optString("medium", ""),
                 heightCm    = if (o.has("heightCm")) o.getDouble("heightCm").toFloat() else null,
                 widthCm     = if (o.has("widthCm")) o.getDouble("widthCm").toFloat() else null,
@@ -72,6 +73,7 @@ class BackupImporter(private val context: Context) {
                 location    = o.optString("location", ""),
                 acquisitionDate = o.optString("acquisitionDate", "").takeIf { it.isNotEmpty() }
                                     ?.let { dateFmt.parse(it)?.time },
+                currency        = o.optString("currency", ""),
                 purchasePrice   = if (o.has("purchasePrice")) o.getDouble("purchasePrice") else null,
                 description = o.optString("description", ""),
                 photoPath   = o.optString("photo", "").let { photos[it]?.absolutePath ?: "" },

@@ -64,6 +64,10 @@
                     android:background="@color/divider"
                     android:layout_marginBottom="16dp" />
 
+                <!-- Type -->
+                <TextView android:id="@+id/labelType" style="@style/FieldLabel" android:text="@string/type" />
+                <TextView android:id="@+id/valueType" style="@style/FieldValue" />
+
                 <!-- Medium -->
                 <TextView android:id="@+id/labelMedium" style="@style/FieldLabel" android:text="@string/medium" />
                 <TextView android:id="@+id/valueMedium" style="@style/FieldValue" />

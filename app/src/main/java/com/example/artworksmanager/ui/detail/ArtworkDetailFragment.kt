@@ -12,6 +12,7 @@ import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.data.AppPreferences
+import com.example.artworksmanager.data.Currency
 import com.example.artworksmanager.R
 import com.example.artworksmanager.data.Artwork
 import com.example.artworksmanager.databinding.FragmentArtworkDetailBinding
@@ -87,6 +88,7 @@ class ArtworkDetailFragment : Fragment() {
             value.text = text
         }
 
+        row(binding.labelType,        binding.valueType,        a.type)
         row(binding.labelMedium,      binding.valueMedium,      a.medium)
         row(binding.labelLocation,    binding.valueLocation,    a.location)
         row(binding.labelDescription, binding.valueDescription, a.description)
@@ -99,7 +101,8 @@ class ArtworkDetailFragment : Fragment() {
         }
         row(binding.labelDimensions, binding.valueDimensions, dims)
 
-        val symbol = AppPreferences(requireContext()).currency.symbol
+        val symbol = if (a.currency.isNotEmpty()) Currency.fromCode(a.currency).symbol
+                     else AppPreferences(requireContext()).currency.symbol
         val acq = buildString {
             if (a.acquisitionDate != null) {
                 append(SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(a.acquisitionDate)))

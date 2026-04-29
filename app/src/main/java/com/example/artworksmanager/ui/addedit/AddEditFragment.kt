@@ -24,6 +24,7 @@ import com.bumptech.glide.Glide
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.databinding.FragmentAddEditBinding
 import com.example.artworksmanager.data.AppPreferences
+import com.example.artworksmanager.data.Currency
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -85,12 +86,18 @@ class AddEditFragment : Fragment() {
             insets
         }
 
-        val prefs = AppPreferences(requireContext())
-        binding.priceLayout.prefixText = prefs.currency.symbol
-
         val isEdit = args.artworkId != 0
         binding.toolbar.title = if (isEdit) "Edit Artwork" else "Add Artwork"
         binding.toolbar.setNavigationOnClickListener { confirmDiscard() }
+
+        // Type dropdown
+        binding.typeAutoComplete.setAdapter(
+            android.widget.ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_list_item_1,
+                resources.getStringArray(com.example.artworksmanager.R.array.artwork_types)
+            )
+        )
 
         // Medium dropdown
         val adapter = android.widget.ArrayAdapter(
@@ -99,6 +106,22 @@ class AddEditFragment : Fragment() {
             resources.getStringArray(com.example.artworksmanager.R.array.mediums)
         )
         binding.mediumAutoComplete.setAdapter(adapter)
+
+        // Currency dropdown — default to global preference for new artworks
+        val currencies = Currency.entries.toList()
+        binding.currencyAutoComplete.setAdapter(
+            android.widget.ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_list_item_1,
+                currencies.map { it.code }.toTypedArray()
+            )
+        )
+        val defaultCurrency = AppPreferences(requireContext()).currency
+        binding.currencyAutoComplete.setText(defaultCurrency.code, false)
+        binding.priceLayout.prefixText = defaultCurrency.symbol
+        binding.currencyAutoComplete.setOnItemClickListener { _, _, position, _ ->
+            binding.priceLayout.prefixText = currencies[position].symbol
+        }
 
         // Photo picker
         binding.photoCard.setOnClickListener { showPhotoSourceDialog() }
@@ -145,6 +168,7 @@ class AddEditFragment : Fragment() {
         binding.titleInput.setText(a.title)
         binding.artistInput.setText(a.artist)
         binding.yearInput.setText(a.year?.toString() ?: "")
+        if (a.type.isNotEmpty()) binding.typeAutoComplete.setText(a.type, false)
         binding.mediumAutoComplete.setText(a.medium, false)
         binding.heightInput.setText(a.heightCm?.toString() ?: "")
         binding.widthInput.setText(a.widthCm?.toString() ?: "")
@@ -152,6 +176,10 @@ class AddEditFragment : Fragment() {
         binding.locationInput.setText(a.location)
         binding.priceInput.setText(a.purchasePrice?.toString() ?: "")
         binding.descriptionInput.setText(a.description)
+        val artworkCurrency = if (a.currency.isNotEmpty()) Currency.fromCode(a.currency)
+                              else AppPreferences(requireContext()).currency
+        binding.currencyAutoComplete.setText(artworkCurrency.code, false)
+        binding.priceLayout.prefixText = artworkCurrency.symbol
         if (a.acquisitionDate != null) {
             selectedDateMs = a.acquisitionDate
             binding.acquisitionDateInput.setText(
@@ -247,12 +275,14 @@ class AddEditFragment : Fragment() {
             title        = title,
             artist       = binding.artistInput.text?.toString()?.trim() ?: "",
             year         = binding.yearInput.text?.toString()?.toIntOrNull(),
+            type         = binding.typeAutoComplete.text?.toString()?.trim() ?: "",
             medium       = binding.mediumAutoComplete.text?.toString()?.trim() ?: "",
             heightCm     = binding.heightInput.text?.toString()?.toFloatOrNull(),
             widthCm      = binding.widthInput.text?.toString()?.toFloatOrNull(),
             depthCm      = binding.depthInput.text?.toString()?.toFloatOrNull(),
             location     = binding.locationInput.text?.toString()?.trim() ?: "",
             acquisitionDate = selectedDateMs,
+            currency     = binding.currencyAutoComplete.text?.toString()?.trim() ?: "",
             purchasePrice   = binding.priceInput.text?.toString()?.toDoubleOrNull(),
             description  = binding.descriptionInput.text?.toString()?.trim() ?: "",
             photoPath    = currentPhotoPath

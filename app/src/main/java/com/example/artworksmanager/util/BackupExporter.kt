@@ -50,12 +50,14 @@ class BackupExporter(private val context: Context) {
                 put("title", artwork.title)
                 put("artist", artwork.artist)
                 artwork.year?.let { put("year", it) }
+                if (artwork.type.isNotEmpty()) put("type", artwork.type)
                 put("medium", artwork.medium)
                 artwork.heightCm?.let { put("heightCm", it) }
                 artwork.widthCm?.let { put("widthCm", it) }
                 artwork.depthCm?.let { put("depthCm", it) }
                 put("location", artwork.location)
                 artwork.acquisitionDate?.let { put("acquisitionDate", dateFmt.format(Date(it))) }
+                if (artwork.currency.isNotEmpty()) put("currency", artwork.currency)
                 artwork.purchasePrice?.let { put("purchasePrice", it) }
                 put("description", artwork.description)
                 if (artwork.photoPath.isNotEmpty()) put("photo", File(artwork.photoPath).name)

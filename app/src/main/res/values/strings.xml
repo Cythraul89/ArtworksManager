@@ -49,13 +49,15 @@
     <string name="field_title">Title *</string>
     <string name="field_artist">Artist name</string>
     <string name="field_year">Year</string>
+    <string name="field_type">Type</string>
     <string name="field_medium">Medium / Technique</string>
+    <string name="field_currency">Currency</string>
     <string name="field_height">Height (cm)</string>
     <string name="field_width">Width (cm)</string>
     <string name="field_depth">Depth (cm)</string>
     <string name="field_location">Location</string>
     <string name="field_acquisition_date">Acquisition date</string>
-    <string name="field_price">Purchase price (€)</string>
+    <string name="field_price">Purchase price</string>
     <string name="field_description">Description / Notes</string>
     <string name="save_artwork">Save Artwork</string>
     <string name="error_title_required">Title is required</string>
@@ -99,6 +101,22 @@
     <string name="import_success">Imported %d artworks</string>
     <string name="import_error">Could not import backup</string>
 
+    <!-- Artwork types array -->
+    <string-array name="artwork_types">
+        <item>Painting</item>
+        <item>Drawing</item>
+        <item>Photography</item>
+        <item>Sculpture</item>
+        <item>Print</item>
+        <item>Book</item>
+        <item>Textile</item>
+        <item>Ceramics</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Detail labels -->
+    <string name="type">Type</string>
+
     <!-- Mediums array -->
     <string-array name="mediums">
         <item>Oil</item>
@@ -111,6 +129,7 @@
         <item>Photograph</item>
         <item>Digital</item>
         <item>Mixed media</item>
+        <item>Book</item>
         <item>Other</item>
     </string-array>
 </resources>
