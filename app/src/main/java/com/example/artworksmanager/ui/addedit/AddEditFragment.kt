@@ -60,7 +60,7 @@ class AddEditFragment : Fragment() {
     private val photosToDelete = mutableListOf<ArtworkPhoto>()
     private var pickingAdditionalPhoto = false
 
-    private val additionalPhotoAdapter = AdditionalPhotoAdapter { position ->
+    private val additionalPhotoAdapter: AdditionalPhotoAdapter = AdditionalPhotoAdapter { position ->
         val (record, _) = photoItems.removeAt(position)
         additionalPhotoAdapter.removeAt(position)
         if (record != null) photosToDelete.add(record)
