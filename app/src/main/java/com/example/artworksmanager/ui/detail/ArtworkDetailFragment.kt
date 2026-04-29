@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.data.AppPreferences
@@ -16,6 +17,7 @@ import com.example.artworksmanager.data.Currency
 import com.example.artworksmanager.R
 import com.example.artworksmanager.data.Artwork
 import com.example.artworksmanager.databinding.FragmentArtworkDetailBinding
+import com.example.artworksmanager.ui.addedit.AdditionalPhotoAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
@@ -38,6 +40,8 @@ class ArtworkDetailFragment : Fragment() {
         ArtworkDetailViewModel.factory((requireActivity().application as ArtworksManagerApp).repository)
     }
 
+    private val additionalPhotoAdapter = AdditionalPhotoAdapter()
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentArtworkDetailBinding.inflate(inflater, container, false)
         return binding.root
@@ -47,6 +51,10 @@ class ArtworkDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         viewModel.load(args.artworkId.toLong())
+
+        binding.additionalPhotosRecycler.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.additionalPhotosRecycler.adapter = additionalPhotoAdapter
 
         binding.toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
         binding.toolbar.setOnMenuItemClickListener { item ->
@@ -60,7 +68,15 @@ class ArtworkDetailFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.artwork.collect { artwork -> artwork?.let { bindArtwork(it) } }
+                launch { viewModel.artwork.collect { artwork -> artwork?.let { bindArtwork(it) } } }
+                launch {
+                    viewModel.additionalPhotos.collect { photos ->
+                        val paths = photos.map { it.photoPath }
+                        additionalPhotoAdapter.submitList(paths)
+                        binding.additionalPhotosRecycler.visibility =
+                            if (paths.isEmpty()) View.GONE else View.VISIBLE
+                    }
+                }
             }
         }
     }

@@ -20,10 +20,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.databinding.FragmentAddEditBinding
 import com.example.artworksmanager.data.AppPreferences
+import com.example.artworksmanager.data.ArtworkPhoto
 import com.example.artworksmanager.data.Currency
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -52,14 +54,37 @@ class AddEditFragment : Fragment() {
     private var selectedDateMs: Long? = null
     private var pendingCameraPath = ""
 
+    // Additional photos state
+    // Each entry: existing DB record (null for newly added) paired with its local path.
+    private val photoItems = mutableListOf<Pair<ArtworkPhoto?, String>>()
+    private val photosToDelete = mutableListOf<ArtworkPhoto>()
+    private var pickingAdditionalPhoto = false
+
+    private val additionalPhotoAdapter = AdditionalPhotoAdapter { position ->
+        val (record, _) = photoItems.removeAt(position)
+        additionalPhotoAdapter.removeAt(position)
+        if (record != null) photosToDelete.add(record)
+    }
+
     private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { copyAndSetPhoto(it) }
+        uri?.let {
+            if (pickingAdditionalPhoto) { pickingAdditionalPhoto = false; addAdditionalPhotoFromUri(it) }
+            else copyAndSetPhoto(it)
+        }
     }
 
     private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && pendingCameraPath.isNotEmpty()) {
-            currentPhotoPath = pendingCameraPath
-            showPhotoPreview(currentPhotoPath)
+            val path = pendingCameraPath
+            pendingCameraPath = ""
+            if (pickingAdditionalPhoto) {
+                pickingAdditionalPhoto = false
+                photoItems.add(Pair(null, path))
+                additionalPhotoAdapter.addPhoto(path)
+            } else {
+                currentPhotoPath = path
+                showPhotoPreview(currentPhotoPath)
+            }
         }
     }
 
@@ -78,11 +103,9 @@ class AddEditFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Adjust scroll view bottom padding as the keyboard appears / disappears
-        // so the focused field is never hidden behind the keyboard.
-        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollView) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollView) { v, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            view.updatePadding(bottom = imeBottom)
+            v.updatePadding(bottom = imeBottom)
             insets
         }
 
@@ -93,26 +116,24 @@ class AddEditFragment : Fragment() {
         // Type dropdown
         binding.typeAutoComplete.setAdapter(
             android.widget.ArrayAdapter(
-                requireContext(),
-                android.R.layout.simple_list_item_1,
+                requireContext(), android.R.layout.simple_list_item_1,
                 resources.getStringArray(com.example.artworksmanager.R.array.artwork_types)
             )
         )
 
         // Medium dropdown
-        val adapter = android.widget.ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_list_item_1,
-            resources.getStringArray(com.example.artworksmanager.R.array.mediums)
+        binding.mediumAutoComplete.setAdapter(
+            android.widget.ArrayAdapter(
+                requireContext(), android.R.layout.simple_list_item_1,
+                resources.getStringArray(com.example.artworksmanager.R.array.mediums)
+            )
         )
-        binding.mediumAutoComplete.setAdapter(adapter)
 
-        // Currency dropdown — default to global preference for new artworks
+        // Currency dropdown
         val currencies = Currency.entries.toList()
         binding.currencyAutoComplete.setAdapter(
             android.widget.ArrayAdapter(
-                requireContext(),
-                android.R.layout.simple_list_item_1,
+                requireContext(), android.R.layout.simple_list_item_1,
                 currencies.map { it.code }.toTypedArray()
             )
         )
@@ -123,28 +144,39 @@ class AddEditFragment : Fragment() {
             binding.priceLayout.prefixText = currencies[position].symbol
         }
 
-        // Photo picker
-        binding.photoCard.setOnClickListener { showPhotoSourceDialog() }
+        // Main photo picker
+        binding.photoCard.setOnClickListener { showPhotoSourceDialog(forAdditional = false) }
+
+        // Additional photos RecyclerView
+        binding.additionalPhotosRecycler.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.additionalPhotosRecycler.adapter = additionalPhotoAdapter
+
+        // Add more photos button
+        binding.addMorePhotosButton.setOnClickListener { showPhotoSourceDialog(forAdditional = true) }
 
         // Date picker
         binding.acquisitionDateInput.setOnClickListener { showDatePicker() }
         binding.acquisitionDateLayout.setEndIconOnClickListener { showDatePicker() }
 
-        // Save
         binding.saveButton.setOnClickListener { trySave() }
 
         if (isEdit) {
             viewModel.load(args.artworkId.toLong())
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    viewModel.artwork.collect { artwork ->
-                        artwork?.let { prefill(it) }
+                    launch { viewModel.artwork.collect { it?.let { a -> prefill(a) } } }
+                    launch {
+                        viewModel.additionalPhotos.collect { photos ->
+                            photoItems.clear()
+                            photoItems.addAll(photos.map { Pair(it, it.photoPath) })
+                            additionalPhotoAdapter.submitList(photoItems.map { it.second })
+                        }
                     }
                 }
             }
         }
 
-        // Navigate after save
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.savedId.collect { id ->
@@ -192,7 +224,8 @@ class AddEditFragment : Fragment() {
         }
     }
 
-    private fun showPhotoSourceDialog() {
+    private fun showPhotoSourceDialog(forAdditional: Boolean) {
+        pickingAdditionalPhoto = forAdditional
         MaterialAlertDialogBuilder(requireContext())
             .setItems(arrayOf(
                 getString(com.example.artworksmanager.R.string.take_photo),
@@ -205,11 +238,8 @@ class AddEditFragment : Fragment() {
 
     private fun checkCameraPermissionAndLaunch() {
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) {
-            launchCamera()
-        } else {
-            requestCameraPermission.launch(Manifest.permission.CAMERA)
-        }
+            == PackageManager.PERMISSION_GRANTED) launchCamera()
+        else requestCameraPermission.launch(Manifest.permission.CAMERA)
     }
 
     private fun launchGallery() {
@@ -221,9 +251,7 @@ class AddEditFragment : Fragment() {
             .also { it.parentFile?.mkdirs() }
         pendingCameraPath = photoFile.absolutePath
         val uri = FileProvider.getUriForFile(
-            requireContext(),
-            "${requireContext().packageName}.fileprovider",
-            photoFile
+            requireContext(), "${requireContext().packageName}.fileprovider", photoFile
         )
         takePicture.launch(uri)
     }
@@ -236,6 +264,17 @@ class AddEditFragment : Fragment() {
         }
         currentPhotoPath = dest.absolutePath
         showPhotoPreview(currentPhotoPath)
+    }
+
+    private fun addAdditionalPhotoFromUri(sourceUri: Uri) {
+        val dest = File(requireContext().filesDir, "artworks/${System.currentTimeMillis()}.jpg")
+            .also { it.parentFile?.mkdirs() }
+        requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
+            FileOutputStream(dest).use { out -> input.copyTo(out) }
+        }
+        val path = dest.absolutePath
+        photoItems.add(Pair(null, path))
+        additionalPhotoAdapter.addPhoto(path)
     }
 
     private fun showPhotoPreview(path: String) {
@@ -260,7 +299,7 @@ class AddEditFragment : Fragment() {
             .show(parentFragmentManager, "date_picker")
     }
 
-    /** Validates the form and, if valid, delegates persistence to the ViewModel. */
+    /** Validates the form and delegates persistence to the ViewModel. */
     private fun trySave() {
         val title = binding.titleInput.text?.toString()?.trim() ?: ""
         if (title.isEmpty()) {
@@ -271,21 +310,23 @@ class AddEditFragment : Fragment() {
         binding.titleLayout.error = null
 
         viewModel.save(
-            id           = args.artworkId.toLong(),
-            title        = title,
-            artist       = binding.artistInput.text?.toString()?.trim() ?: "",
-            year         = binding.yearInput.text?.toString()?.toIntOrNull(),
-            type         = binding.typeAutoComplete.text?.toString()?.trim() ?: "",
-            medium       = binding.mediumAutoComplete.text?.toString()?.trim() ?: "",
-            heightCm     = binding.heightInput.text?.toString()?.toFloatOrNull(),
-            widthCm      = binding.widthInput.text?.toString()?.toFloatOrNull(),
-            depthCm      = binding.depthInput.text?.toString()?.toFloatOrNull(),
-            location     = binding.locationInput.text?.toString()?.trim() ?: "",
+            id              = args.artworkId.toLong(),
+            title           = title,
+            artist          = binding.artistInput.text?.toString()?.trim() ?: "",
+            year            = binding.yearInput.text?.toString()?.toIntOrNull(),
+            type            = binding.typeAutoComplete.text?.toString()?.trim() ?: "",
+            medium          = binding.mediumAutoComplete.text?.toString()?.trim() ?: "",
+            heightCm        = binding.heightInput.text?.toString()?.toFloatOrNull(),
+            widthCm         = binding.widthInput.text?.toString()?.toFloatOrNull(),
+            depthCm         = binding.depthInput.text?.toString()?.toFloatOrNull(),
+            location        = binding.locationInput.text?.toString()?.trim() ?: "",
             acquisitionDate = selectedDateMs,
-            currency     = binding.currencyAutoComplete.text?.toString()?.trim() ?: "",
+            currency        = binding.currencyAutoComplete.text?.toString()?.trim() ?: "",
             purchasePrice   = binding.priceInput.text?.toString()?.toDoubleOrNull(),
-            description  = binding.descriptionInput.text?.toString()?.trim() ?: "",
-            photoPath    = currentPhotoPath
+            description     = binding.descriptionInput.text?.toString()?.trim() ?: "",
+            photoPath       = currentPhotoPath,
+            photosToDelete  = photosToDelete.toList(),
+            newPhotoPaths   = photoItems.filter { it.first == null }.map { it.second }
         )
     }
 

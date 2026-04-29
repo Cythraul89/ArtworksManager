@@ -22,5 +22,12 @@ class ArtworkRepository(private val dao: ArtworkDao) {
     suspend fun delete(artwork: Artwork) = dao.delete(artwork)
 
     /** Atomically replaces the entire collection — used by backup import. */
-    suspend fun replaceAll(artworks: List<Artwork>) = dao.replaceAll(artworks)
+    suspend fun replaceAll(artworks: List<Artwork>, photos: List<ArtworkPhoto> = emptyList()) =
+        dao.replaceAll(artworks, photos)
+
+    fun getAdditionalPhotos(artworkId: Long): Flow<List<ArtworkPhoto>> = dao.getPhotosForArtwork(artworkId)
+    suspend fun getAllPhotosNow(): Map<Long, List<ArtworkPhoto>> =
+        dao.getAllPhotosOnce().groupBy { it.artworkId }
+    suspend fun addPhoto(photo: ArtworkPhoto): Long = dao.insertPhoto(photo)
+    suspend fun deletePhoto(photo: ArtworkPhoto) = dao.deletePhoto(photo)
 }

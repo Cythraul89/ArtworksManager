@@ -72,6 +72,8 @@
     <string name="take_photo">Take photo</string>
     <string name="choose_gallery">Choose from gallery</string>
     <string name="dimensions_label">Dimensions</string>
+    <string name="additional_photos_label">Additional Photos</string>
+    <string name="add_more_photos">Add more photos</string>
 
     <!-- Settings — Preferences -->
     <string name="pref_section">PREFERENCES</string>

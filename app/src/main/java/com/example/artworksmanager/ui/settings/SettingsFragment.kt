@@ -18,6 +18,7 @@ import com.example.artworksmanager.data.AppPreferences
 import com.example.artworksmanager.data.ArtworkRepository
 import com.example.artworksmanager.data.Currency
 import com.example.artworksmanager.databinding.FragmentSettingsBinding
+import com.example.artworksmanager.data.ArtworkPhoto
 import com.example.artworksmanager.util.BackupExporter
 import com.example.artworksmanager.util.BackupImporter
 import com.example.artworksmanager.util.PdfExporter
@@ -131,7 +132,8 @@ class SettingsFragment : Fragment() {
             val ctx = requireContext()
             try {
                 val artworks = withContext(Dispatchers.IO) { viewModel.loadArtworksNow() }
-                withContext(Dispatchers.IO) { BackupExporter(ctx).writeTo(uri, artworks) }
+                val photosByArtwork = withContext(Dispatchers.IO) { viewModel.loadAllPhotosNow() }
+                withContext(Dispatchers.IO) { BackupExporter(ctx).writeTo(uri, artworks, photosByArtwork) }
                 Toast.makeText(ctx, R.string.backup_success, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(ctx, R.string.backup_error, Toast.LENGTH_SHORT).show()
@@ -159,11 +161,11 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             try {
-                val artworks = withContext(Dispatchers.IO) { BackupImporter(ctx).importFrom(uri) }
-                withContext(Dispatchers.IO) { viewModel.replaceAll(artworks) }
+                val data = withContext(Dispatchers.IO) { BackupImporter(ctx).importFrom(uri) }
+                withContext(Dispatchers.IO) { viewModel.replaceAll(data.artworks, data.photos) }
                 Toast.makeText(
                     ctx,
-                    ctx.getString(R.string.import_success, artworks.size),
+                    ctx.getString(R.string.import_success, data.artworks.size),
                     Toast.LENGTH_SHORT
                 ).show()
             } catch (e: Exception) {
@@ -189,9 +191,12 @@ class SettingsViewModel(private val repository: ArtworkRepository) : ViewModel()
     /** One-shot DB read — suspends until Room emits the first result. */
     suspend fun loadArtworksNow() = repository.getAllArtworks().first()
 
-    /** Atomically clears the collection and inserts [artworks]. */
-    suspend fun replaceAll(artworks: List<com.example.artworksmanager.data.Artwork>) =
-        repository.replaceAll(artworks)
+    /** One-shot read of all additional photos grouped by artwork id. */
+    suspend fun loadAllPhotosNow(): Map<Long, List<ArtworkPhoto>> = repository.getAllPhotosNow()
+
+    /** Atomically clears the collection and inserts [artworks] and their [photos]. */
+    suspend fun replaceAll(artworks: List<com.example.artworksmanager.data.Artwork>, photos: List<ArtworkPhoto> = emptyList()) =
+        repository.replaceAll(artworks, photos)
 
     companion object {
         fun factory(repository: ArtworkRepository) = object : ViewModelProvider.Factory {

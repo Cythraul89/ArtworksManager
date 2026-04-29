@@ -3,6 +3,7 @@ package com.example.artworksmanager.util
 import android.content.Context
 import android.net.Uri
 import com.example.artworksmanager.data.Artwork
+import com.example.artworksmanager.data.ArtworkPhoto
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -10,22 +11,23 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.zip.ZipInputStream
 
+data class BackupData(val artworks: List<Artwork>, val photos: List<ArtworkPhoto>)
+
 /**
- * Reads a backup zip produced by [BackupExporter] and returns a list of [Artwork] objects
- * with photos extracted to [Context.getFilesDir]/artworks/.
+ * Reads a backup zip produced by [BackupExporter] and returns a [BackupData] with artworks
+ * and their additional photos, with all photo paths pointing to extracted local files.
  */
 class BackupImporter(private val context: Context) {
 
     /**
-     * Reads the backup zip at [uri], extracts photos, and returns the parsed artworks
-     * with [Artwork.photoPath] pointing to the newly extracted local files.
+     * Reads the backup zip at [uri], extracts photos, and returns the parsed data.
      * Must be called from a background thread.
      */
-    fun importFrom(uri: Uri): List<Artwork> {
+    fun importFrom(uri: Uri): BackupData {
         val photosDir = File(context.filesDir, "artworks").also { it.mkdirs() }
 
         var jsonBytes: ByteArray? = null
-        val extractedPhotos = mutableMapOf<String, File>() // filename → local file
+        val extractedPhotos = mutableMapOf<String, File>()
 
         context.contentResolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input.buffered()).use { zis ->
@@ -50,18 +52,22 @@ class BackupImporter(private val context: Context) {
         val json = jsonBytes?.toString(Charsets.UTF_8)
             ?: error("artworks.json not found in backup")
 
-        return parseArtworks(json, extractedPhotos)
+        return parseData(json, extractedPhotos)
     }
 
-    private fun parseArtworks(json: String, photos: Map<String, File>): List<Artwork> {
+    private fun parseData(json: String, photos: Map<String, File>): BackupData {
         val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val isoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
         val array = JSONObject(json).getJSONArray("artworks")
 
-        return (0 until array.length()).map { i ->
+        val artworks = mutableListOf<Artwork>()
+        val allPhotos = mutableListOf<ArtworkPhoto>()
+
+        for (i in 0 until array.length()) {
             val o = array.getJSONObject(i)
-            Artwork(
-                id          = o.getLong("id"),
+            val artworkId = o.getLong("id")
+            artworks.add(Artwork(
+                id          = artworkId,
                 title       = o.getString("title"),
                 artist      = o.optString("artist", ""),
                 year        = if (o.has("year")) o.getInt("year") else null,
@@ -80,7 +86,23 @@ class BackupImporter(private val context: Context) {
                 createdAt   = o.optString("createdAt", "").takeIf { it.isNotEmpty() }
                                 ?.let { runCatching { isoFmt.parse(it)?.time }.getOrNull() }
                                 ?: System.currentTimeMillis()
-            )
+            ))
+            if (o.has("additionalPhotos")) {
+                val photosArr = o.getJSONArray("additionalPhotos")
+                for (j in 0 until photosArr.length()) {
+                    val p = photosArr.getJSONObject(j)
+                    val path = p.optString("photo", "").let { photos[it]?.absolutePath ?: "" }
+                    if (path.isNotEmpty()) {
+                        allPhotos.add(ArtworkPhoto(
+                            artworkId = artworkId,
+                            photoPath = path,
+                            sortOrder = p.optInt("sortOrder", j)
+                        ))
+                    }
+                }
+            }
         }
+
+        return BackupData(artworks, allPhotos)
     }
 }

@@ -3,6 +3,7 @@ package com.example.artworksmanager.util
 import android.content.Context
 import android.net.Uri
 import com.example.artworksmanager.data.Artwork
+import com.example.artworksmanager.data.ArtworkPhoto
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -28,18 +29,18 @@ class BackupExporter(private val context: Context) {
 
     /**
      * Writes the backup zip to [uri]. Must be called from a background thread.
-     * [artworks] is the full collection fetched from the database before calling this.
+     * [artworks] is the full collection and [photosByArtwork] maps artwork id to its additional photos.
      */
-    fun writeTo(uri: Uri, artworks: List<Artwork>) {
+    fun writeTo(uri: Uri, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>> = emptyMap()) {
         context.contentResolver.openOutputStream(uri)?.use { out ->
             ZipOutputStream(out.buffered()).use { zos ->
-                addJson(zos, artworks)
+                addJson(zos, artworks, photosByArtwork)
                 addPhotoFiles(zos)
             }
         }
     }
 
-    private fun addJson(zos: ZipOutputStream, artworks: List<Artwork>) {
+    private fun addJson(zos: ZipOutputStream, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>>) {
         val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val isoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
 
@@ -62,6 +63,17 @@ class BackupExporter(private val context: Context) {
                 put("description", artwork.description)
                 if (artwork.photoPath.isNotEmpty()) put("photo", File(artwork.photoPath).name)
                 put("createdAt", isoFmt.format(Date(artwork.createdAt)))
+                val extraPhotos = photosByArtwork[artwork.id]
+                if (!extraPhotos.isNullOrEmpty()) {
+                    val photosArray = JSONArray()
+                    extraPhotos.sortedBy { it.sortOrder }.forEach { p ->
+                        photosArray.put(JSONObject().apply {
+                            put("photo", File(p.photoPath).name)
+                            put("sortOrder", p.sortOrder)
+                        })
+                    }
+                    put("additionalPhotos", photosArray)
+                }
             }.also { array.put(it) }
         }
 
