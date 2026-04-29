@@ -1,6 +1,5 @@
 package com.example.artworksmanager.data
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -21,7 +20,7 @@ import androidx.room.PrimaryKey
 )
 data class ArtworkPhoto(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @ColumnInfo(index = true) val artworkId: Long,
+    val artworkId: Long,
     val photoPath: String,
     val sortOrder: Int = 0
 )
