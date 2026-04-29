@@ -60,6 +60,10 @@ A single private individual who owns a personal art collection of up to 1000 art
 5. **Search results** — filtered view of the collection list based on a search query
 6. **Settings** — export PDF, export/import zip backup, about info (version, license)
 
+## Settings / Preferences
+
+- **Currency** — the currency used to display purchase prices throughout the app (form prefix, detail view, PDF export) is selectable by the user; supported values: EUR (€), USD ($), NOK (kr), ZAR (R); the list must be easy to extend without structural code changes; selection is persisted across app restarts
+
 ## Non-Functional Requirements
 
 - **Min Android version:** Android 13 (API 33)

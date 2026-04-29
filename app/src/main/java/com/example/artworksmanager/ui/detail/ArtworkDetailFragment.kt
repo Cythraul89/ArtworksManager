@@ -11,6 +11,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.artworksmanager.ArtworksManagerApp
+import com.example.artworksmanager.data.AppPreferences
 import com.example.artworksmanager.R
 import com.example.artworksmanager.data.Artwork
 import com.example.artworksmanager.databinding.FragmentArtworkDetailBinding
@@ -98,13 +99,14 @@ class ArtworkDetailFragment : Fragment() {
         }
         row(binding.labelDimensions, binding.valueDimensions, dims)
 
+        val symbol = AppPreferences(requireContext()).currency.symbol
         val acq = buildString {
             if (a.acquisitionDate != null) {
                 append(SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(a.acquisitionDate)))
             }
             if (a.purchasePrice != null) {
                 if (isNotEmpty()) append("  ·  ")
-                append("€%.2f".format(a.purchasePrice))
+                append("$symbol%.2f".format(a.purchasePrice))
             }
         }
         row(binding.labelAcquired, binding.valueAcquired, acq)

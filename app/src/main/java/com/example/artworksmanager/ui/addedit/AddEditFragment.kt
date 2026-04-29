@@ -23,6 +23,7 @@ import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.databinding.FragmentAddEditBinding
+import com.example.artworksmanager.data.AppPreferences
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -83,6 +84,9 @@ class AddEditFragment : Fragment() {
             view.updatePadding(bottom = imeBottom)
             insets
         }
+
+        val prefs = AppPreferences(requireContext())
+        binding.priceLayout.prefixText = prefs.currency.symbol
 
         val isEdit = args.artworkId != 0
         binding.toolbar.title = if (isEdit) "Edit Artwork" else "Add Artwork"

@@ -55,7 +55,9 @@ com.example.artworksmanager/
 │   ├── Artwork.kt                 Room @Entity — the single data model
 │   ├── ArtworkDao.kt              Room @Dao — all SQL + @Transaction operations
 │   ├── ArtworkDatabase.kt         Room @Database — singleton via double-checked lock
-│   └── ArtworkRepository.kt       Single source of truth; exposes Flow to ViewModels
+│   ├── ArtworkRepository.kt       Single source of truth; exposes Flow to ViewModels
+│   ├── AppPreferences.kt          SharedPreferences wrapper for user settings
+│   └── Currency.kt                Enum of supported display currencies (EUR/USD/NOK/ZAR)
 │
 ├── ui/
 │   ├── MainActivity.kt            Single @Activity host; owns NavController &
@@ -208,6 +210,16 @@ SettingsFragment
 Photos are stored in `filesDir` (private internal storage) rather than external storage, avoiding the `READ/WRITE_EXTERNAL_STORAGE` permission. `FileProvider` is used whenever a Uri must be passed to another app (camera, share sheet).
 
 ---
+
+## User Preferences
+
+App-level preferences are stored in `SharedPreferences` via `AppPreferences`, which is initialised lazily in `ArtworksManagerApp` and accessible as `app.preferences` from any Fragment or utility class.
+
+| Preference | Key | Default | Type |
+|------------|-----|---------|------|
+| Currency   | `currency` | `EUR` | `Currency` enum code |
+
+`Currency` is an enum with `code`, `symbol`, `displayName`, and a computed `label` property. Adding a new currency is a one-line change in the enum — nothing else needs updating. The currency symbol is read at view-creation time in `AddEditFragment` (price prefix), `ArtworkDetailFragment` (price display), and `PdfExporter` (PDF price field).
 
 ## Dark Mode
 

@@ -68,6 +68,12 @@
     <string name="choose_gallery">Choose from gallery</string>
     <string name="dimensions_label">Dimensions</string>
 
+    <!-- Settings — Preferences -->
+    <string name="pref_section">PREFERENCES</string>
+    <string name="pref_currency">Currency</string>
+    <string name="pref_currency_description">Used for purchase prices throughout the app</string>
+    <string name="pref_currency_dialog_title">Select currency</string>
+
     <!-- Settings -->
     <string name="export_collection">Export collection</string>
     <string name="export_description">Generate a PDF of all artworks</string>

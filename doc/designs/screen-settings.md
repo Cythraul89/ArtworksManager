@@ -1,7 +1,7 @@
 # Screen: Settings
 
 ## Purpose
-Access app-level actions: exporting the collection as PDF, exporting and importing a full zip backup, and viewing app information.
+Access app-level preferences (currency), export the collection as PDF, export and import a full zip backup, and view app information.
 
 ## Wireframe
 
@@ -9,6 +9,12 @@ Access app-level actions: exporting the collection as PDF, exporting and importi
 ┌─────────────────────────────────┐
 │  Settings                       │  ← Top app bar (no back arrow — top-level)
 ├─────────────────────────────────┤
+│                                 │
+│  PREFERENCES                    │  ← Section header
+│ ┌─────────────────────────────┐ │
+│ │ 💱  Currency      Euro (€) ▸│ │  ← Tapping opens single-choice dialog
+│ │     Used for purchase prices│ │
+│ └─────────────────────────────┘ │
 │                                 │
 │  EXPORT                         │  ← Section header
 │ ┌─────────────────────────────┐ │
@@ -44,6 +50,30 @@ Access app-level actions: exporting the collection as PDF, exporting and importi
 │  Dashboard   │Collection│Settings│
 └──────────────┴──────────┴───────┘
 ```
+
+## Currency Selection Behaviour
+
+Tapping **Currency** opens a single-choice dialog listing all supported currencies:
+
+```
+┌──────────────────────────────────┐
+│  Select currency                 │
+│                                  │
+│  ● Euro (€)                      │
+│  ○ US Dollar ($)                 │
+│  ○ Norwegian Krone (kr)          │
+│  ○ South African Rand (R)        │
+│                                  │
+└──────────────────────────────────┘
+```
+
+The selection is saved to SharedPreferences immediately and reflected in:
+- The currency row label in Settings
+- The price field prefix in Add / Edit Artwork
+- The price display in Artwork Detail
+- The price field in PDF exports
+
+Adding a new currency requires only a new entry in the `Currency` enum — no other code changes.
 
 ## Export PDF Behaviour
 

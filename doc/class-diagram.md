@@ -12,6 +12,7 @@ classDiagram
         <<Application>>
         +database : ArtworkDatabase
         +repository : ArtworkRepository
+        +preferences : AppPreferences
     }
 
     %% ─────────────────────────────────────────
@@ -34,6 +35,24 @@ classDiagram
         +description : String
         +photoPath : String
         +createdAt : Long
+    }
+
+    class AppPreferences {
+        -prefs : SharedPreferences
+        +currency : Currency
+    }
+
+    class Currency {
+        <<enumeration>>
+        EUR
+        USD
+        NOK
+        ZAR
+        +code : String
+        +symbol : String
+        +displayName : String
+        +label : String
+        +fromCode(code) Currency$
     }
 
     class MediumCount {
@@ -226,6 +245,8 @@ classDiagram
     %% Application bootstraps the data layer
     ArtworksManagerApp *-- ArtworkDatabase : creates
     ArtworksManagerApp *-- ArtworkRepository : creates
+    ArtworksManagerApp *-- AppPreferences : creates
+    AppPreferences --> Currency : reads/writes
 
     %% Data layer wiring
     ArtworkDatabase ..> ArtworkDao : exposes

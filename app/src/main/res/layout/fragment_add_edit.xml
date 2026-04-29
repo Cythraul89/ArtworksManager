@@ -228,12 +228,12 @@
 
             <!-- Price -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/priceLayout"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="@string/field_price"
-                app:prefixText="€">
+                android:hint="@string/field_price">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/priceInput"
                     android:layout_width="match_parent"
