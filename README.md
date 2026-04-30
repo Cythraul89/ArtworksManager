@@ -4,12 +4,14 @@ A personal artwork catalogue app for Android. Record, browse, and manage a priva
 
 ## Features
 
-- **Add / Edit / Delete** artworks with title, artist, year, medium, dimensions, location, acquisition date, purchase price, photo, and notes
+- **Add / Edit / Delete** artworks with title, artist, year, type, medium, dimensions, location, acquisition date, purchase price, photos, and notes
+- **Per-artwork currency** — each artwork stores its own currency (EUR, USD, NOK, ZAR); falls back to the global preference when not set
+- **Multiple photos** — attach a cover photo plus any number of additional photos to each artwork
 - **Browse** the collection in grid or list view with real-time search, filter by medium, and sort by title, artist, or date
-- **Dashboard** with total count, breakdown by medium and artist, and a recently-added strip
+- **Dashboard** with total count, breakdown by medium and artist, recently-added strip, and a **Collection Value card** showing per-currency subtotals and a live grand total converted via the Frankfurter API (offline fallback: per-currency subtotals only)
 - **Export PDF** — one A4 page per artwork, photos orientation-corrected via EXIF
-- **Export backup** — saves a zip containing `artworks.json` (human-readable) and all artwork photos to any location via the Android Storage Access Framework
-- **Import backup** — restores a collection from a previously exported zip
+- **Export backup** — saves a zip containing `artworks.json` (human-readable, including additional photos) and all artwork photos to any location via the Android Storage Access Framework
+- **Import backup** — restores a collection (artworks + additional photos) from a previously exported zip
 - **Dark mode** — follows the system light/dark setting
 
 ## Requirements
@@ -62,17 +64,28 @@ A signed release APK can also be generated from Android Studio via **Build → G
 app/src/main/
 ├── java/com/example/artworksmanager/
 │   ├── ArtworksManagerApp.kt          Application class (DB + repository singletons)
-│   ├── data/                          Room database, DAO, entity, repository
+│   ├── data/
+│   │   ├── Artwork.kt                 Main artwork entity
+│   │   ├── ArtworkPhoto.kt            Additional photos entity (one-to-many)
+│   │   ├── ArtworkDao.kt              Room DAO
+│   │   ├── ArtworkDatabase.kt         Room database (v3)
+│   │   ├── ArtworkRepository.kt       Single source of truth
+│   │   ├── AppPreferences.kt          SharedPreferences wrapper + reactive currencyFlow
+│   │   └── Currency.kt                Enum: EUR / USD / NOK / ZAR
 │   ├── ui/
 │   │   ├── MainActivity.kt            Single-activity host, Navigation Component
-│   │   ├── addedit/                   Add / Edit artwork screen
+│   │   ├── addedit/
+│   │   │   ├── AddEditFragment.kt     Add / Edit form + photo management
+│   │   │   ├── AddEditViewModel.kt    Save logic + additional-photo diff
+│   │   │   └── AdditionalPhotoAdapter.kt  Horizontal photo strip adapter
 │   │   ├── collection/                Collection list, search, filter/sort
-│   │   ├── dashboard/                 Stats overview + recently added
-│   │   ├── detail/                    Artwork detail view
+│   │   ├── dashboard/                 Stats overview + collection value card
+│   │   ├── detail/                    Artwork detail view + photo strip
 │   │   └── settings/                  PDF export, backup export/import, about
 │   └── util/
-│       ├── BackupExporter.kt          Zip backup creation
-│       ├── BackupImporter.kt          Zip backup restoration
+│       ├── BackupExporter.kt          Zip backup creation (artworks + photos)
+│       ├── BackupImporter.kt          Zip backup restoration → BackupData
+│       ├── ExchangeRateService.kt     Live currency rates via Frankfurter API
 │       └── PdfExporter.kt             PDF generation
 └── res/
     ├── layout/                        XML layouts for all screens
@@ -83,6 +96,7 @@ app/src/main/
         └── file_paths.xml             FileProvider path configuration
 doc/
 ├── architecture.md                    Architecture overview and design decisions
+├── class-diagram.md                   Mermaid class diagram of all classes
 ├── requirements.md                    Functional and non-functional requirements
 └── designs/                           Per-screen wireframes and design system
 ```
