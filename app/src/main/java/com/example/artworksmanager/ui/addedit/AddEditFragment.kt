@@ -30,6 +30,8 @@ import com.example.artworksmanager.data.Currency
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -165,15 +167,19 @@ class AddEditFragment : Fragment() {
             viewModel.load(args.artworkId.toLong())
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    launch { viewModel.artwork.collect { it?.let { a -> prefill(a) } } }
-                    launch {
-                        viewModel.additionalPhotos.collect { photos ->
-                            photoItems.clear()
-                            photoItems.addAll(photos.map { Pair(it, it.photoPath) })
-                            additionalPhotoAdapter.submitList(photoItems.map { it.second })
-                        }
-                    }
+                    viewModel.artwork.collect { it?.let { a -> prefill(a) } }
                 }
+            }
+            // One-shot: populate the photo strip from the DB exactly once.
+            // Must NOT be inside repeatOnLifecycle — the gallery/camera picker drops the
+            // fragment below STARTED and back up, which would re-emit the StateFlow's
+            // cached value and wipe any photos the user just added.
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.artwork.filterNotNull().first() // suspends until load() completes
+                val photos = viewModel.additionalPhotos.value
+                photoItems.clear()
+                photoItems.addAll(photos.map { Pair(it, it.photoPath) })
+                additionalPhotoAdapter.submitList(photoItems.map { it.second })
             }
         }
 
