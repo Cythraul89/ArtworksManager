@@ -62,7 +62,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/nextcloud_description"
+                        android:text="@string/nextcloud_auto_backup_description"
                         android:textSize="13sp"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp" />
@@ -213,6 +213,34 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/nextcloud_disconnect"
+                android:visibility="gone" />
+
+            <!-- Manual backup section (shown when connected) -->
+            <View
+                android:id="@+id/backupDivider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/divider"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/backupNowButton"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/nextcloud_backup_now"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/lastBackupText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
                 android:visibility="gone" />
 
         </LinearLayout>

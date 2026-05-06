@@ -28,14 +28,19 @@ class NextcloudPreferences(context: Context) {
     val isConnected: Boolean
         get() = serverUrl.isNotEmpty() && username.isNotEmpty() && appPassword.isNotEmpty()
 
+    var lastBackupTime: Long
+        get() = prefs.getLong(KEY_LAST_BACKUP, 0L)
+        set(value) { prefs.edit().putLong(KEY_LAST_BACKUP, value).apply() }
+
     fun clear() {
         prefs.edit().remove(KEY_SERVER).remove(KEY_USER).remove(KEY_PASS).apply()
     }
 
     companion object {
-        private const val PREFS_NAME = "nextcloud_prefs"
-        private const val KEY_SERVER = "server_url"
-        private const val KEY_USER   = "username"
-        private const val KEY_PASS   = "app_password"
+        private const val PREFS_NAME    = "nextcloud_prefs"
+        private const val KEY_SERVER    = "server_url"
+        private const val KEY_USER      = "username"
+        private const val KEY_PASS      = "app_password"
+        private const val KEY_LAST_BACKUP = "last_backup_time"
     }
 }

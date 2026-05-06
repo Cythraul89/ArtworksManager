@@ -1,17 +1,29 @@
 package com.example.artworksmanager.ui.nextcloud
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.artworksmanager.data.NextcloudPreferences
+import com.example.artworksmanager.util.NextcloudBackupWorker
 import com.example.artworksmanager.util.NextcloudClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
-class NextcloudViewModel(private val prefs: NextcloudPreferences) : ViewModel() {
+class NextcloudViewModel(
+    application: Application,
+    private val prefs: NextcloudPreferences
+) : AndroidViewModel(application) {
 
     sealed class State {
         object Idle      : State()
@@ -25,9 +37,10 @@ class NextcloudViewModel(private val prefs: NextcloudPreferences) : ViewModel() 
     )
     val state: StateFlow<State> = _state
 
-    val savedServerUrl  get() = prefs.serverUrl
-    val savedUsername   get() = prefs.username
+    val savedServerUrl   get() = prefs.serverUrl
+    val savedUsername    get() = prefs.username
     val savedAppPassword get() = prefs.appPassword
+    val lastBackupTime   get() = prefs.lastBackupTime
 
     fun connect(serverUrl: String, username: String, appPassword: String) {
         if (serverUrl.isBlank() || username.isBlank() || appPassword.isBlank()) {
@@ -43,6 +56,7 @@ class NextcloudViewModel(private val prefs: NextcloudPreferences) : ViewModel() 
                 prefs.serverUrl   = serverUrl
                 prefs.username    = username
                 prefs.appPassword = appPassword
+                scheduleAutoBackup()
                 _state.value = State.Connected
             } else {
                 _state.value = State.Error((result as NextcloudClient.Result.Failure).message)
@@ -51,15 +65,44 @@ class NextcloudViewModel(private val prefs: NextcloudPreferences) : ViewModel() 
     }
 
     fun disconnect() {
+        cancelAutoBackup()
         prefs.clear()
         _state.value = State.Idle
     }
 
+    fun backupNow() {
+        val request = OneTimeWorkRequestBuilder<NextcloudBackupWorker>()
+            .setConstraints(networkConstraint())
+            .build()
+        WorkManager.getInstance(getApplication()).enqueue(request)
+    }
+
+    private fun scheduleAutoBackup() {
+        val request = PeriodicWorkRequestBuilder<NextcloudBackupWorker>(1, TimeUnit.DAYS)
+            .setConstraints(networkConstraint())
+            .build()
+        WorkManager.getInstance(getApplication()).enqueueUniquePeriodicWork(
+            WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    private fun cancelAutoBackup() {
+        WorkManager.getInstance(getApplication()).cancelUniqueWork(WORK_NAME)
+    }
+
+    private fun networkConstraint() =
+        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+
     companion object {
-        fun factory(prefs: NextcloudPreferences) = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>) =
-                NextcloudViewModel(prefs) as T
-        }
+        const val WORK_NAME = "nextcloud_auto_backup"
+
+        fun factory(application: Application, prefs: NextcloudPreferences) =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>) =
+                    NextcloudViewModel(application, prefs) as T
+            }
     }
 }
