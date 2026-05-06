@@ -72,11 +72,12 @@ class NextcloudViewModel(
         _state.value = State.Idle
     }
 
-    fun backupNow() {
+    fun backupNow(): java.util.UUID {
         val request = OneTimeWorkRequestBuilder<NextcloudBackupWorker>()
             .setConstraints(networkConstraint())
             .build()
         WorkManager.getInstance(getApplication()).enqueue(request)
+        return request.id
     }
 
     private fun scheduleAutoBackup() {

@@ -3,6 +3,7 @@ package com.example.artworksmanager.util
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.example.artworksmanager.ArtworksManagerApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -21,7 +22,7 @@ class NextcloudBackupWorker(ctx: Context, params: WorkerParameters) : CoroutineW
     override suspend fun doWork(): Result {
         val app = applicationContext as ArtworksManagerApp
         val prefs = app.nextcloudPreferences
-        if (!prefs.isConnected) return Result.failure()
+        if (!prefs.isConnected) return Result.failure(workDataOf(KEY_ERROR to "Not connected"))
 
         return try {
             val artworks = withContext(Dispatchers.IO) { app.repository.getAllArtworks().first() }
@@ -41,13 +42,18 @@ class NextcloudBackupWorker(ctx: Context, params: WorkerParameters) : CoroutineW
                     prefs.lastBackupTime = System.currentTimeMillis()
                     Result.success()
                 } else {
-                    Result.retry()
+                    val msg = (result as NextcloudClient.Result.Failure).message
+                    Result.failure(workDataOf(KEY_ERROR to msg))
                 }
             } finally {
                 tmpFile.delete()
             }
         } catch (e: Exception) {
-            Result.retry()
+            Result.failure(workDataOf(KEY_ERROR to (e.message ?: "Unexpected error")))
         }
+    }
+
+    companion object {
+        const val KEY_ERROR = "error"
     }
 }

@@ -98,7 +98,8 @@
     <string name="nextcloud_status_not_connected">Not connected</string>
     <string name="nextcloud_connected_as">Connected as %1$s\n%2$s</string>
     <string name="nextcloud_backup_now">Back up now</string>
-    <string name="nextcloud_backup_queued">Backup queued</string>
+    <string name="nextcloud_backup_queued">Backup queued…</string>
+    <string name="nextcloud_backup_failed">Backup failed</string>
     <string name="nextcloud_last_backup">Last backup: %s</string>
     <string name="nextcloud_never_backed_up">Never backed up</string>
     <string name="nextcloud_auto_backup_description">Daily automatic backup to ArtworksManager/artworks_backup.zip</string>
