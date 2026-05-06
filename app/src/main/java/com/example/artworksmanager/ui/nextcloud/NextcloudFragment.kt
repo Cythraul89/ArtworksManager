@@ -12,6 +12,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.R
 import com.example.artworksmanager.databinding.FragmentNextcloudBinding
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -57,9 +58,7 @@ class NextcloudFragment : Fragment() {
 
         binding.backupNowButton.setOnClickListener {
             viewModel.backupNow()
-            com.google.android.material.snackbar.Snackbar
-                .make(requireView(), R.string.nextcloud_backup_queued, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT)
-                .show()
+            Snackbar.make(requireView(), R.string.nextcloud_backup_queued, Snackbar.LENGTH_SHORT).show()
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

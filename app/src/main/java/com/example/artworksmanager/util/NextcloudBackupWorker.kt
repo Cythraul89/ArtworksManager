@@ -28,22 +28,23 @@ class NextcloudBackupWorker(ctx: Context, params: WorkerParameters) : CoroutineW
             val photos   = withContext(Dispatchers.IO) { app.repository.getAllPhotosNow() }
 
             val tmpFile = File(applicationContext.cacheDir, "nc_backup_tmp.zip")
-            withContext(Dispatchers.IO) {
-                BackupExporter(applicationContext).writeToFile(tmpFile, artworks, photos)
-            }
-
-            val result = withContext(Dispatchers.IO) {
-                NextcloudClient.uploadBackup(
-                    prefs.serverUrl, prefs.username, prefs.appPassword, tmpFile
-                )
-            }
-            tmpFile.delete()
-
-            if (result is NextcloudClient.Result.Success) {
-                prefs.lastBackupTime = System.currentTimeMillis()
-                Result.success()
-            } else {
-                Result.retry()
+            try {
+                withContext(Dispatchers.IO) {
+                    BackupExporter(applicationContext).writeToFile(tmpFile, artworks, photos)
+                }
+                val result = withContext(Dispatchers.IO) {
+                    NextcloudClient.uploadBackup(
+                        prefs.serverUrl, prefs.username, prefs.appPassword, tmpFile
+                    )
+                }
+                if (result is NextcloudClient.Result.Success) {
+                    prefs.lastBackupTime = System.currentTimeMillis()
+                    Result.success()
+                } else {
+                    Result.retry()
+                }
+            } finally {
+                tmpFile.delete()
             }
         } catch (e: Exception) {
             Result.retry()
