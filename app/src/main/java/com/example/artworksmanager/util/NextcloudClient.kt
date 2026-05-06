@@ -4,6 +4,13 @@ import android.util.Base64
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLHandshakeException
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 /**
  * Thin HTTP client for Nextcloud connectivity checks.
@@ -20,12 +27,13 @@ object NextcloudClient {
 
     /**
      * Verifies credentials by calling the Nextcloud OCS user endpoint.
-     * Returns [Result.Success] on HTTP 200, a descriptive [Result.Failure] otherwise.
+     * Pass [trustAllCerts] = true for servers with self-signed certificates.
      */
-    fun testConnection(serverUrl: String, username: String, appPassword: String): Result {
+    fun testConnection(serverUrl: String, username: String, appPassword: String, trustAllCerts: Boolean = false): Result {
         return try {
             val url = URL("${serverUrl.trimEnd('/')}/ocs/v2.php/cloud/user")
             val conn = (url.openConnection() as HttpURLConnection).apply {
+                if (trustAllCerts && this is HttpsURLConnection) applySelfSignedTrust(this)
                 requestMethod = "GET"
                 setRequestProperty("Authorization", basicAuth(username, appPassword))
                 setRequestProperty("OCS-APIRequest", "true")
@@ -38,6 +46,8 @@ object NextcloudClient {
                 404  -> Result.Failure("Nextcloud not found at this URL")
                 else -> Result.Failure("Unexpected response: HTTP $code")
             }
+        } catch (e: SSLHandshakeException) {
+            Result.Failure("SSL certificate error — enable \"Trust self-signed certificates\" if your server uses a self-signed cert")
         } catch (e: java.net.UnknownHostException) {
             Result.Failure("Cannot reach server — check the URL and your internet connection")
         } catch (e: java.net.SocketTimeoutException) {
@@ -52,7 +62,7 @@ object NextcloudClient {
      * Creates the remote directory first if it does not exist.
      * Must be called from a background thread.
      */
-    fun uploadBackup(serverUrl: String, username: String, appPassword: String, file: File): Result {
+    fun uploadBackup(serverUrl: String, username: String, appPassword: String, file: File, trustAllCerts: Boolean = false): Result {
         return try {
             val base = serverUrl.trimEnd('/')
             val auth = basicAuth(username, appPassword)
@@ -61,6 +71,7 @@ object NextcloudClient {
             runCatching {
                 val mkcol = URL("$base/remote.php/dav/files/$username/ArtworksManager")
                     .openConnection() as HttpURLConnection
+                if (trustAllCerts && mkcol is HttpsURLConnection) applySelfSignedTrust(mkcol)
                 mkcol.requestMethod = "MKCOL"
                 mkcol.setRequestProperty("Authorization", auth)
                 mkcol.connectTimeout = TIMEOUT_MS
@@ -71,12 +82,13 @@ object NextcloudClient {
 
             val putUrl = URL("$base/remote.php/dav/files/$username/ArtworksManager/artworks_backup.zip")
             val conn = putUrl.openConnection() as HttpURLConnection
+            if (trustAllCerts && conn is HttpsURLConnection) applySelfSignedTrust(conn)
             conn.requestMethod = "PUT"
             conn.setRequestProperty("Authorization", auth)
             conn.setRequestProperty("Content-Type", "application/zip")
             conn.doOutput = true
             conn.connectTimeout = TIMEOUT_MS
-            conn.readTimeout = 120_000  // uploads can take longer
+            conn.readTimeout = 120_000
 
             file.inputStream().use { input ->
                 conn.outputStream.use { output -> input.copyTo(output) }
@@ -89,6 +101,8 @@ object NextcloudClient {
                 507           -> Result.Failure("Insufficient storage on server")
                 else          -> Result.Failure("Upload failed: HTTP $code")
             }
+        } catch (e: SSLHandshakeException) {
+            Result.Failure("SSL certificate error during upload")
         } catch (e: java.net.UnknownHostException) {
             Result.Failure("Cannot reach server — check the URL and your internet connection")
         } catch (e: java.net.SocketTimeoutException) {
@@ -101,5 +115,18 @@ object NextcloudClient {
     private fun basicAuth(username: String, password: String): String {
         val encoded = Base64.encodeToString("$username:$password".toByteArray(), Base64.NO_WRAP)
         return "Basic $encoded"
+    }
+
+    private fun applySelfSignedTrust(conn: HttpsURLConnection) {
+        val trustAll = arrayOf<TrustManager>(object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) = Unit
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) = Unit
+            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        })
+        val sslContext = SSLContext.getInstance("TLS").apply {
+            init(null, trustAll, SecureRandom())
+        }
+        conn.sslSocketFactory = sslContext.socketFactory
+        conn.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
     }
 }

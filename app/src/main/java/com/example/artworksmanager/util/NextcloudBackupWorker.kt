@@ -34,7 +34,7 @@ class NextcloudBackupWorker(ctx: Context, params: WorkerParameters) : CoroutineW
                 }
                 val result = withContext(Dispatchers.IO) {
                     NextcloudClient.uploadBackup(
-                        prefs.serverUrl, prefs.username, prefs.appPassword, tmpFile
+                        prefs.serverUrl, prefs.username, prefs.appPassword, tmpFile, prefs.trustAllCerts
                     )
                 }
                 if (result is NextcloudClient.Result.Success) {

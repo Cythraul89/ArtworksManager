@@ -91,6 +91,7 @@
     <string name="nextcloud_username">Username</string>
     <string name="nextcloud_app_password">App password</string>
     <string name="nextcloud_app_password_hint">Use an app-specific password, not your account password. Create one in Nextcloud: Settings → Security → Devices &amp; sessions → App passwords.</string>
+    <string name="nextcloud_trust_self_signed">Trust self-signed / untrusted certificates</string>
     <string name="nextcloud_connect">Connect</string>
     <string name="nextcloud_disconnect">Disconnect</string>
     <string name="nextcloud_status_connected">Connected</string>

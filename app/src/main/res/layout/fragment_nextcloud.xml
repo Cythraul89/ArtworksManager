@@ -151,6 +151,14 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Trust self-signed certificates toggle -->
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/trustCertsCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="@string/nextcloud_trust_self_signed" />
+
             <!-- Status card (connected / error) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/statusCard"

@@ -32,15 +32,20 @@ class NextcloudPreferences(context: Context) {
         get() = prefs.getLong(KEY_LAST_BACKUP, 0L)
         set(value) { prefs.edit().putLong(KEY_LAST_BACKUP, value).apply() }
 
+    var trustAllCerts: Boolean
+        get() = prefs.getBoolean(KEY_TRUST_ALL, false)
+        set(value) { prefs.edit().putBoolean(KEY_TRUST_ALL, value).apply() }
+
     fun clear() {
         prefs.edit().remove(KEY_SERVER).remove(KEY_USER).remove(KEY_PASS).apply()
     }
 
     companion object {
-        private const val PREFS_NAME    = "nextcloud_prefs"
-        private const val KEY_SERVER    = "server_url"
-        private const val KEY_USER      = "username"
-        private const val KEY_PASS      = "app_password"
+        private const val PREFS_NAME      = "nextcloud_prefs"
+        private const val KEY_SERVER      = "server_url"
+        private const val KEY_USER        = "username"
+        private const val KEY_PASS        = "app_password"
         private const val KEY_LAST_BACKUP = "last_backup_time"
+        private const val KEY_TRUST_ALL   = "trust_all_certs"
     }
 }

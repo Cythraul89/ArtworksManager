@@ -40,9 +40,10 @@ class NextcloudViewModel(
     val savedServerUrl   get() = prefs.serverUrl
     val savedUsername    get() = prefs.username
     val savedAppPassword get() = prefs.appPassword
+    val savedTrustAll    get() = prefs.trustAllCerts
     val lastBackupTime   get() = prefs.lastBackupTime
 
-    fun connect(serverUrl: String, username: String, appPassword: String) {
+    fun connect(serverUrl: String, username: String, appPassword: String, trustAllCerts: Boolean) {
         if (serverUrl.isBlank() || username.isBlank() || appPassword.isBlank()) {
             _state.value = State.Error("Please fill in all fields")
             return
@@ -50,12 +51,13 @@ class NextcloudViewModel(
         _state.value = State.Testing
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
-                NextcloudClient.testConnection(serverUrl.trim(), username.trim(), appPassword)
+                NextcloudClient.testConnection(serverUrl.trim(), username.trim(), appPassword, trustAllCerts)
             }
             if (result is NextcloudClient.Result.Success) {
-                prefs.serverUrl   = serverUrl
-                prefs.username    = username
-                prefs.appPassword = appPassword
+                prefs.serverUrl     = serverUrl
+                prefs.username      = username
+                prefs.appPassword   = appPassword
+                prefs.trustAllCerts = trustAllCerts
                 scheduleAutoBackup()
                 _state.value = State.Connected
             } else {

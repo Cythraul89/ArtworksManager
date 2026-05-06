@@ -45,12 +45,14 @@ class NextcloudFragment : Fragment() {
             binding.usernameInput.setText(viewModel.savedUsername)
             binding.appPasswordInput.setText(viewModel.savedAppPassword)
         }
+        binding.trustCertsCheckbox.isChecked = viewModel.savedTrustAll
 
         binding.connectButton.setOnClickListener {
             viewModel.connect(
-                serverUrl   = binding.serverUrlInput.text?.toString() ?: "",
-                username    = binding.usernameInput.text?.toString() ?: "",
-                appPassword = binding.appPasswordInput.text?.toString() ?: ""
+                serverUrl     = binding.serverUrlInput.text?.toString() ?: "",
+                username      = binding.usernameInput.text?.toString() ?: "",
+                appPassword   = binding.appPasswordInput.text?.toString() ?: "",
+                trustAllCerts = binding.trustCertsCheckbox.isChecked
             )
         }
 
