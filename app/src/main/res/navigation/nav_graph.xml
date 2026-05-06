@@ -75,6 +75,16 @@
         android:id="@+id/settingsFragment"
         android:name="com.example.artworksmanager.ui.settings.SettingsFragment"
         android:label="@string/nav_settings"
-        tools:layout="@layout/fragment_settings" />
+        tools:layout="@layout/fragment_settings">
+        <action
+            android:id="@+id/action_settings_to_nextcloud"
+            app:destination="@id/nextcloudFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nextcloudFragment"
+        android:name="com.example.artworksmanager.ui.nextcloud.NextcloudFragment"
+        android:label="@string/nextcloud_backup"
+        tools:layout="@layout/fragment_nextcloud" />
 
 </navigation>

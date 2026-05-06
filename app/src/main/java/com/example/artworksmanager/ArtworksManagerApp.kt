@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.example.artworksmanager.data.AppPreferences
 import com.example.artworksmanager.data.ArtworkDatabase
 import com.example.artworksmanager.data.ArtworkRepository
+import com.example.artworksmanager.data.NextcloudPreferences
 
 /**
  * Application subclass that initialises the database, repository, and preferences singletons.
@@ -14,6 +15,7 @@ class ArtworksManagerApp : Application() {
     val database by lazy { ArtworkDatabase.getDatabase(this) }
     val repository by lazy { ArtworkRepository(database.artworkDao()) }
     val preferences by lazy { AppPreferences(this) }
+    val nextcloudPreferences by lazy { NextcloudPreferences(this) }
 
     override fun onCreate() {
         super.onCreate()

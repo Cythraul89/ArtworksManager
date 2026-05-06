@@ -86,7 +86,15 @@
     <string name="export_description">Generate a PDF of all artworks</string>
     <string name="backup">Backup</string>
     <string name="nextcloud_backup">Nextcloud backup</string>
-    <string name="nextcloud_coming_soon">Nextcloud integration coming soon</string>
+    <string name="nextcloud_description">Sync your collection to a Nextcloud server</string>
+    <string name="nextcloud_server_url">Server URL (e.g. https://cloud.example.com)</string>
+    <string name="nextcloud_username">Username</string>
+    <string name="nextcloud_app_password">App password</string>
+    <string name="nextcloud_app_password_hint">Use an app-specific password, not your account password. Create one in Nextcloud: Settings → Security → Devices &amp; sessions → App passwords.</string>
+    <string name="nextcloud_connect">Connect</string>
+    <string name="nextcloud_disconnect">Disconnect</string>
+    <string name="nextcloud_status_connected">Connected</string>
+    <string name="nextcloud_status_not_connected">Not connected</string>
     <string name="about">About</string>
     <string name="app_version_label">Version</string>
     <string name="app_version_value">0.0.3</string>
