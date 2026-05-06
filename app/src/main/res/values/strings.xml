@@ -70,7 +70,7 @@
     <string name="discard">Discard</string>
     <string name="photo_tap_hint">Tap to add photo</string>
     <string name="take_photo">Take photo</string>
-    <string name="choose_gallery">Choose from gallery</string>
+    <string name="choose_gallery">Gallery or cloud storage</string>
     <string name="dimensions_label">Dimensions</string>
     <string name="additional_photos_label">Additional Photos</string>
     <string name="add_more_photos">Add more photos</string>

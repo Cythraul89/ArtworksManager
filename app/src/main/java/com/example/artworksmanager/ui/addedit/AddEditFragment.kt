@@ -6,7 +6,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -68,7 +67,7 @@ class AddEditFragment : Fragment() {
         if (record != null) photosToDelete.add(record)
     }
 
-    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+    private val pickContent = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             if (pickingAdditionalPhoto) { pickingAdditionalPhoto = false; addAdditionalPhotoFromUri(it) }
             else copyAndSetPhoto(it)
@@ -249,7 +248,7 @@ class AddEditFragment : Fragment() {
     }
 
     private fun launchGallery() {
-        pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        pickContent.launch("image/*")
     }
 
     private fun launchCamera() {
