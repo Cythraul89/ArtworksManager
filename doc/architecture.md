@@ -2,7 +2,7 @@
 
 ## Pattern
 
-The app follows **MVVM (Model-View-ViewModel)** with a **single Activity** hosting all screens via the Android Navigation Component. Data is stored entirely on-device; the only network call is an optional live currency-rate fetch.
+The app follows **MVVM (Model-View-ViewModel)** with a **single Activity** hosting all screens via the Android Navigation Component. Data is stored entirely on-device; network calls are limited to an optional live currency-rate fetch and the optional Nextcloud backup upload.
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -17,7 +17,8 @@ The app follows **MVVM (Model-View-ViewModel)** with a **single Activity** hosti
 ┌─────────────────────────────────────────────────┐
 │                   Util Layer                    │
 │  PdfExporter  BackupExporter  BackupImporter    │
-│  ExchangeRateService                            │
+│  ExchangeRateService  NextcloudClient           │
+│  NextcloudBackupWorker (WorkManager)            │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -40,6 +41,8 @@ The app follows **MVVM (Model-View-ViewModel)** with a **single Activity** hosti
 | JSON serialisation     | `org.json`                           | built-in      |
 | Backup I/O             | Storage Access Framework (SAF)       | built-in      |
 | Exchange rates         | Frankfurter API (`HttpURLConnection`)| built-in      |
+| Nextcloud upload       | WebDAV over `HttpURLConnection`      | built-in      |
+| Background work        | WorkManager (CoroutineWorker)        | 2.10.1        |
 | Min SDK / Target SDK   | 33 / 35                              | —             |
 | Build tools            | AGP 8.13.2 / Gradle 8.13             | —             |
 
@@ -50,8 +53,9 @@ The app follows **MVVM (Model-View-ViewModel)** with a **single Activity** hosti
 ```
 com.example.artworksmanager/
 │
-├── ArtworksManagerApp.kt          Application — database & repository singletons,
-│                                  preferences singleton, night-mode follow-system
+├── ArtworksManagerApp.kt          Application — database, repository, preferences
+│                                  and Nextcloud preferences singletons;
+│                                  night-mode follow-system
 │
 ├── data/
 │   ├── Artwork.kt                 Room @Entity — primary artwork record
@@ -65,15 +69,18 @@ com.example.artworksmanager/
 │   │                              functions for both entities to ViewModels
 │   ├── AppPreferences.kt          SharedPreferences wrapper; exposes reactive
 │   │                              currencyFlow via callbackFlow
-│   └── Currency.kt                Enum: EUR / USD / NOK / ZAR;
-│                                  fromCode() companion; label computed property
+│   ├── Currency.kt                Enum: EUR / USD / NOK / ZAR;
+│   │                              fromCode() companion; label computed property
+│   └── NextcloudPreferences.kt    SharedPreferences wrapper for Nextcloud credentials
+│                                  (serverUrl, username, appPassword) and lastBackupTime;
+│                                  isConnected computed property
 │
 ├── ui/
 │   ├── MainActivity.kt            Single @Activity host; owns NavController &
 │   │                              bottom nav; applies edge-to-edge insets
 │   ├── addedit/
-│   │   ├── AddEditFragment.kt     Add / Edit form; camera + gallery launcher
-│   │   │                          (routed by pickingAdditionalPhoto flag);
+│   │   ├── AddEditFragment.kt     Add / Edit form; camera + SAF document picker
+│   │   │                          (GetContent "image/*" — includes cloud providers);
 │   │   │                          photo-diff state (photoItems / photosToDelete);
 │   │   │                          IME inset handling; discard-changes dialog
 │   │   ├── AddEditViewModel.kt    Validates input; saves artwork + photo diff
@@ -102,21 +109,36 @@ com.example.artworksmanager/
 │   │   │                             edit / delete toolbar actions
 │   │   └── ArtworkDetailViewModel.kt  Loads artwork by ID; exposes additionalPhotos
 │   │                                  StateFlow; provides delete()
+│   ├── nextcloud/
+│   │   ├── NextcloudFragment.kt   Nextcloud connection form (server URL, username,
+│   │   │                          app password); shows connected status, last backup
+│   │   │                          time, and "Back up now" button when connected
+│   │   └── NextcloudViewModel.kt  AndroidViewModel; tests credentials via
+│   │                              NextcloudClient; saves to NextcloudPreferences;
+│   │                              schedules/cancels the daily PeriodicWorkRequest;
+│   │                              exposes State (Idle/Testing/Connected/Error) StateFlow
 │   └── settings/
 │       └── SettingsFragment.kt    PDF export, backup export/import, currency
-│                                  preference, Nextcloud placeholder, about info;
+│                                  preference, Nextcloud navigation row with
+│                                  connected/not-connected status, about info;
 │                                  co-located SettingsViewModel
 │
 └── util/
     ├── BackupExporter.kt          Serialises List<Artwork> + Map<Long,List<ArtworkPhoto>>
     │                              to JSON (with additionalPhotos arrays) + copies all
-    │                              photo files → writes zip to a SAF Uri
+    │                              photo files; writeTo(Uri) for SAF export,
+    │                              writeToFile(File) for Nextcloud worker temp file
     ├── BackupImporter.kt          Reads a SAF Uri zip → extracts photos →
     │                              parses artworks.json (including additionalPhotos) →
     │                              returns BackupData(artworks, photos)
     ├── ExchangeRateService.kt     Fetches live rates from api.frankfurter.app;
     │                              returns Map<String,Double> or null on failure;
     │                              called on Dispatchers.IO
+    ├── NextcloudBackupWorker.kt   WorkManager CoroutineWorker; loads collection,
+    │                              writes zip to cacheDir, uploads via WebDAV PUT,
+    │                              saves lastBackupTime on success; retries on failure
+    ├── NextcloudClient.kt         Nextcloud HTTP client (object); testConnection()
+    │                              via OCS API; uploadBackup() via WebDAV MKCOL + PUT
     └── PdfExporter.kt             Renders one A4 page per artwork using
                                    PdfDocument; corrects photo orientation via EXIF
 ```
@@ -186,6 +208,7 @@ Navigation Component with Safe Args is used throughout. The nav graph defines:
 - Three top-level destinations (Dashboard, Collection, Settings) tied to the bottom nav
 - `AddEditFragment` accepting an `artworkId: Int` argument (0 = new artwork)
 - `ArtworkDetailFragment` accepting `artworkId: Int`
+- `NextcloudFragment` reached from Settings via `action_settings_to_nextcloud`
 
 The bottom nav is hidden on non-top-level destinations via `addOnDestinationChangedListener`.
 
@@ -233,7 +256,7 @@ DashboardViewModel
 
 ## Backup System
 
-### Export
+### Manual Export (SAF)
 
 ```
 SettingsFragment
@@ -259,6 +282,26 @@ SettingsFragment
        └─ ArtworkDao.replaceAll()       @Transaction: deleteAll + insertAll (artworks + photos)
 ```
 
+### Nextcloud Automatic Backup
+
+When the user connects to Nextcloud, a `PeriodicWorkRequest` is registered under the unique name `nextcloud_auto_backup` with a 1-day interval and a `CONNECTED` network constraint. WorkManager persists this request across app restarts and device reboots. Disconnecting cancels the work.
+
+```
+NextcloudBackupWorker.doWork()          runs on Dispatchers.Default (IO ops wrapped)
+  ├─ check NextcloudPreferences.isConnected → failure() if credentials gone
+  ├─ load artworks + photos from repository (Dispatchers.IO)
+  ├─ BackupExporter.writeToFile(tmpFile, artworks, photos)
+  │    └─ same zip structure as manual export, written to cacheDir
+  ├─ NextcloudClient.uploadBackup(serverUrl, username, appPassword, tmpFile)
+  │    ├─ MKCOL /remote.php/dav/files/{user}/ArtworksManager  (creates folder; 405=already exists is ok)
+  │    └─ PUT  /remote.php/dav/files/{user}/ArtworksManager/artworks_backup.zip
+  ├─ tmpFile.delete()                   always, via try-finally
+  └─ on success: prefs.lastBackupTime = now → Result.success()
+     on failure: Result.retry()         WorkManager applies exponential back-off
+```
+
+A "Back up now" button in `NextcloudFragment` enqueues a `OneTimeWorkRequest` using the same worker for an immediate upload.
+
 ---
 
 ## File Storage
@@ -266,8 +309,8 @@ SettingsFragment
 | Location | Content | Access |
 |----------|---------|--------|
 | `filesDir/artworks/` | Artwork photos — cover and additional (`.jpg`) | Via `FileProvider` for camera / sharing |
-| `cacheDir/` | Temporary PDF files | Via `FileProvider` for sharing |
-| SAF Uri (user-chosen) | Backup zip | Via `ContentResolver` |
+| `cacheDir/` | Temporary PDF files and Nextcloud upload temp zip | Via `FileProvider` for sharing; temp zip deleted immediately after upload |
+| SAF Uri (user-chosen) | Manual backup zip | Via `ContentResolver` |
 
 Photos are stored in `filesDir` (private internal storage), avoiding the `READ/WRITE_EXTERNAL_STORAGE` permission. `FileProvider` is used whenever a Uri must be passed to another app.
 
@@ -280,6 +323,17 @@ App-level preferences are stored in `SharedPreferences` via `AppPreferences`.
 | Preference | Key | Default | Type |
 |------------|-----|---------|------|
 | Currency   | `currency` | `EUR` | `Currency` enum code |
+
+Nextcloud credentials are stored separately in `NextcloudPreferences` (a dedicated `SharedPreferences` file named `nextcloud_prefs`):
+
+| Key | Type | Notes |
+|-----|------|-------|
+| `server_url` | String | Stored without trailing slash |
+| `username` | String | Trimmed |
+| `app_password` | String | App-specific password (not the account password) |
+| `last_backup_time` | Long | Unix epoch ms of last successful Nextcloud upload; 0 if never |
+
+`isConnected` is a computed property returning `true` when all three credential fields are non-empty.
 
 `Currency` is an enum with `code`, `symbol`, `displayName`, and a computed `label` property. Adding a new currency is a one-line change in the enum. The global currency preference is the default display currency; individual artworks can override it with their own `currency` field.
 
@@ -304,6 +358,11 @@ The app uses `Theme.Material3.DayNight.NoActionBar` and calls `AppCompatDelegate
 | `BackupData` return type from importer | Keeps `BackupImporter` stateless and makes the photo list explicit at the call site |
 | Internal storage + FileProvider | Avoids dangerous external storage permissions; works on all supported API levels |
 | SAF for backup I/O | User controls the save location (local, SD card, cloud drive) without the app needing storage permissions |
+| `GetContent("image/*")` for photo picker | Opens the full SAF document picker instead of the system photo picker, giving access to all installed cloud document providers (Drive, Dropbox, Nextcloud app) with no extra code |
+| WorkManager for Nextcloud backup | Survives app restarts and device reboots; handles network constraints and retry back-off automatically |
+| `AndroidViewModel` for `NextcloudViewModel` | Needs Application context to access WorkManager; `AndroidViewModel` is the idiomatic solution |
+| Nextcloud OCS API for credential check | Simple GET `/ocs/v2.php/cloud/user` with Basic auth; unambiguous 200/401 response codes; no extra SDK needed |
+| WebDAV for Nextcloud upload | Nextcloud's standard file-access protocol; PUT + MKCOL require no dependency beyond `HttpURLConnection` |
 | `org.json` + `android.media.ExifInterface` | Both are part of the Android SDK — no extra dependencies required |
 | `@Transaction replaceAll` | Guarantees the collection is never in a partially-replaced state visible to other readers |
 | Frankfurter API (no key) | ECB-sourced rates, free, no registration; `null` return on failure triggers graceful offline fallback |

@@ -13,6 +13,7 @@ classDiagram
         +database : ArtworkDatabase
         +repository : ArtworkRepository
         +preferences : AppPreferences
+        +nextcloudPreferences : NextcloudPreferences
     }
 
     %% ─────────────────────────────────────────
@@ -51,6 +52,16 @@ classDiagram
         -prefs : SharedPreferences
         +currency : Currency
         +currencyFlow : Flow~Currency~
+    }
+
+    class NextcloudPreferences {
+        -prefs : SharedPreferences
+        +serverUrl : String
+        +username : String
+        +appPassword : String
+        +lastBackupTime : Long
+        +isConnected : Boolean
+        +clear()
     }
 
     class Currency {
@@ -274,6 +285,37 @@ classDiagram
     }
 
     %% ─────────────────────────────────────────
+    %% UI — NEXTCLOUD
+    %% ─────────────────────────────────────────
+
+    class NextcloudState {
+        <<sealed>>
+        Idle
+        Testing
+        Connected
+        Error(message)
+    }
+
+    class NextcloudViewModel {
+        <<AndroidViewModel>>
+        -prefs : NextcloudPreferences
+        +state : StateFlow~NextcloudState~
+        +savedServerUrl : String
+        +savedUsername : String
+        +lastBackupTime : Long
+        +connect(serverUrl, username, appPassword)
+        +disconnect()
+        +backupNow()
+        -scheduleAutoBackup()
+        -cancelAutoBackup()
+    }
+
+    class NextcloudFragment {
+        <<Fragment>>
+        -viewModel : NextcloudViewModel
+    }
+
+    %% ─────────────────────────────────────────
     %% UTIL
     %% ─────────────────────────────────────────
 
@@ -287,6 +329,18 @@ classDiagram
     class BackupExporter {
         -context : Context
         +writeTo(uri : Uri, artworks : List~Artwork~, photosByArtwork : Map~Long,List~ArtworkPhoto~~)
+        +writeToFile(file : File, artworks : List~Artwork~, photosByArtwork : Map~Long,List~ArtworkPhoto~~)
+    }
+
+    class NextcloudClient {
+        <<object>>
+        +testConnection(serverUrl, username, appPassword) Result
+        +uploadBackup(serverUrl, username, appPassword, file : File) Result
+    }
+
+    class NextcloudBackupWorker {
+        <<CoroutineWorker>>
+        +doWork() Result
     }
 
     class BackupData {
@@ -312,6 +366,7 @@ classDiagram
     ArtworksManagerApp *-- ArtworkDatabase : creates
     ArtworksManagerApp *-- ArtworkRepository : creates
     ArtworksManagerApp *-- AppPreferences : creates
+    ArtworksManagerApp *-- NextcloudPreferences : creates
     AppPreferences --> Currency : reads/writes
 
     %% Data layer wiring
@@ -349,6 +404,16 @@ classDiagram
     SettingsFragment ..> BackupExporter : uses
     SettingsFragment ..> BackupImporter : uses
 
+    %% Nextcloud screen
+    NextcloudFragment --> NextcloudViewModel : observes
+    NextcloudViewModel --> NextcloudPreferences : reads/writes
+    NextcloudViewModel ..> NextcloudClient : calls testConnection
+    NextcloudViewModel ..> NextcloudBackupWorker : schedules via WorkManager
+    NextcloudViewModel ..> NextcloudState : emits
+    NextcloudBackupWorker --> ArtworksManagerApp : reads repository + prefs
+    NextcloudBackupWorker ..> BackupExporter : writeToFile
+    NextcloudBackupWorker ..> NextcloudClient : uploadBackup
+
     %% Util classes operate on Artwork / ArtworkPhoto
     PdfExporter ..> Artwork : renders
     BackupExporter ..> Artwork : serialises
@@ -384,3 +449,5 @@ classDiagram
 | `<<BottomSheetDialogFragment>>` | Material bottom sheet |
 | `<<sealed>>` | Kotlin sealed class |
 | `<<object>>` | Kotlin singleton object |
+| `<<AndroidViewModel>>` | AndroidX AndroidViewModel (has Application context) |
+| `<<CoroutineWorker>>` | WorkManager CoroutineWorker |
