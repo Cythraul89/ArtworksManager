@@ -104,6 +104,7 @@
     <string name="about">About</string>
     <string name="app_version_label">Version</string>
     <string name="app_version_value">0.0.3</string>
+    <string name="easter_egg_message">Created for Nkule Mabaso</string>
     <string name="license_label">License</string>
     <string name="license_value">GNU General Public License v3.0 (GPL-3.0)</string>
     <string name="export_generating">Generating PDF…</string>

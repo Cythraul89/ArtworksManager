@@ -73,6 +73,17 @@ class SettingsFragment : Fragment() {
         binding.nextcloudRow.setOnClickListener {
             findNavController().navigate(R.id.action_settings_to_nextcloud)
         }
+
+        var versionTapCount = 0
+        binding.versionRow.setOnClickListener {
+            if (++versionTapCount >= 5) {
+                versionTapCount = 0
+                MaterialAlertDialogBuilder(requireContext())
+                    .setMessage(R.string.easter_egg_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+        }
     }
 
     private fun updateCurrencyLabel() {
