@@ -8,6 +8,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,15 +29,24 @@ import java.util.zip.ZipOutputStream
 class BackupExporter(private val context: Context) {
 
     /**
-     * Writes the backup zip to [uri]. Must be called from a background thread.
-     * [artworks] is the full collection and [photosByArtwork] maps artwork id to its additional photos.
+     * Writes the backup zip to a SAF [uri] chosen by the user. Must be called from a background thread.
      */
     fun writeTo(uri: Uri, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>> = emptyMap()) {
-        context.contentResolver.openOutputStream(uri)?.use { out ->
-            ZipOutputStream(out.buffered()).use { zos ->
-                addJson(zos, artworks, photosByArtwork)
-                addPhotoFiles(zos)
-            }
+        context.contentResolver.openOutputStream(uri)?.use { writeZip(it, artworks, photosByArtwork) }
+    }
+
+    /**
+     * Writes the backup zip to a local [file] (e.g. cacheDir) for Nextcloud upload. Must be called from a background thread.
+     */
+    fun writeToFile(file: File, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>> = emptyMap()) {
+        file.parentFile?.mkdirs()
+        file.outputStream().use { writeZip(it, artworks, photosByArtwork) }
+    }
+
+    private fun writeZip(out: OutputStream, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>>) {
+        ZipOutputStream(out.buffered()).use { zos ->
+            addJson(zos, artworks, photosByArtwork)
+            addPhotoFiles(zos)
         }
     }
 

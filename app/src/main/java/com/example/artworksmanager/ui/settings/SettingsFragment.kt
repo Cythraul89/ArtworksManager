@@ -22,6 +22,7 @@ import com.example.artworksmanager.data.ArtworkPhoto
 import com.example.artworksmanager.util.BackupExporter
 import com.example.artworksmanager.util.BackupImporter
 import com.example.artworksmanager.util.PdfExporter
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -70,7 +71,18 @@ class SettingsFragment : Fragment() {
         binding.backupExportRow.setOnClickListener { launchBackupPicker() }
         binding.backupImportRow.setOnClickListener { openBackupDocument.launch(arrayOf("application/zip")) }
         binding.nextcloudRow.setOnClickListener {
-            Toast.makeText(requireContext(), R.string.nextcloud_coming_soon, Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_settings_to_nextcloud)
+        }
+
+        var versionTapCount = 0
+        binding.versionRow.setOnClickListener {
+            if (++versionTapCount >= 5) {
+                versionTapCount = 0
+                MaterialAlertDialogBuilder(requireContext())
+                    .setMessage(R.string.easter_egg_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
         }
     }
 
@@ -174,6 +186,19 @@ class SettingsFragment : Fragment() {
             binding.backupImportProgress.visibility = View.GONE
             binding.backupImportRow.isEnabled = true
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateNextcloudStatus()
+    }
+
+    private fun updateNextcloudStatus() {
+        val nc = (requireActivity().application as ArtworksManagerApp).nextcloudPreferences
+        binding.nextcloudStatus.text = if (nc.isConnected)
+            getString(R.string.nextcloud_status_connected)
+        else
+            getString(R.string.nextcloud_status_not_connected)
     }
 
     override fun onDestroyView() {

@@ -30,9 +30,12 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
     fun load(id: Long) {
         if (id == 0L) return
         viewModelScope.launch {
-            _artwork.value = repository.getById(id)
-            _additionalPhotos.value =
-                repository.getAdditionalPhotos(id).firstOrNull() ?: emptyList()
+            val artwork = repository.getById(id)
+            val photos  = repository.getAdditionalPhotos(id).firstOrNull() ?: emptyList()
+            // Set photos before artwork so the fragment reads a populated list
+            // when it observes the artwork flow emitting.
+            _additionalPhotos.value = photos
+            _artwork.value = artwork
         }
     }
 
