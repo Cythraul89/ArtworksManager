@@ -58,58 +58,72 @@ object NextcloudClient {
     }
 
     /**
-     * Uploads [file] to `/ArtworksManager/artworks_backup.zip` on the server via WebDAV PUT.
-     * Creates the remote directory first if it does not exist.
+     * Uploads [file] to the user's Nextcloud via WebDAV PUT.
+     * Tries the modern DAV path first, then the legacy /remote.php/webdav/ path.
      * Must be called from a background thread.
      */
     fun uploadBackup(serverUrl: String, username: String, appPassword: String, file: File, trustAllCerts: Boolean = false): Result {
-        return try {
-            val base = serverUrl.trimEnd('/')
-            val auth = basicAuth(username, appPassword)
+        val base = serverUrl.trimEnd('/')
+        val auth = basicAuth(username, appPassword)
 
-            // MKCOL creates the directory; 405 = already exists, both outcomes are acceptable
-            runCatching {
-                val mkcol = URL("$base/remote.php/dav/files/$username/ArtworksManager")
-                    .openConnection() as HttpURLConnection
-                if (trustAllCerts && mkcol is HttpsURLConnection) applySelfSignedTrust(mkcol)
-                mkcol.requestMethod = "MKCOL"
-                mkcol.setRequestProperty("Authorization", auth)
-                mkcol.connectTimeout = TIMEOUT_MS
-                mkcol.readTimeout = TIMEOUT_MS
-                mkcol.responseCode
-                mkcol.disconnect()
+        // Try modern path with subdirectory, legacy flat path as fallback
+        val candidates = listOf(
+            "$base/remote.php/dav/files/$username/ArtworksManager/artworks_backup.zip" to true,
+            "$base/remote.php/webdav/artworks_backup.zip" to false
+        )
+
+        for ((putPath, needsMkcol) in candidates) {
+            try {
+                if (needsMkcol) {
+                    // Ensure the ArtworksManager directory exists; 405 = already exists, both OK
+                    runCatching {
+                        val dirUrl = putPath.substringBeforeLast('/')
+                        val mkcol = URL(dirUrl).openConnection() as HttpURLConnection
+                        if (trustAllCerts && mkcol is HttpsURLConnection) applySelfSignedTrust(mkcol)
+                        mkcol.requestMethod = "MKCOL"
+                        mkcol.setRequestProperty("Authorization", auth)
+                        mkcol.connectTimeout = TIMEOUT_MS
+                        mkcol.readTimeout = TIMEOUT_MS
+                        mkcol.responseCode
+                        mkcol.disconnect()
+                    }
+                }
+
+                val conn = URL(putPath).openConnection() as HttpURLConnection
+                if (trustAllCerts && conn is HttpsURLConnection) applySelfSignedTrust(conn)
+                conn.requestMethod = "PUT"
+                conn.setRequestProperty("Authorization", auth)
+                conn.setRequestProperty("Content-Type", "application/zip")
+                conn.doOutput = true
+                conn.connectTimeout = TIMEOUT_MS
+                conn.readTimeout = 120_000
+
+                file.inputStream().use { input ->
+                    conn.outputStream.use { output -> input.copyTo(output) }
+                }
+
+                when (val code = conn.responseCode) {
+                    200, 201, 204 -> return Result.Success
+                    401 -> return Result.Failure("Invalid credentials")
+                    403 -> { /* try next candidate */ }
+                    507 -> return Result.Failure("Insufficient storage on server")
+                    else -> return Result.Failure("Upload failed: HTTP $code")
+                }
+            } catch (e: SSLHandshakeException) {
+                return Result.Failure("SSL certificate error during upload")
+            } catch (e: java.net.UnknownHostException) {
+                return Result.Failure("Cannot reach server — check the URL and your internet connection")
+            } catch (e: java.net.SocketTimeoutException) {
+                return Result.Failure("Connection timed out")
+            } catch (e: Exception) {
+                return Result.Failure(e.message ?: "Upload failed")
             }
-
-            val putUrl = URL("$base/remote.php/dav/files/$username/ArtworksManager/artworks_backup.zip")
-            val conn = putUrl.openConnection() as HttpURLConnection
-            if (trustAllCerts && conn is HttpsURLConnection) applySelfSignedTrust(conn)
-            conn.requestMethod = "PUT"
-            conn.setRequestProperty("Authorization", auth)
-            conn.setRequestProperty("Content-Type", "application/zip")
-            conn.doOutput = true
-            conn.connectTimeout = TIMEOUT_MS
-            conn.readTimeout = 120_000
-
-            file.inputStream().use { input ->
-                conn.outputStream.use { output -> input.copyTo(output) }
-            }
-
-            when (val code = conn.responseCode) {
-                200, 201, 204 -> Result.Success
-                401           -> Result.Failure("Invalid credentials")
-                403           -> Result.Failure("Permission denied on server")
-                507           -> Result.Failure("Insufficient storage on server")
-                else          -> Result.Failure("Upload failed: HTTP $code")
-            }
-        } catch (e: SSLHandshakeException) {
-            Result.Failure("SSL certificate error during upload")
-        } catch (e: java.net.UnknownHostException) {
-            Result.Failure("Cannot reach server — check the URL and your internet connection")
-        } catch (e: java.net.SocketTimeoutException) {
-            Result.Failure("Connection timed out")
-        } catch (e: Exception) {
-            Result.Failure(e.message ?: "Upload failed")
         }
+
+        return Result.Failure(
+            "WebDAV upload denied (HTTP 403) — in Nextcloud go to " +
+            "Settings → Security → App passwords and create a new unrestricted app password"
+        )
     }
 
     private fun basicAuth(username: String, password: String): String {
