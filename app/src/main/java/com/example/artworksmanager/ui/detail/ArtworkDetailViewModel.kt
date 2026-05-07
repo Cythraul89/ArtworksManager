@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.artworksmanager.data.Artwork
+import com.example.artworksmanager.data.ArtworkPhoto
 import com.example.artworksmanager.data.ArtworkRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,6 +21,11 @@ class ArtworkDetailViewModel(private val repository: ArtworkRepository) : ViewMo
         .filterNotNull()
         .flatMapLatest { id -> repository.getAllArtworks().map { list -> list.firstOrNull { it.id == id } } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val additionalPhotos: StateFlow<List<ArtworkPhoto>> = _artworkId
+        .filterNotNull()
+        .flatMapLatest { id -> repository.getAdditionalPhotos(id) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Triggers loading the artwork with the given [id]; the result is emitted via [artwork]. */
     fun load(id: Long) { _artworkId.value = id }

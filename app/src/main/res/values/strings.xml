@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Artworks</string>
+    <string name="app_name">AWoMa</string>
 
     <!-- Bottom Nav -->
     <string name="nav_dashboard">Dashboard</string>
@@ -9,6 +9,9 @@
 
     <!-- Dashboard -->
     <string name="total_artworks">Total artworks</string>
+    <string name="collection_value">Collection Value</string>
+    <string name="live_rates">live rates</string>
+    <string name="rates_unavailable">Offline – conversion unavailable</string>
     <string name="by_medium">By Medium</string>
     <string name="by_artist">By Artist</string>
     <string name="recently_added">Recently Added</string>
@@ -49,13 +52,15 @@
     <string name="field_title">Title *</string>
     <string name="field_artist">Artist name</string>
     <string name="field_year">Year</string>
+    <string name="field_type">Type</string>
     <string name="field_medium">Medium / Technique</string>
+    <string name="field_currency">Currency</string>
     <string name="field_height">Height (cm)</string>
     <string name="field_width">Width (cm)</string>
     <string name="field_depth">Depth (cm)</string>
     <string name="field_location">Location</string>
     <string name="field_acquisition_date">Acquisition date</string>
-    <string name="field_price">Purchase price (€)</string>
+    <string name="field_price">Purchase price</string>
     <string name="field_description">Description / Notes</string>
     <string name="save_artwork">Save Artwork</string>
     <string name="error_title_required">Title is required</string>
@@ -65,18 +70,43 @@
     <string name="discard">Discard</string>
     <string name="photo_tap_hint">Tap to add photo</string>
     <string name="take_photo">Take photo</string>
-    <string name="choose_gallery">Choose from gallery</string>
+    <string name="choose_gallery">Gallery or cloud storage</string>
     <string name="dimensions_label">Dimensions</string>
+    <string name="additional_photos_label">Additional Photos</string>
+    <string name="add_more_photos">Add more photos</string>
+
+    <!-- Settings — Preferences -->
+    <string name="pref_section">PREFERENCES</string>
+    <string name="pref_currency">Currency</string>
+    <string name="pref_currency_description">Used for purchase prices throughout the app</string>
+    <string name="pref_currency_dialog_title">Select currency</string>
 
     <!-- Settings -->
     <string name="export_collection">Export collection</string>
     <string name="export_description">Generate a PDF of all artworks</string>
     <string name="backup">Backup</string>
     <string name="nextcloud_backup">Nextcloud backup</string>
-    <string name="nextcloud_coming_soon">Nextcloud integration coming soon</string>
+    <string name="nextcloud_description">Sync your collection to a Nextcloud server</string>
+    <string name="nextcloud_server_url">Server URL (e.g. https://cloud.example.com)</string>
+    <string name="nextcloud_username">Username</string>
+    <string name="nextcloud_app_password">App password</string>
+    <string name="nextcloud_app_password_hint">Use an app-specific password, not your account password. Create one in Nextcloud: Settings → Security → Devices &amp; sessions → App passwords.</string>
+    <string name="nextcloud_trust_self_signed">Trust self-signed / untrusted certificates</string>
+    <string name="nextcloud_connect">Connect</string>
+    <string name="nextcloud_disconnect">Disconnect</string>
+    <string name="nextcloud_status_connected">Connected</string>
+    <string name="nextcloud_status_not_connected">Not connected</string>
+    <string name="nextcloud_connected_as">Connected as %1$s\n%2$s</string>
+    <string name="nextcloud_backup_now">Back up now</string>
+    <string name="nextcloud_backup_queued">Backup queued…</string>
+    <string name="nextcloud_backup_failed">Backup failed</string>
+    <string name="nextcloud_last_backup">Last backup: %s</string>
+    <string name="nextcloud_never_backed_up">Never backed up</string>
+    <string name="nextcloud_auto_backup_description">Daily automatic backup to ArtworksManager/artworks_backup.zip</string>
     <string name="about">About</string>
     <string name="app_version_label">Version</string>
-    <string name="app_version_value">0.0.2</string>
+    <string name="app_version_value">0.1.0</string>
+    <string name="easter_egg_message">Created for Nkule Mabaso</string>
     <string name="license_label">License</string>
     <string name="license_value">GNU General Public License v3.0 (GPL-3.0)</string>
     <string name="export_generating">Generating PDF…</string>
@@ -93,6 +123,22 @@
     <string name="import_success">Imported %d artworks</string>
     <string name="import_error">Could not import backup</string>
 
+    <!-- Artwork types array -->
+    <string-array name="artwork_types">
+        <item>Painting</item>
+        <item>Drawing</item>
+        <item>Photography</item>
+        <item>Sculpture</item>
+        <item>Print</item>
+        <item>Book</item>
+        <item>Textile</item>
+        <item>Ceramics</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Detail labels -->
+    <string name="type">Type</string>
+
     <!-- Mediums array -->
     <string-array name="mediums">
         <item>Oil</item>
@@ -105,6 +151,7 @@
         <item>Photograph</item>
         <item>Digital</item>
         <item>Mixed media</item>
+        <item>Book</item>
         <item>Other</item>
     </string-array>
 </resources>

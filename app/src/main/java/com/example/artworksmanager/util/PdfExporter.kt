@@ -7,7 +7,9 @@ import android.graphics.pdf.PdfDocument
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.example.artworksmanager.data.AppPreferences
 import com.example.artworksmanager.data.Artwork
+import com.example.artworksmanager.data.Currency
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -19,10 +21,11 @@ import java.util.*
  */
 class PdfExporter(private val context: Context) {
 
-    private val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    private val pageWidth  = 595  // A4 at 72dpi
-    private val pageHeight = 842
-    private val margin     = 40f
+    private val dateFormat         = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    private val globalCurrencySymbol = AppPreferences(context).currency.symbol
+    private val pageWidth          = 595  // A4 at 72dpi
+    private val pageHeight     = 842
+    private val margin         = 40f
 
     /** Generates the PDF for [artworks] and returns a [FileProvider] URI pointing to it. */
     fun generateUri(artworks: List<Artwork>): Uri {
@@ -132,6 +135,7 @@ class PdfExporter(private val context: Context) {
             }
         }
 
+        field("Type:", a.type)
         field("Medium:", a.medium)
         val dims = buildString {
             a.heightCm?.let { append(it) }
@@ -142,7 +146,11 @@ class PdfExporter(private val context: Context) {
         field("Dimensions:", dims)
         field("Location:", a.location)
         if (a.acquisitionDate != null) field("Acquired:", dateFormat.format(Date(a.acquisitionDate)))
-        if (a.purchasePrice != null)   field("Price:", "€%.2f".format(a.purchasePrice))
+        if (a.purchasePrice != null) {
+            val symbol = if (a.currency.isNotEmpty()) Currency.fromCode(a.currency).symbol
+                         else globalCurrencySymbol
+            field("Price:", "$symbol%.2f".format(a.purchasePrice))
+        }
         field("Description:", a.description)
 
         doc.finishPage(page)

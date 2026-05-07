@@ -18,7 +18,7 @@ The app uses a **bottom navigation bar** with three top-level destinations:
 |--------------|---------------|------------------------------------|
 | Dashboard    | `dashboard`   | Stats overview + quick add         |
 | Collection   | `collections` | Browse, search, filter artworks    |
-| Settings     | `settings`    | Export PDF, backup export/import, about |
+| Settings     | `settings`    | Export PDF, backup export/import, Nextcloud backup, about |
 
 ---
 
@@ -50,8 +50,20 @@ The app uses a **bottom navigation bar** with three top-level destinations:
 │ Export PDF       │──▶ system share sheet
 │ Export backup    │──▶ SAF "Create Document" picker → writes zip
 │ Import backup    │──▶ SAF "Open Document" picker → confirm dialog → restore
-│ Nextcloud        │──▶ toast "coming soon"
+│ Nextcloud backup │──▶ NextcloudFragment (full-screen, back arrow)
 └──────────────────┘
+         │
+         ▼
+┌──────────────────────┐
+│  Nextcloud Settings  │
+│──────────────────────│
+│ Server URL           │
+│ Username             │
+│ App password         │──▶ test credentials (OCS API) → save → schedule worker
+│ [Connect]            │
+│ [Disconnect]         │──▶ clear credentials → cancel WorkManager job
+│ [Back up now]        │──▶ enqueue OneTimeWorkRequest
+└──────────────────────┘
 ```
 
 ---
@@ -64,3 +76,4 @@ The app uses a **bottom navigation bar** with three top-level destinations:
 - **Delete:** triggered from Artwork Detail via a confirmation dialog; on confirm, pops back to Collection List
 - **Search:** inline in the Collection List toolbar (expands the search bar, no separate screen)
 - **Filter / Sort:** bottom sheet opened from Collection List toolbar
+- **Nextcloud Settings:** full-screen destination pushed from Settings; `findNavController().popBackStack()` on back arrow; bottom nav hidden

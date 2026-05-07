@@ -14,11 +14,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.R
+import com.example.artworksmanager.data.AppPreferences
 import com.example.artworksmanager.data.ArtworkRepository
+import com.example.artworksmanager.data.Currency
 import com.example.artworksmanager.databinding.FragmentSettingsBinding
+import com.example.artworksmanager.data.ArtworkPhoto
 import com.example.artworksmanager.util.BackupExporter
 import com.example.artworksmanager.util.BackupImporter
 import com.example.artworksmanager.util.PdfExporter
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -29,8 +33,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Fragment for the settings screen, providing PDF export, zip backup export,
- * zip backup import, and a placeholder for future Nextcloud sync integration.
+ * Fragment for the settings screen, providing currency selection, PDF export,
+ * zip backup export/import, and a placeholder for future Nextcloud sync integration.
  */
 class SettingsFragment : Fragment() {
 
@@ -40,6 +44,9 @@ class SettingsFragment : Fragment() {
     private val viewModel: SettingsViewModel by viewModels {
         SettingsViewModel.factory((requireActivity().application as ArtworksManagerApp).repository)
     }
+
+    private val prefs: AppPreferences
+        get() = (requireActivity().application as ArtworksManagerApp).preferences
 
     private val createBackupDocument = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
@@ -57,12 +64,45 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        updateCurrencyLabel()
+        binding.currencyRow.setOnClickListener { showCurrencyDialog() }
+
         binding.exportRow.setOnClickListener { exportPdf() }
         binding.backupExportRow.setOnClickListener { launchBackupPicker() }
         binding.backupImportRow.setOnClickListener { openBackupDocument.launch(arrayOf("application/zip")) }
         binding.nextcloudRow.setOnClickListener {
-            Toast.makeText(requireContext(), R.string.nextcloud_coming_soon, Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_settings_to_nextcloud)
         }
+
+        var versionTapCount = 0
+        binding.versionRow.setOnClickListener {
+            if (++versionTapCount >= 5) {
+                versionTapCount = 0
+                MaterialAlertDialogBuilder(requireContext())
+                    .setMessage(R.string.easter_egg_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+        }
+    }
+
+    private fun updateCurrencyLabel() {
+        binding.currencyValue.text = prefs.currency.label
+    }
+
+    /** Shows a single-choice dialog to select the display currency. */
+    private fun showCurrencyDialog() {
+        val currencies = Currency.entries
+        val labels = currencies.map { it.label }.toTypedArray()
+        val current = currencies.indexOf(prefs.currency).coerceAtLeast(0)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pref_currency_dialog_title)
+            .setSingleChoiceItems(labels, current) { dialog, which ->
+                prefs.currency = currencies[which]
+                updateCurrencyLabel()
+                dialog.dismiss()
+            }
+            .show()
     }
 
     /** Fetches all artworks, generates a PDF via [PdfExporter], and opens the system share sheet. */
@@ -104,7 +144,8 @@ class SettingsFragment : Fragment() {
             val ctx = requireContext()
             try {
                 val artworks = withContext(Dispatchers.IO) { viewModel.loadArtworksNow() }
-                withContext(Dispatchers.IO) { BackupExporter(ctx).writeTo(uri, artworks) }
+                val photosByArtwork = withContext(Dispatchers.IO) { viewModel.loadAllPhotosNow() }
+                withContext(Dispatchers.IO) { BackupExporter(ctx).writeTo(uri, artworks, photosByArtwork) }
                 Toast.makeText(ctx, R.string.backup_success, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(ctx, R.string.backup_error, Toast.LENGTH_SHORT).show()
@@ -132,11 +173,11 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             try {
-                val artworks = withContext(Dispatchers.IO) { BackupImporter(ctx).importFrom(uri) }
-                withContext(Dispatchers.IO) { viewModel.replaceAll(artworks) }
+                val data = withContext(Dispatchers.IO) { BackupImporter(ctx).importFrom(uri) }
+                withContext(Dispatchers.IO) { viewModel.replaceAll(data.artworks, data.photos) }
                 Toast.makeText(
                     ctx,
-                    ctx.getString(R.string.import_success, artworks.size),
+                    ctx.getString(R.string.import_success, data.artworks.size),
                     Toast.LENGTH_SHORT
                 ).show()
             } catch (e: Exception) {
@@ -145,6 +186,19 @@ class SettingsFragment : Fragment() {
             binding.backupImportProgress.visibility = View.GONE
             binding.backupImportRow.isEnabled = true
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateNextcloudStatus()
+    }
+
+    private fun updateNextcloudStatus() {
+        val nc = (requireActivity().application as ArtworksManagerApp).nextcloudPreferences
+        binding.nextcloudStatus.text = if (nc.isConnected)
+            getString(R.string.nextcloud_status_connected)
+        else
+            getString(R.string.nextcloud_status_not_connected)
     }
 
     override fun onDestroyView() {
@@ -162,9 +216,12 @@ class SettingsViewModel(private val repository: ArtworkRepository) : ViewModel()
     /** One-shot DB read — suspends until Room emits the first result. */
     suspend fun loadArtworksNow() = repository.getAllArtworks().first()
 
-    /** Atomically clears the collection and inserts [artworks]. */
-    suspend fun replaceAll(artworks: List<com.example.artworksmanager.data.Artwork>) =
-        repository.replaceAll(artworks)
+    /** One-shot read of all additional photos grouped by artwork id. */
+    suspend fun loadAllPhotosNow(): Map<Long, List<ArtworkPhoto>> = repository.getAllPhotosNow()
+
+    /** Atomically clears the collection and inserts [artworks] and their [photos]. */
+    suspend fun replaceAll(artworks: List<com.example.artworksmanager.data.Artwork>, photos: List<ArtworkPhoto> = emptyList()) =
+        repository.replaceAll(artworks, photos)
 
     companion object {
         fun factory(repository: ArtworkRepository) = object : ViewModelProvider.Factory {

@@ -4,12 +4,15 @@ A personal artwork catalogue app for Android. Record, browse, and manage a priva
 
 ## Features
 
-- **Add / Edit / Delete** artworks with title, artist, year, medium, dimensions, location, acquisition date, purchase price, photo, and notes
+- **Add / Edit / Delete** artworks with title, artist, year, type, medium, dimensions, location, acquisition date, purchase price, photos, and notes
+- **Per-artwork currency** — each artwork stores its own currency (EUR, USD, NOK, ZAR); falls back to the global preference when not set
+- **Multiple photos** — attach a cover photo plus any number of additional photos; photos can be taken with the camera or picked from the gallery, local storage, or any cloud storage provider installed on the device (Google Drive, Dropbox, OneDrive, Nextcloud app, etc.) via the Android Storage Access Framework
 - **Browse** the collection in grid or list view with real-time search, filter by medium, and sort by title, artist, or date
-- **Dashboard** with total count, breakdown by medium and artist, and a recently-added strip
+- **Dashboard** with total count, breakdown by medium and artist, recently-added strip, and a **Collection Value card** showing per-currency subtotals and a live grand total converted via the Frankfurter API (offline fallback: per-currency subtotals only)
 - **Export PDF** — one A4 page per artwork, photos orientation-corrected via EXIF
-- **Export backup** — saves a zip containing `artworks.json` (human-readable) and all artwork photos to any location via the Android Storage Access Framework
-- **Import backup** — restores a collection from a previously exported zip
+- **Export backup** — saves a zip containing `artworks.json` (human-readable, including additional photos) and all artwork photos to any location via the Android Storage Access Framework
+- **Import backup** — restores a collection (artworks + additional photos) from a previously exported zip
+- **Nextcloud backup** — connect to a Nextcloud server using an app password; supports self-signed / untrusted certificates via an opt-in checkbox; the full collection is automatically backed up once a day via WebDAV to `ArtworksManager/artworks_backup.zip`; a "Back up now" button triggers an immediate upload with a success or error toast
 - **Dark mode** — follows the system light/dark setting
 
 ## Requirements
@@ -22,6 +25,7 @@ A personal artwork catalogue app for Android. Record, browse, and manage a priva
 | Android SDK (target) | API 35 (Android 15) |
 | Gradle | 8.13 |
 | Android Gradle Plugin | 8.13.2 |
+| WorkManager | 2.10.1 |
 
 ## Getting Started
 
@@ -61,18 +65,35 @@ A signed release APK can also be generated from Android Studio via **Build → G
 ```
 app/src/main/
 ├── java/com/example/artworksmanager/
-│   ├── ArtworksManagerApp.kt          Application class (DB + repository singletons)
-│   ├── data/                          Room database, DAO, entity, repository
+│   ├── ArtworksManagerApp.kt          Application class (DB + repository + preferences singletons)
+│   ├── data/
+│   │   ├── Artwork.kt                 Main artwork entity
+│   │   ├── ArtworkPhoto.kt            Additional photos entity (one-to-many)
+│   │   ├── ArtworkDao.kt              Room DAO
+│   │   ├── ArtworkDatabase.kt         Room database (v3)
+│   │   ├── ArtworkRepository.kt       Single source of truth
+│   │   ├── AppPreferences.kt          SharedPreferences wrapper + reactive currencyFlow
+│   │   ├── Currency.kt                Enum: EUR / USD / NOK / ZAR
+│   │   └── NextcloudPreferences.kt    Nextcloud credentials + lastBackupTime (SharedPreferences)
 │   ├── ui/
 │   │   ├── MainActivity.kt            Single-activity host, Navigation Component
-│   │   ├── addedit/                   Add / Edit artwork screen
+│   │   ├── addedit/
+│   │   │   ├── AddEditFragment.kt     Add / Edit form + photo management (SAF cloud picker)
+│   │   │   ├── AddEditViewModel.kt    Save logic + additional-photo diff
+│   │   │   └── AdditionalPhotoAdapter.kt  Horizontal photo strip adapter
 │   │   ├── collection/                Collection list, search, filter/sort
-│   │   ├── dashboard/                 Stats overview + recently added
-│   │   ├── detail/                    Artwork detail view
-│   │   └── settings/                  PDF export, backup export/import, about
+│   │   ├── dashboard/                 Stats overview + collection value card
+│   │   ├── detail/                    Artwork detail view + photo strip
+│   │   ├── nextcloud/
+│   │   │   ├── NextcloudFragment.kt   Nextcloud login form + backup controls
+│   │   │   └── NextcloudViewModel.kt  Credential testing, WorkManager scheduling
+│   │   └── settings/                  PDF export, backup export/import, Nextcloud nav, about
 │   └── util/
-│       ├── BackupExporter.kt          Zip backup creation
-│       ├── BackupImporter.kt          Zip backup restoration
+│       ├── BackupExporter.kt          Zip backup creation (artworks + photos); SAF Uri + File overloads
+│       ├── BackupImporter.kt          Zip backup restoration → BackupData
+│       ├── ExchangeRateService.kt     Live currency rates via Frankfurter API
+│       ├── NextcloudBackupWorker.kt   WorkManager CoroutineWorker for daily Nextcloud upload
+│       ├── NextcloudClient.kt         Nextcloud OCS auth check + WebDAV upload
 │       └── PdfExporter.kt             PDF generation
 └── res/
     ├── layout/                        XML layouts for all screens
@@ -80,9 +101,11 @@ app/src/main/
     ├── values/                        Strings, colours (light), themes
     ├── values-night/                  Dark mode colour overrides
     └── xml/
-        └── file_paths.xml             FileProvider path configuration
+        ├── file_paths.xml             FileProvider path configuration
+        └── network_security_config.xml  Trusts system + user-installed CA certificates
 doc/
 ├── architecture.md                    Architecture overview and design decisions
+├── class-diagram.md                   Mermaid class diagram of all classes
 ├── requirements.md                    Functional and non-functional requirements
 └── designs/                           Per-screen wireframes and design system
 ```
@@ -94,6 +117,7 @@ See [`doc/architecture.md`](doc/architecture.md) for a detailed description of t
 | Document | Description |
 |----------|-------------|
 | [`doc/architecture.md`](doc/architecture.md) | Architecture, tech stack, data flow, design decisions |
+| [`doc/class-diagram.md`](doc/class-diagram.md) | Mermaid class diagram of all classes and relationships |
 | [`doc/requirements.md`](doc/requirements.md) | Functional and non-functional requirements |
 | [`doc/designs/design-system.md`](doc/designs/design-system.md) | Colour palette (light + dark), typography, components |
 | [`doc/designs/screen-settings.md`](doc/designs/screen-settings.md) | Settings screen wireframe and backup behaviour |

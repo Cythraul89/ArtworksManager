@@ -35,6 +35,17 @@
                 android:contentDescription="@null"
                 android:visibility="gone" />
 
+            <!-- Additional photos strip (hidden when empty) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/additionalPhotosRecycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="8dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -63,6 +74,10 @@
                     android:layout_height="1dp"
                     android:background="@color/divider"
                     android:layout_marginBottom="16dp" />
+
+                <!-- Type -->
+                <TextView android:id="@+id/labelType" style="@style/FieldLabel" android:text="@string/type" />
+                <TextView android:id="@+id/valueType" style="@style/FieldValue" />
 
                 <!-- Medium -->
                 <TextView android:id="@+id/labelMedium" style="@style/FieldLabel" android:text="@string/medium" />

@@ -9,6 +9,9 @@ data class MediumCount(val medium: String, val count: Int)
 /** Projection used by [ArtworkDao.getTopArtists] to group artworks by artist. */
 data class ArtistCount(val artist: String, val count: Int)
 
+/** Projection used by [ArtworkDao.getPriceTotals] to sum purchase prices per currency. */
+data class CurrencyTotal(val currency: String, val total: Double)
+
 /** Room DAO providing all database operations for the [Artwork] entity. */
 @Dao
 interface ArtworkDao {
@@ -37,6 +40,30 @@ interface ArtworkDao {
     @Query("SELECT DISTINCT medium FROM artworks WHERE medium != '' ORDER BY medium")
     fun getDistinctMediums(): Flow<List<String>>
 
+    /** Returns the sum of [Artwork.purchasePrice] grouped by [Artwork.currency], highest total first. */
+    @Query("SELECT currency, SUM(purchasePrice) as total FROM artworks WHERE purchasePrice IS NOT NULL GROUP BY currency ORDER BY total DESC")
+    fun getPriceTotals(): Flow<List<CurrencyTotal>>
+
+    // ── Additional photos ────────────────────────────────────────────────────
+
+    @Query("SELECT * FROM artwork_photos WHERE artworkId = :artworkId ORDER BY sortOrder ASC")
+    fun getPhotosForArtwork(artworkId: Long): Flow<List<ArtworkPhoto>>
+
+    @Query("SELECT * FROM artwork_photos ORDER BY artworkId, sortOrder ASC")
+    suspend fun getAllPhotosOnce(): List<ArtworkPhoto>
+
+    @Insert
+    suspend fun insertPhoto(photo: ArtworkPhoto): Long
+
+    @Insert
+    suspend fun insertPhotos(photos: List<ArtworkPhoto>)
+
+    @Delete
+    suspend fun deletePhoto(photo: ArtworkPhoto)
+
+    @Query("DELETE FROM artwork_photos WHERE artworkId = :artworkId")
+    suspend fun deletePhotosForArtwork(artworkId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(artwork: Artwork): Long
 
@@ -48,11 +75,12 @@ interface ArtworkDao {
     @Query("DELETE FROM artworks")
     suspend fun deleteAll()
 
-    /** Atomically replaces the entire collection with [artworks]. */
+    /** Atomically replaces the entire collection with [artworks] and optional [photos]. */
     @Transaction
-    suspend fun replaceAll(artworks: List<Artwork>) {
+    suspend fun replaceAll(artworks: List<Artwork>, photos: List<ArtworkPhoto> = emptyList()) {
         deleteAll()
         insertAll(artworks)
+        if (photos.isNotEmpty()) insertPhotos(photos)
     }
 
     @Update
