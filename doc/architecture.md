@@ -111,11 +111,15 @@ com.example.artworksmanager/
 │   │                                  StateFlow; provides delete()
 │   ├── nextcloud/
 │   │   ├── NextcloudFragment.kt   Nextcloud connection form (server URL, username,
-│   │   │                          app password); shows connected status, last backup
-│   │   │                          time, and "Back up now" button when connected
+│   │   │                          app password, trust-self-signed checkbox); shows
+│   │   │                          connected status, last backup time, and "Back up now"
+│   │   │                          button when connected; observes WorkInfo to show a
+│   │   │                          success or failure toast after an immediate backup
 │   │   └── NextcloudViewModel.kt  AndroidViewModel; tests credentials via
-│   │                              NextcloudClient; saves to NextcloudPreferences;
+│   │                              NextcloudClient (passes trustAllCerts);
+│   │                              saves to NextcloudPreferences;
 │   │                              schedules/cancels the daily PeriodicWorkRequest;
+│   │                              backupNow() returns UUID for WorkInfo observation;
 │   │                              exposes State (Idle/Testing/Connected/Error) StateFlow
 │   └── settings/
 │       └── SettingsFragment.kt    PDF export, backup export/import, currency
@@ -136,9 +140,15 @@ com.example.artworksmanager/
     │                              called on Dispatchers.IO
     ├── NextcloudBackupWorker.kt   WorkManager CoroutineWorker; loads collection,
     │                              writes zip to cacheDir, uploads via WebDAV PUT,
-    │                              saves lastBackupTime on success; retries on failure
+    │                              saves lastBackupTime on success;
+    │                              returns Result.failure(workDataOf(KEY_ERROR to msg))
+    │                              on any error so the calling fragment can show the message
     ├── NextcloudClient.kt         Nextcloud HTTP client (object); testConnection()
-    │                              via OCS API; uploadBackup() via WebDAV MKCOL + PUT
+    │                              via OCS API; uploadBackup() tries three WebDAV paths in
+    │                              order (flat root PUT → sub-dir PUT with MKCOL → legacy
+    │                              /remote.php/webdav/) continuing on 403 or 404;
+    │                              optional trustAllCerts flag applies a per-connection
+    │                              trust-all SSLSocketFactory for self-signed certificates
     └── PdfExporter.kt             Renders one A4 page per artwork using
                                    PdfDocument; corrects photo orientation via EXIF
 ```
@@ -288,16 +298,19 @@ When the user connects to Nextcloud, a `PeriodicWorkRequest` is registered under
 
 ```
 NextcloudBackupWorker.doWork()          runs on Dispatchers.Default (IO ops wrapped)
-  ├─ check NextcloudPreferences.isConnected → failure() if credentials gone
+  ├─ check NextcloudPreferences.isConnected → failure(KEY_ERROR) if credentials gone
   ├─ load artworks + photos from repository (Dispatchers.IO)
   ├─ BackupExporter.writeToFile(tmpFile, artworks, photos)
   │    └─ same zip structure as manual export, written to cacheDir
-  ├─ NextcloudClient.uploadBackup(serverUrl, username, appPassword, tmpFile)
-  │    ├─ MKCOL /remote.php/dav/files/{user}/ArtworksManager  (creates folder; 405=already exists is ok)
-  │    └─ PUT  /remote.php/dav/files/{user}/ArtworksManager/artworks_backup.zip
+  ├─ NextcloudClient.uploadBackup(serverUrl, username, appPassword, tmpFile, trustAllCerts)
+  │    ├─ candidate 1: flat PUT to /remote.php/dav/files/{user}/artworks_backup.zip
+  │    ├─ candidate 2: MKCOL + PUT to /remote.php/dav/files/{user}/ArtworksManager/artworks_backup.zip
+  │    └─ candidate 3: PUT to /remote.php/webdav/artworks_backup.zip  (legacy pre-NC10)
+  │         each candidate continues on 403 or 404; first 200/201/204 wins
   ├─ tmpFile.delete()                   always, via try-finally
   └─ on success: prefs.lastBackupTime = now → Result.success()
-     on failure: Result.retry()         WorkManager applies exponential back-off
+     on failure: Result.failure(workDataOf(KEY_ERROR to message))
+                 fragment observes WorkInfo and shows the message in a toast
 ```
 
 A "Back up now" button in `NextcloudFragment` enqueues a `OneTimeWorkRequest` using the same worker for an immediate upload.
@@ -332,6 +345,7 @@ Nextcloud credentials are stored separately in `NextcloudPreferences` (a dedicat
 | `username` | String | Trimmed |
 | `app_password` | String | App-specific password (not the account password) |
 | `last_backup_time` | Long | Unix epoch ms of last successful Nextcloud upload; 0 if never |
+| `trust_all_certs` | Boolean | When `true`, applies a per-connection trust-all `SSLSocketFactory` so servers with self-signed or untrusted certificates are accepted |
 
 `isConnected` is a computed property returning `true` when all three credential fields are non-empty.
 
@@ -363,6 +377,9 @@ The app uses `Theme.Material3.DayNight.NoActionBar` and calls `AppCompatDelegate
 | `AndroidViewModel` for `NextcloudViewModel` | Needs Application context to access WorkManager; `AndroidViewModel` is the idiomatic solution |
 | Nextcloud OCS API for credential check | Simple GET `/ocs/v2.php/cloud/user` with Basic auth; unambiguous 200/401 response codes; no extra SDK needed |
 | WebDAV for Nextcloud upload | Nextcloud's standard file-access protocol; PUT + MKCOL require no dependency beyond `HttpURLConnection` |
+| WebDAV multi-path fallback | Try flat PUT first (no MKCOL needed, works even when MKCOL is restricted); continue on both 403 and 404 to cover self-hosted servers with non-standard or restricted configurations |
+| Per-connection SSL trust override | A per-connection `X509TrustManager` behind an opt-in checkbox keeps the default security policy strict while supporting self-signed certs; `network_security_config.xml` additionally allows user-installed CAs system-wide |
+| `Result.failure(workDataOf(...))` in worker | Lets the fragment observe the `WorkInfo.outputData` to surface an actionable error message; `Result.retry()` was silent to the user |
 | `org.json` + `android.media.ExifInterface` | Both are part of the Android SDK — no extra dependencies required |
 | `@Transaction replaceAll` | Guarantees the collection is never in a partially-replaced state visible to other readers |
 | Frankfurter API (no key) | ECB-sourced rates, free, no registration; `null` return on failure triggers graceful offline fallback |

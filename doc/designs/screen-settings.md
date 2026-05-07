@@ -39,7 +39,7 @@ Access app-level preferences (currency), export the collection as PDF, export an
 │                                 │
 │  ABOUT                          │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │  Version              0.0.3 │ │
+│ │  Version              0.1.0 │ │
 │ ├─────────────────────────────┤ │
 │ │  License   GNU General      │ │
 │ │            Public License   │ │
@@ -191,6 +191,9 @@ Tapping the row always navigates to the Nextcloud settings sub-screen. The statu
 │  │    account password...       ││
 │  └─────────────────────────────┘│
 │                                 │
+│  ☐  Trust self-signed /         │  ← Checkbox; opt-in for servers with
+│     untrusted certificates      │    self-signed or privately-issued certs
+│                                 │
 │  ┌─────────────────────────────┐│  ← Status card (hidden when Idle)
 │  │ ✓  Connected as alice       ││    Green icon + primary text when Connected
 │  │    https://cloud.example.com││    Red icon + red text on Error
@@ -217,14 +220,18 @@ Tapping the row always navigates to the Nextcloud settings sub-screen. The statu
 ```
 
 ### Connect behaviour
-1. User fills in server URL, username, and app password
-2. Tapping **Connect** calls `NextcloudClient.testConnection()` on a background thread (OCS API GET `/ocs/v2.php/cloud/user` with Basic auth)
+1. User fills in server URL, username, app password, and optionally checks **Trust self-signed certificates**
+2. Tapping **Connect** calls `NextcloudClient.testConnection()` on a background thread (OCS API GET `/ocs/v2.php/cloud/user` with Basic auth); the `trustAllCerts` flag is forwarded
 3. A spinner is shown over the Connect button while testing
-4. On HTTP 200: credentials saved to `NextcloudPreferences`; a daily `PeriodicWorkRequest` is registered in WorkManager; screen transitions to Connected state
-5. On failure: error message shown in the status card (e.g. "Invalid username or app password", "Connection timed out")
+4. On HTTP 200: credentials (including the trust flag) saved to `NextcloudPreferences`; a daily `PeriodicWorkRequest` is registered in WorkManager; screen transitions to Connected state
+5. On failure: error message shown in the status card (e.g. "Invalid username or app password", "SSL certificate error — enable Trust self-signed certificates if your server uses a self-signed cert", "Connection timed out")
 
 ### Disconnect behaviour
 Credentials are cleared from `NextcloudPreferences` and the scheduled WorkManager job is cancelled.
 
 ### Back up now behaviour
-Enqueues a `OneTimeWorkRequest` for `NextcloudBackupWorker`. The worker runs as soon as a network connection is available. A snackbar "Backup queued" is shown immediately. The "Last backup" label updates to the new timestamp the next time the fragment is visible (the worker stores the result in `NextcloudPreferences.lastBackupTime`).
+Enqueues a `OneTimeWorkRequest` for `NextcloudBackupWorker`. The worker runs as soon as a network connection is available. A toast "Backup queued…" is shown immediately. The fragment observes the `WorkInfo` via `getWorkInfoByIdLiveData()` and shows:
+- A toast "Backup saved successfully" on `SUCCEEDED`
+- A toast with the specific error message (e.g. "Upload failed: HTTP 403") on `FAILED`
+
+The "Last backup" label updates to the new timestamp on success (the worker stores it in `NextcloudPreferences.lastBackupTime`)..

@@ -59,6 +59,7 @@ classDiagram
         +serverUrl : String
         +username : String
         +appPassword : String
+        +trustAllCerts : Boolean
         +lastBackupTime : Long
         +isConnected : Boolean
         +clear()
@@ -302,10 +303,11 @@ classDiagram
         +state : StateFlow~NextcloudState~
         +savedServerUrl : String
         +savedUsername : String
+        +savedTrustAll : Boolean
         +lastBackupTime : Long
-        +connect(serverUrl, username, appPassword)
+        +connect(serverUrl, username, appPassword, trustAllCerts)
         +disconnect()
-        +backupNow()
+        +backupNow() UUID
         -scheduleAutoBackup()
         -cancelAutoBackup()
     }
@@ -334,13 +336,14 @@ classDiagram
 
     class NextcloudClient {
         <<object>>
-        +testConnection(serverUrl, username, appPassword) Result
-        +uploadBackup(serverUrl, username, appPassword, file : File) Result
+        +testConnection(serverUrl, username, appPassword, trustAllCerts) Result
+        +uploadBackup(serverUrl, username, appPassword, file : File, trustAllCerts) Result
     }
 
     class NextcloudBackupWorker {
         <<CoroutineWorker>>
         +doWork() Result
+        +KEY_ERROR : String$
     }
 
     class BackupData {

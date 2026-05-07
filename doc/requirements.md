@@ -38,7 +38,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Export backup** — create a zip archive containing `artworks.json` (all artwork records as human-readable JSON, including additional photo references) and all artwork photos; the archive can be saved to any location supported by the Android Storage Access Framework
 - **Import backup** — restore the collection (artworks + additional photos) from a previously exported backup zip; replaces the entire current collection after user confirmation
 - **Multiple photos per artwork** — a cover photo plus any number of additional photos stored in a separate table; displayed as a horizontal strip in both the detail view and the add/edit form
-- **Nextcloud backup** — connect to a Nextcloud server using an app-specific password; the full collection (artworks + photos) is automatically uploaded once a day via WebDAV to `ArtworksManager/artworks_backup.zip` on the server when a network connection is available; a "Back up now" button triggers an immediate upload; the last backup timestamp is shown on the Nextcloud settings screen; the app remains fully functional without a Nextcloud connection
+- **Nextcloud backup** — connect to a Nextcloud server using an app-specific password; supports self-signed / untrusted certificates via an opt-in "Trust self-signed certificates" checkbox; the full collection (artworks + photos) is automatically uploaded once a day via WebDAV to `ArtworksManager/artworks_backup.zip` on the server when a network connection is available; a "Back up now" button triggers an immediate upload with a success or failure toast; the last backup timestamp is shown on the Nextcloud settings screen; the app remains fully functional without a Nextcloud connection
 
 ## Nice to Have
 
@@ -62,7 +62,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 3. **Artwork detail** — displays the cover photo, additional photo strip, and all recorded fields; action buttons to edit or delete
 4. **Add / Edit artwork** — form with all fields, cover photo picker/camera, additional photo strip with add/remove (photos can also be picked from cloud storage), and a save button
 5. **Settings** — currency preference, export PDF, export/import zip backup, Nextcloud backup row (shows connected/not-connected status; navigates to sub-screen), about info (version, license)
-6. **Nextcloud settings** — sub-screen for entering server URL, username, and app password; connect/disconnect; "Back up now" button and last backup timestamp (shown when connected)
+6. **Nextcloud settings** — sub-screen for entering server URL, username, app password, and a "Trust self-signed certificates" checkbox; connect/disconnect; "Back up now" button (shows success or failure toast) and last backup timestamp (shown when connected)
 
 ## Settings / Preferences
 

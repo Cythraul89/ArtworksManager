@@ -12,7 +12,7 @@ A personal artwork catalogue app for Android. Record, browse, and manage a priva
 - **Export PDF** — one A4 page per artwork, photos orientation-corrected via EXIF
 - **Export backup** — saves a zip containing `artworks.json` (human-readable, including additional photos) and all artwork photos to any location via the Android Storage Access Framework
 - **Import backup** — restores a collection (artworks + additional photos) from a previously exported zip
-- **Nextcloud backup** — connect to a Nextcloud server using an app password; the full collection is automatically backed up once a day via WebDAV to `ArtworksManager/artworks_backup.zip`; a "Back up now" button triggers an immediate upload
+- **Nextcloud backup** — connect to a Nextcloud server using an app password; supports self-signed / untrusted certificates via an opt-in checkbox; the full collection is automatically backed up once a day via WebDAV to `ArtworksManager/artworks_backup.zip`; a "Back up now" button triggers an immediate upload with a success or error toast
 - **Dark mode** — follows the system light/dark setting
 
 ## Requirements
@@ -101,7 +101,8 @@ app/src/main/
     ├── values/                        Strings, colours (light), themes
     ├── values-night/                  Dark mode colour overrides
     └── xml/
-        └── file_paths.xml             FileProvider path configuration
+        ├── file_paths.xml             FileProvider path configuration
+        └── network_security_config.xml  Trusts system + user-installed CA certificates
 doc/
 ├── architecture.md                    Architecture overview and design decisions
 ├── class-diagram.md                   Mermaid class diagram of all classes
