@@ -59,26 +59,31 @@ object NextcloudClient {
 
     /**
      * Uploads [file] to the user's Nextcloud via WebDAV PUT.
-     * Tries the modern DAV path first, then the legacy /remote.php/webdav/ path.
+     * Tries several path variants in order, continuing on 403/404, so self-hosted
+     * servers with non-standard configurations or restricted MKCOL still work.
      * Must be called from a background thread.
      */
     fun uploadBackup(serverUrl: String, username: String, appPassword: String, file: File, trustAllCerts: Boolean = false): Result {
         val base = serverUrl.trimEnd('/')
         val auth = basicAuth(username, appPassword)
 
-        // Try modern path with subdirectory, legacy flat path as fallback
+        // Each entry: Pair(putUrl, mkcolUrl-or-null)
         val candidates = listOf(
-            "$base/remote.php/dav/files/$username/ArtworksManager/artworks_backup.zip" to true,
-            "$base/remote.php/webdav/artworks_backup.zip" to false
+            // 1. Flat PUT in user root — no MKCOL needed, most permissive
+            "$base/remote.php/dav/files/$username/artworks_backup.zip" to null,
+            // 2. PUT in subdirectory — MKCOL first
+            "$base/remote.php/dav/files/$username/ArtworksManager/artworks_backup.zip"
+                    to "$base/remote.php/dav/files/$username/ArtworksManager",
+            // 3. Legacy WebDAV endpoint (pre-NC10)
+            "$base/remote.php/webdav/artworks_backup.zip" to null
         )
 
-        for ((putPath, needsMkcol) in candidates) {
+        var lastCode = 0
+        for ((putUrl, mkcolUrl) in candidates) {
             try {
-                if (needsMkcol) {
-                    // Ensure the ArtworksManager directory exists; 405 = already exists, both OK
+                mkcolUrl?.let { dir ->
                     runCatching {
-                        val dirUrl = putPath.substringBeforeLast('/')
-                        val mkcol = URL(dirUrl).openConnection() as HttpURLConnection
+                        val mkcol = URL(dir).openConnection() as HttpURLConnection
                         if (trustAllCerts && mkcol is HttpsURLConnection) applySelfSignedTrust(mkcol)
                         mkcol.requestMethod = "MKCOL"
                         mkcol.setRequestProperty("Authorization", auth)
@@ -89,7 +94,7 @@ object NextcloudClient {
                     }
                 }
 
-                val conn = URL(putPath).openConnection() as HttpURLConnection
+                val conn = URL(putUrl).openConnection() as HttpURLConnection
                 if (trustAllCerts && conn is HttpsURLConnection) applySelfSignedTrust(conn)
                 conn.requestMethod = "PUT"
                 conn.setRequestProperty("Authorization", auth)
@@ -102,12 +107,13 @@ object NextcloudClient {
                     conn.outputStream.use { output -> input.copyTo(output) }
                 }
 
-                when (val code = conn.responseCode) {
+                lastCode = conn.responseCode
+                when (lastCode) {
                     200, 201, 204 -> return Result.Success
                     401 -> return Result.Failure("Invalid credentials")
-                    403 -> { /* try next candidate */ }
+                    403, 404 -> { /* try next candidate */ }
                     507 -> return Result.Failure("Insufficient storage on server")
-                    else -> return Result.Failure("Upload failed: HTTP $code")
+                    else -> return Result.Failure("Upload failed: HTTP $lastCode")
                 }
             } catch (e: SSLHandshakeException) {
                 return Result.Failure("SSL certificate error during upload")
@@ -120,10 +126,13 @@ object NextcloudClient {
             }
         }
 
-        return Result.Failure(
-            "WebDAV upload denied (HTTP 403) — in Nextcloud go to " +
-            "Settings → Security → App passwords and create a new unrestricted app password"
-        )
+        return if (lastCode == 403)
+            Result.Failure(
+                "WebDAV upload denied (HTTP 403) — in Nextcloud go to " +
+                "Settings → Security → App passwords and create a new unrestricted app password"
+            )
+        else
+            Result.Failure("WebDAV endpoint not found (HTTP 404) — check that WebDAV is enabled on your server")
     }
 
     private fun basicAuth(username: String, password: String): String {
