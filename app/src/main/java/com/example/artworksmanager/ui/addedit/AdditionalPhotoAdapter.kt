@@ -53,7 +53,10 @@ class AdditionalPhotoAdapter(
         Glide.with(holder.thumb).load(File(paths[position])).centerCrop().into(holder.thumb)
         if (onRemove != null) {
             holder.removeBtn.visibility = View.VISIBLE
-            holder.removeBtn.setOnClickListener { onRemove.invoke(holder.adapterPosition) }
+            holder.removeBtn.setOnClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) onRemove.invoke(pos)
+            }
         } else {
             holder.removeBtn.visibility = View.GONE
         }
