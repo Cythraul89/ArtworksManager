@@ -60,6 +60,7 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
         purchasePrice: Double?,
         description: String,
         photoPath: String,
+        certificatePath: String,
         photosToDelete: List<ArtworkPhoto>,
         newPhotoPaths: List<String>
     ) {
@@ -70,7 +71,8 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
                 heightCm = heightCm, widthCm = widthCm, depthCm = depthCm,
                 location = location, acquisitionDate = acquisitionDate,
                 currency = currency, purchasePrice = purchasePrice,
-                description = description, photoPath = photoPath
+                description = description, photoPath = photoPath,
+                certificatePath = certificatePath
             )
             val savedId = if (id == 0L) repository.insert(artwork)
                           else { repository.update(artwork); id }

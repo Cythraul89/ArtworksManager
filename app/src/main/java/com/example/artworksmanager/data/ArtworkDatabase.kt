@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * Room database for the app, exposing [ArtworkDao] as the single access point.
  * Obtain the singleton instance via [getDatabase].
  */
-@Database(entities = [Artwork::class, ArtworkPhoto::class], version = 3, exportSchema = false)
+@Database(entities = [Artwork::class, ArtworkPhoto::class], version = 4, exportSchema = false)
 abstract class ArtworkDatabase : RoomDatabase() {
 
     abstract fun artworkDao(): ArtworkDao
@@ -43,11 +43,17 @@ abstract class ArtworkDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE artworks ADD COLUMN certificatePath TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         /** Returns the singleton database instance, creating it on first call. */
         fun getDatabase(context: Context): ArtworkDatabase =
             INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(context, ArtworkDatabase::class.java, "artworks_db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

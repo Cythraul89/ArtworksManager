@@ -24,5 +24,6 @@ data class Artwork(
     val purchasePrice: Double? = null,
     val description: String = "",
     val photoPath: String = "",
+    val certificatePath: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -52,6 +52,7 @@ class AddEditFragment : Fragment() {
     }
 
     private var currentPhotoPath = ""
+    private var currentCertificatePath = ""
     private var selectedDateMs: Long? = null
     private var pendingCameraPath = ""
 
@@ -72,6 +73,10 @@ class AddEditFragment : Fragment() {
             if (pickingAdditionalPhoto) { pickingAdditionalPhoto = false; addAdditionalPhotoFromUri(it) }
             else copyAndSetPhoto(it)
         }
+    }
+
+    private val pickCertificate = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { copyCertificateFromUri(it) }
     }
 
     private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -156,6 +161,13 @@ class AddEditFragment : Fragment() {
         // Add more photos button
         binding.addMorePhotosButton.setOnClickListener { showPhotoSourceDialog(forAdditional = true) }
 
+        // Certificate
+        binding.attachCertificateButton.setOnClickListener { pickCertificate.launch("application/pdf") }
+        binding.removeCertificateButton.setOnClickListener {
+            currentCertificatePath = ""
+            updateCertificateUi()
+        }
+
         // Date picker
         binding.acquisitionDateInput.setOnClickListener { showDatePicker() }
         binding.acquisitionDateLayout.setEndIconOnClickListener { showDatePicker() }
@@ -227,6 +239,25 @@ class AddEditFragment : Fragment() {
             currentPhotoPath = a.photoPath
             showPhotoPreview(a.photoPath)
         }
+        currentCertificatePath = a.certificatePath
+        updateCertificateUi()
+    }
+
+    private fun copyCertificateFromUri(sourceUri: Uri) {
+        val dest = File(requireContext().filesDir, "artworks/cert_${System.currentTimeMillis()}.pdf")
+            .also { it.parentFile?.mkdirs() }
+        requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
+            FileOutputStream(dest).use { out -> input.copyTo(out) }
+        }
+        currentCertificatePath = dest.absolutePath
+        updateCertificateUi()
+    }
+
+    private fun updateCertificateUi() {
+        val hasCert = currentCertificatePath.isNotEmpty()
+        binding.attachCertificateButton.visibility = if (hasCert) View.GONE else View.VISIBLE
+        binding.certificateAttachedRow.visibility = if (hasCert) View.VISIBLE else View.GONE
+        if (hasCert) binding.certificateNameText.text = File(currentCertificatePath).name
     }
 
     private fun showPhotoSourceDialog(forAdditional: Boolean) {
@@ -330,6 +361,7 @@ class AddEditFragment : Fragment() {
             purchasePrice   = binding.priceInput.text?.toString()?.toDoubleOrNull(),
             description     = binding.descriptionInput.text?.toString()?.trim() ?: "",
             photoPath       = currentPhotoPath,
+            certificatePath = currentCertificatePath,
             photosToDelete  = photosToDelete.toList(),
             newPhotoPaths   = photoItems.filter { it.first == null }.map { it.second }
         )

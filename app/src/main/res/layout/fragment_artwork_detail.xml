@@ -99,6 +99,18 @@
                 <TextView android:id="@+id/labelDescription" style="@style/FieldLabel" android:text="@string/description" />
                 <TextView android:id="@+id/valueDescription" style="@style/FieldValue" />
 
+                <!-- Certificate -->
+                <TextView android:id="@+id/labelCertificate" style="@style/FieldLabel" android:text="@string/certificate_label" android:visibility="gone" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/viewCertificateButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/view_certificate"
+                    android:visibility="gone" />
+
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

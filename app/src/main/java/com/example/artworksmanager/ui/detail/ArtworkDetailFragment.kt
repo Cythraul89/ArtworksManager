@@ -1,7 +1,10 @@
 package com.example.artworksmanager.ui.detail
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.*
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -109,6 +112,11 @@ class ArtworkDetailFragment : Fragment() {
         row(binding.labelLocation,    binding.valueLocation,    a.location)
         row(binding.labelDescription, binding.valueDescription, a.description)
 
+        val hasCert = a.certificatePath.isNotEmpty()
+        binding.labelCertificate.visibility = if (hasCert) View.VISIBLE else View.GONE
+        binding.viewCertificateButton.visibility = if (hasCert) View.VISIBLE else View.GONE
+        binding.viewCertificateButton.setOnClickListener { openCertificate(a.certificatePath) }
+
         val dims = buildString {
             a.heightCm?.let { append("$it") }
             a.widthCm?.let  { append(" × $it") }
@@ -129,6 +137,24 @@ class ArtworkDetailFragment : Fragment() {
             }
         }
         row(binding.labelAcquired, binding.valueAcquired, acq)
+    }
+
+    private fun openCertificate(path: String) {
+        val file = java.io.File(path)
+        if (!file.exists()) {
+            Toast.makeText(requireContext(), R.string.certificate_not_found, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val uri = FileProvider.getUriForFile(
+            requireContext(), "${requireContext().packageName}.fileprovider", file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(requireContext(), R.string.certificate_open_error, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun navigateToEdit() {

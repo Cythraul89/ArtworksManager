@@ -82,7 +82,8 @@ class BackupImporter(private val context: Context) {
                 currency        = o.optString("currency", ""),
                 purchasePrice   = if (o.has("purchasePrice")) o.getDouble("purchasePrice") else null,
                 description = o.optString("description", ""),
-                photoPath   = o.optString("photo", "").let { photos[it]?.absolutePath ?: "" },
+                photoPath       = o.optString("photo", "").let { photos[it]?.absolutePath ?: "" },
+                certificatePath = o.optString("certificate", "").let { photos[it]?.absolutePath ?: "" },
                 createdAt   = o.optString("createdAt", "").takeIf { it.isNotEmpty() }
                                 ?.let { runCatching { isoFmt.parse(it)?.time }.getOrNull() }
                                 ?: System.currentTimeMillis()

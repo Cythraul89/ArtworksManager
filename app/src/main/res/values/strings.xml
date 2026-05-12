@@ -74,6 +74,12 @@
     <string name="dimensions_label">Dimensions</string>
     <string name="additional_photos_label">Additional Photos</string>
     <string name="add_more_photos">Add more photos</string>
+    <string name="certificate_label">Certificate</string>
+    <string name="attach_certificate">Attach certificate (PDF)</string>
+    <string name="remove_certificate">Remove</string>
+    <string name="view_certificate">View certificate</string>
+    <string name="certificate_open_error">No app found to open PDF</string>
+    <string name="certificate_not_found">Certificate file not found</string>
 
     <!-- Settings — Preferences -->
     <string name="pref_section">PREFERENCES</string>

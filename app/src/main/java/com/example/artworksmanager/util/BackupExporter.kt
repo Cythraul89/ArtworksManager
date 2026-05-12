@@ -72,6 +72,7 @@ class BackupExporter(private val context: Context) {
                 artwork.purchasePrice?.let { put("purchasePrice", it) }
                 put("description", artwork.description)
                 if (artwork.photoPath.isNotEmpty()) put("photo", File(artwork.photoPath).name)
+                if (artwork.certificatePath.isNotEmpty()) put("certificate", File(artwork.certificatePath).name)
                 put("createdAt", isoFmt.format(Date(artwork.createdAt)))
                 val extraPhotos = photosByArtwork[artwork.id]
                 if (!extraPhotos.isNullOrEmpty()) {
