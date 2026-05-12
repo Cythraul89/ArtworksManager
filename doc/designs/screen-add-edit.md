@@ -64,6 +64,11 @@ Form for creating a new artwork record or editing an existing one. Opened from t
 │  └──────┘ └──────┘ └──────┘    │
 │  [ + Add more photos ]          │  ← Outlined button
 │                                 │
+│  Certificate                    │  ← Section label
+│  [ Attach certificate (PDF) ]   │  ← Outlined button; hidden once a cert is attached
+│                                 │
+│  cert_1714123456789.pdf  Remove │  ← Filename + text button; hidden when no cert
+│                                 │
 │  ┌─────────────────────────────┐│
 │  │ Description / Notes         ││
 │  │                             ││  ← Multi-line, 4 rows min
@@ -91,6 +96,12 @@ Form for creating a new artwork record or editing an existing one. Opened from t
   - Each photo appears as an 88×88dp thumbnail with a × badge in the horizontal strip
   - Tapping × queues the photo for deletion; it is removed from the database on save
   - When editing, existing DB photos are pre-loaded into the strip; only newly added ones are inserted on save
+- **Certificate**
+  - Tapping "Attach certificate (PDF)" opens the SAF document picker filtered to `application/pdf`, giving access to local files and all installed cloud document providers
+  - The selected PDF is copied to `filesDir/artworks/cert_<timestamp>.pdf`; the filename is shown with a "Remove" button
+  - Tapping "Remove" clears the certificate without deleting the copied file
+  - When editing an artwork that already has a certificate, the filename is restored and the attach button is hidden
+  - The certificate path is saved with the artwork record on SAVE ARTWORK
 - **Title** — required; shows inline error "Title is required" on empty submit; form scrolls to top
 - **Acquisition date** — opens the Material date picker dialog
 - **SAVE ARTWORK**
