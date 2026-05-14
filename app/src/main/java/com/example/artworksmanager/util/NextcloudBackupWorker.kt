@@ -38,16 +38,22 @@ class NextcloudBackupWorker(ctx: Context, params: WorkerParameters) : CoroutineW
                         prefs.serverUrl, prefs.username, prefs.appPassword, tmpFile, prefs.trustAllCerts
                     )
                 }
-                if (result is NextcloudClient.Result.Success) {
-                    prefs.lastBackupTime = System.currentTimeMillis()
-                    Result.success()
-                } else {
-                    val msg = (result as NextcloudClient.Result.Failure).message
-                    Result.failure(workDataOf(KEY_ERROR to msg))
+                when (result) {
+                    is NextcloudClient.Result.Success -> {
+                        prefs.lastBackupTime = System.currentTimeMillis()
+                        Result.success()
+                    }
+                    is NextcloudClient.Result.Transient -> Result.retry()
+                    is NextcloudClient.Result.Failure ->
+                        Result.failure(workDataOf(KEY_ERROR to result.message))
                 }
             } finally {
                 tmpFile.delete()
             }
+        } catch (e: java.net.UnknownHostException) {
+            Result.retry()
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.retry()
         } catch (e: Exception) {
             Result.failure(workDataOf(KEY_ERROR to (e.message ?: "Unexpected error")))
         }

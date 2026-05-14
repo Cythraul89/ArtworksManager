@@ -16,6 +16,7 @@ import com.example.artworksmanager.ArtworksManagerApp
 import com.example.artworksmanager.R
 import com.example.artworksmanager.databinding.FragmentNextcloudBinding
 import com.example.artworksmanager.util.NextcloudBackupWorker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -52,12 +53,16 @@ class NextcloudFragment : Fragment() {
         binding.trustCertsCheckbox.isChecked = viewModel.savedTrustAll
 
         binding.connectButton.setOnClickListener {
-            viewModel.connect(
-                serverUrl     = binding.serverUrlInput.text?.toString() ?: "",
-                username      = binding.usernameInput.text?.toString() ?: "",
-                appPassword   = binding.appPasswordInput.text?.toString() ?: "",
-                trustAllCerts = binding.trustCertsCheckbox.isChecked
-            )
+            if (binding.trustCertsCheckbox.isChecked) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.ssl_warning_title)
+                    .setMessage(R.string.ssl_warning_message)
+                    .setNegativeButton(R.string.cancel, null)
+                    .setPositiveButton(R.string.ssl_warning_proceed) { _, _ -> doConnect() }
+                    .show()
+            } else {
+                doConnect()
+            }
         }
 
         binding.disconnectButton.setOnClickListener { viewModel.disconnect() }
@@ -88,6 +93,15 @@ class NextcloudFragment : Fragment() {
                 viewModel.state.collect { state -> applyState(state) }
             }
         }
+    }
+
+    private fun doConnect() {
+        viewModel.connect(
+            serverUrl     = binding.serverUrlInput.text?.toString() ?: "",
+            username      = binding.usernameInput.text?.toString() ?: "",
+            appPassword   = binding.appPasswordInput.text?.toString() ?: "",
+            trustAllCerts = binding.trustCertsCheckbox.isChecked
+        )
     }
 
     private fun applyState(state: NextcloudViewModel.State) {

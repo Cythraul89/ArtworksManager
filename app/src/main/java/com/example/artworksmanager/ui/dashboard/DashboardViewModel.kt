@@ -96,7 +96,7 @@ class DashboardViewModel(
         targetCurrency: String,
         rates: Map<String, Double>?
     ): ValueState {
-        if (totals.isEmpty()) return ValueState.Loading
+        if (totals.isEmpty()) return ValueState.Unavailable
 
         if (rates != null) {
             // Convert each currency bucket to the target using: amount / rate

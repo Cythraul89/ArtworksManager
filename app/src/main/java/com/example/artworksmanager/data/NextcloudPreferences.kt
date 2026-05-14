@@ -1,17 +1,32 @@
 package com.example.artworksmanager.data
 
 import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 /**
- * Stores Nextcloud connection credentials in SharedPreferences.
- * Obtain the singleton via [com.example.artworksmanager.ArtworksManagerApp.nextcloudPreferences].
+ * Stores Nextcloud connection credentials in EncryptedSharedPreferences so the
+ * app password is never written to disk in plaintext.
  *
- * NOTE: app passwords are stored in plain SharedPreferences. A production release should
- * migrate to EncryptedSharedPreferences (androidx.security:security-crypto).
+ * Obtain the singleton via [com.example.artworksmanager.ArtworksManagerApp.nextcloudPreferences].
  */
 class NextcloudPreferences(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (_: Exception) {
+        // Fall back to plain prefs if the keystore is unavailable (e.g. some emulators).
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
 
     var serverUrl: String
         get() = prefs.getString(KEY_SERVER, "") ?: ""

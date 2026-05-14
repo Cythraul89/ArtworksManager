@@ -36,6 +36,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Fragment for creating a new artwork or editing an existing one, identified by the
@@ -70,13 +72,17 @@ class AddEditFragment : Fragment() {
 
     private val pickContent = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            if (pickingAdditionalPhoto) { pickingAdditionalPhoto = false; addAdditionalPhotoFromUri(it) }
-            else copyAndSetPhoto(it)
+            if (pickingAdditionalPhoto) {
+                pickingAdditionalPhoto = false
+                viewLifecycleOwner.lifecycleScope.launch { addAdditionalPhotoFromUri(it) }
+            } else {
+                viewLifecycleOwner.lifecycleScope.launch { copyAndSetPhoto(it) }
+            }
         }
     }
 
     private val pickCertificate = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { copyCertificateFromUri(it) }
+        uri?.let { viewLifecycleOwner.lifecycleScope.launch { copyCertificateFromUri(it) } }
     }
 
     private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -115,7 +121,7 @@ class AddEditFragment : Fragment() {
             insets
         }
 
-        val isEdit = args.artworkId != 0
+        val isEdit = args.artworkId != 0L
         binding.toolbar.title = if (isEdit) "Edit Artwork" else "Add Artwork"
         binding.toolbar.setNavigationOnClickListener { confirmDiscard() }
 
@@ -175,7 +181,7 @@ class AddEditFragment : Fragment() {
         binding.saveButton.setOnClickListener { trySave() }
 
         if (isEdit) {
-            viewModel.load(args.artworkId.toLong())
+            viewModel.load(args.artworkId)
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     viewModel.artwork.collect { it?.let { a -> prefill(a) } }
@@ -198,10 +204,11 @@ class AddEditFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.savedId.collect { id ->
                     if (id != null) {
+                        viewModel.onSavedIdConsumed()
                         Snackbar.make(requireView(), com.example.artworksmanager.R.string.artwork_saved, Snackbar.LENGTH_SHORT).show()
-                        if (args.artworkId == 0) {
+                        if (args.artworkId == 0L) {
                             findNavController().navigate(
-                                AddEditFragmentDirections.actionAddEditToDetail(id.toInt())
+                                AddEditFragmentDirections.actionAddEditToDetail(id)
                             )
                         } else {
                             findNavController().popBackStack()
@@ -243,11 +250,13 @@ class AddEditFragment : Fragment() {
         updateCertificateUi()
     }
 
-    private fun copyCertificateFromUri(sourceUri: Uri) {
+    private suspend fun copyCertificateFromUri(sourceUri: Uri) {
         val dest = File(requireContext().filesDir, "artworks/cert_${System.currentTimeMillis()}.pdf")
             .also { it.parentFile?.mkdirs() }
-        requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
-            FileOutputStream(dest).use { out -> input.copyTo(out) }
+        withContext(Dispatchers.IO) {
+            requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(dest).use { out -> input.copyTo(out) }
+            }
         }
         currentCertificatePath = dest.absolutePath
         updateCertificateUi()
@@ -292,21 +301,25 @@ class AddEditFragment : Fragment() {
         takePicture.launch(uri)
     }
 
-    private fun copyAndSetPhoto(sourceUri: Uri) {
+    private suspend fun copyAndSetPhoto(sourceUri: Uri) {
         val dest = File(requireContext().filesDir, "artworks/${System.currentTimeMillis()}.jpg")
             .also { it.parentFile?.mkdirs() }
-        requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
-            FileOutputStream(dest).use { out -> input.copyTo(out) }
+        withContext(Dispatchers.IO) {
+            requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(dest).use { out -> input.copyTo(out) }
+            }
         }
         currentPhotoPath = dest.absolutePath
         showPhotoPreview(currentPhotoPath)
     }
 
-    private fun addAdditionalPhotoFromUri(sourceUri: Uri) {
+    private suspend fun addAdditionalPhotoFromUri(sourceUri: Uri) {
         val dest = File(requireContext().filesDir, "artworks/${System.currentTimeMillis()}.jpg")
             .also { it.parentFile?.mkdirs() }
-        requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
-            FileOutputStream(dest).use { out -> input.copyTo(out) }
+        withContext(Dispatchers.IO) {
+            requireContext().contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(dest).use { out -> input.copyTo(out) }
+            }
         }
         val path = dest.absolutePath
         photoItems.add(Pair(null, path))
@@ -346,7 +359,7 @@ class AddEditFragment : Fragment() {
         binding.titleLayout.error = null
 
         viewModel.save(
-            id              = args.artworkId.toLong(),
+            id              = args.artworkId,
             title           = title,
             artist          = binding.artistInput.text?.toString()?.trim() ?: "",
             year            = binding.yearInput.text?.toString()?.toIntOrNull(),

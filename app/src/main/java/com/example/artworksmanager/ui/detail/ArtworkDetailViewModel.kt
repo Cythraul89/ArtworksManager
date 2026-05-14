@@ -6,7 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.artworksmanager.data.Artwork
 import com.example.artworksmanager.data.ArtworkPhoto
 import com.example.artworksmanager.data.ArtworkRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -19,7 +24,7 @@ class ArtworkDetailViewModel(private val repository: ArtworkRepository) : ViewMo
 
     val artwork: StateFlow<Artwork?> = _artworkId
         .filterNotNull()
-        .flatMapLatest { id -> repository.getAllArtworks().map { list -> list.firstOrNull { it.id == id } } }
+        .flatMapLatest { id -> repository.getArtworkFlow(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val additionalPhotos: StateFlow<List<ArtworkPhoto>> = _artworkId

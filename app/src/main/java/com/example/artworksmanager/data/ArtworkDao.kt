@@ -22,6 +22,9 @@ interface ArtworkDao {
     @Query("SELECT * FROM artworks WHERE id = :id")
     suspend fun getById(id: Long): Artwork?
 
+    @Query("SELECT * FROM artworks WHERE id = :id")
+    fun getArtworkFlow(id: Long): Flow<Artwork?>
+
     @Query("SELECT COUNT(*) FROM artworks")
     fun getCount(): Flow<Int>
 

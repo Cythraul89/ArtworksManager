@@ -21,6 +21,8 @@ object NextcloudClient {
     sealed class Result {
         object Success : Result()
         data class Failure(val message: String) : Result()
+        /** Network/timeout errors that are worth retrying (e.g. WorkManager retry). */
+        object Transient : Result()
     }
 
     private const val TIMEOUT_MS = 10_000
@@ -40,7 +42,9 @@ object NextcloudClient {
                 connectTimeout = TIMEOUT_MS
                 readTimeout    = TIMEOUT_MS
             }
-            when (val code = conn.responseCode) {
+            val code = conn.responseCode
+            conn.disconnect()
+            when (code) {
                 200  -> Result.Success
                 401  -> Result.Failure("Invalid username or app password")
                 404  -> Result.Failure("Nextcloud not found at this URL")
@@ -49,9 +53,9 @@ object NextcloudClient {
         } catch (e: SSLHandshakeException) {
             Result.Failure("SSL certificate error — enable \"Trust self-signed certificates\" if your server uses a self-signed cert")
         } catch (e: java.net.UnknownHostException) {
-            Result.Failure("Cannot reach server — check the URL and your internet connection")
+            Result.Transient
         } catch (e: java.net.SocketTimeoutException) {
-            Result.Failure("Connection timed out")
+            Result.Transient
         } catch (e: Exception) {
             Result.Failure(e.message ?: "Connection failed")
         }
@@ -108,6 +112,7 @@ object NextcloudClient {
                 }
 
                 lastCode = conn.responseCode
+                conn.disconnect()
                 when (lastCode) {
                     200, 201, 204 -> return Result.Success
                     401 -> return Result.Failure("Invalid credentials")
@@ -118,9 +123,9 @@ object NextcloudClient {
             } catch (e: SSLHandshakeException) {
                 return Result.Failure("SSL certificate error during upload")
             } catch (e: java.net.UnknownHostException) {
-                return Result.Failure("Cannot reach server — check the URL and your internet connection")
+                return Result.Transient
             } catch (e: java.net.SocketTimeoutException) {
-                return Result.Failure("Connection timed out")
+                return Result.Transient
             } catch (e: Exception) {
                 return Result.Failure(e.message ?: "Upload failed")
             }

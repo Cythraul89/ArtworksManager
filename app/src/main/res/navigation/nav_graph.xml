@@ -49,7 +49,7 @@
         tools:layout="@layout/fragment_artwork_detail">
         <argument
             android:name="artworkId"
-            app:argType="integer" />
+            app:argType="long" />
         <action
             android:id="@+id/action_detail_to_addEdit"
             app:destination="@id/addEditFragment" />
@@ -62,8 +62,8 @@
         tools:layout="@layout/fragment_add_edit">
         <argument
             android:name="artworkId"
-            android:defaultValue="0"
-            app:argType="integer" />
+            android:defaultValue="0L"
+            app:argType="long" />
         <action
             android:id="@+id/action_addEdit_to_detail"
             app:destination="@id/artworkDetailFragment"

@@ -86,6 +86,8 @@ class AddEditViewModel(private val repository: ArtworkRepository) : ViewModel() 
         }
     }
 
+    fun onSavedIdConsumed() { _savedId.value = null }
+
     companion object {
         fun factory(repository: ArtworkRepository) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

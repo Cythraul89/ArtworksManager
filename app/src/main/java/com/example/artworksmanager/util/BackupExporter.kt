@@ -12,32 +12,25 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * Creates a zip backup containing a human-readable [artworks.json] and all artwork photos.
- * The zip is written directly to a caller-supplied SAF [Uri] so the user controls
- * where the file is saved.
+ * Creates a zip backup containing a human-readable [artworks.json] and all referenced artwork files.
  *
  * Zip structure:
  * ```
  * artworks.json       ← all artwork records as pretty-printed JSON
- * photos/<name>.jpg   ← every artwork photo
+ * photos/<name>.jpg   ← every referenced photo or certificate PDF
  * ```
  */
 class BackupExporter(private val context: Context) {
 
-    /**
-     * Writes the backup zip to a SAF [uri] chosen by the user. Must be called from a background thread.
-     */
     fun writeTo(uri: Uri, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>> = emptyMap()) {
         context.contentResolver.openOutputStream(uri)?.use { writeZip(it, artworks, photosByArtwork) }
     }
 
-    /**
-     * Writes the backup zip to a local [file] (e.g. cacheDir) for Nextcloud upload. Must be called from a background thread.
-     */
     fun writeToFile(file: File, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>> = emptyMap()) {
         file.parentFile?.mkdirs()
         file.outputStream().use { writeZip(it, artworks, photosByArtwork) }
@@ -45,14 +38,31 @@ class BackupExporter(private val context: Context) {
 
     private fun writeZip(out: OutputStream, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>>) {
         ZipOutputStream(out.buffered()).use { zos ->
+            val referencedPaths = collectReferencedPaths(artworks, photosByArtwork)
             addJson(zos, artworks, photosByArtwork)
-            addPhotoFiles(zos)
+            addReferencedFiles(zos, referencedPaths)
         }
+    }
+
+    /** Collects every file path referenced by any artwork record or additional photo. */
+    private fun collectReferencedPaths(
+        artworks: List<Artwork>,
+        photosByArtwork: Map<Long, List<ArtworkPhoto>>
+    ): Set<String> {
+        val paths = mutableSetOf<String>()
+        for (artwork in artworks) {
+            if (artwork.photoPath.isNotEmpty()) paths.add(artwork.photoPath)
+            if (artwork.certificatePath.isNotEmpty()) paths.add(artwork.certificatePath)
+            photosByArtwork[artwork.id]?.forEach { p -> if (p.photoPath.isNotEmpty()) paths.add(p.photoPath) }
+        }
+        return paths
     }
 
     private fun addJson(zos: ZipOutputStream, artworks: List<Artwork>, photosByArtwork: Map<Long, List<ArtworkPhoto>>) {
         val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val isoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        val isoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).also {
+            it.timeZone = TimeZone.getTimeZone("UTC")
+        }
 
         val array = JSONArray()
         for (artwork in artworks) {
@@ -99,10 +109,12 @@ class BackupExporter(private val context: Context) {
         zos.closeEntry()
     }
 
-    private fun addPhotoFiles(zos: ZipOutputStream) {
-        File(context.filesDir, "artworks").listFiles()?.forEach { photo ->
-            zos.putNextEntry(ZipEntry("photos/${photo.name}"))
-            FileInputStream(photo).use { it.copyTo(zos) }
+    private fun addReferencedFiles(zos: ZipOutputStream, paths: Set<String>) {
+        for (path in paths) {
+            val file = File(path)
+            if (!file.exists()) continue
+            zos.putNextEntry(ZipEntry("photos/${file.name}"))
+            FileInputStream(file).use { it.copyTo(zos) }
             zos.closeEntry()
         }
     }

@@ -34,7 +34,7 @@ class CollectionFragment : Fragment() {
 
     private val adapter = ArtworkAdapter { artwork ->
         findNavController().navigate(
-            CollectionFragmentDirections.actionCollectionToDetail(artwork.id.toInt())
+            CollectionFragmentDirections.actionCollectionToDetail(artwork.id)
         )
     }
 

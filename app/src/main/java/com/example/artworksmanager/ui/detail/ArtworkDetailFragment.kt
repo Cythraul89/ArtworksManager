@@ -53,7 +53,7 @@ class ArtworkDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel.load(args.artworkId.toLong())
+        viewModel.load(args.artworkId)
 
         binding.additionalPhotosRecycler.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -159,7 +159,7 @@ class ArtworkDetailFragment : Fragment() {
 
     private fun navigateToEdit() {
         findNavController().navigate(
-            ArtworkDetailFragmentDirections.actionDetailToAddEdit(args.artworkId)
+            ArtworkDetailFragmentDirections.actionDetailToAddEdit(args.artworkId)  // Long
         )
     }
 

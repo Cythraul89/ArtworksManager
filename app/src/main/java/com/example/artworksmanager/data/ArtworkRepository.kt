@@ -17,6 +17,7 @@ class ArtworkRepository(private val dao: ArtworkDao) {
     fun getPriceTotals(): Flow<List<CurrencyTotal>> = dao.getPriceTotals()
 
     suspend fun getById(id: Long): Artwork? = dao.getById(id)
+    fun getArtworkFlow(id: Long): Flow<Artwork?> = dao.getArtworkFlow(id)
     suspend fun insert(artwork: Artwork): Long = dao.insert(artwork)
     suspend fun update(artwork: Artwork) = dao.update(artwork)
     suspend fun delete(artwork: Artwork) = dao.delete(artwork)
