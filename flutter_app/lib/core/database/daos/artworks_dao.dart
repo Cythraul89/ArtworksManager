@@ -7,7 +7,7 @@ part 'artworks_dao.g.dart';
 class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin {
   ArtworksDao(super.db);
 
-  // ── Streams ─────────────────────────────────────────────────────────────
+  // ── Reactive streams ──────────────────────────────────────────────────────
 
   Stream<List<Artwork>> watchAll() =>
       (select(artworks)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
@@ -15,10 +15,12 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
   Stream<Artwork?> watchById(int id) =>
       (select(artworks)..where((t) => t.id.equals(id))).watchSingleOrNull();
 
-  Stream<int> watchCount() =>
-      (selectOnly(artworks)..addColumns([artworks.id.count()]))
-          .map((r) => r.read(artworks.id.count()) ?? 0)
-          .watchSingle();
+  Stream<int> watchCount() {
+    final countExpr = artworks.id.count();
+    return (selectOnly(artworks)..addColumns([countExpr]))
+        .watchSingle()
+        .map((r) => r.read(countExpr) ?? 0);
+  }
 
   Stream<List<Artwork>> watchRecent({int limit = 8}) =>
       (select(artworks)
@@ -26,35 +28,44 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
             ..limit(limit))
           .watch();
 
-  Stream<List<TypedResult>> watchMediumCounts() {
-    final count = artworks.id.count();
+  Stream<List<({String medium, int count})>> watchMediumCounts() {
+    final countExpr = artworks.id.count();
     return (selectOnly(artworks)
-          ..addColumns([artworks.medium, count])
+          ..addColumns([artworks.medium, countExpr])
           ..where(artworks.medium.isNotValue(''))
           ..groupBy([artworks.medium])
-          ..orderBy([OrderingTerm.desc(count)]))
-        .watch();
+          ..orderBy([OrderingTerm.desc(countExpr)]))
+        .watch()
+        .map((rows) => rows
+            .map((r) => (medium: r.read(artworks.medium)!, count: r.read(countExpr)!))
+            .toList());
   }
 
-  Stream<List<TypedResult>> watchTopArtists({int limit = 5}) {
-    final count = artworks.id.count();
+  Stream<List<({String artist, int count})>> watchTopArtists({int limit = 5}) {
+    final countExpr = artworks.id.count();
     return (selectOnly(artworks)
-          ..addColumns([artworks.artist, count])
+          ..addColumns([artworks.artist, countExpr])
           ..where(artworks.artist.isNotValue(''))
           ..groupBy([artworks.artist])
-          ..orderBy([OrderingTerm.desc(count)])
+          ..orderBy([OrderingTerm.desc(countExpr)])
           ..limit(limit))
-        .watch();
+        .watch()
+        .map((rows) => rows
+            .map((r) => (artist: r.read(artworks.artist)!, count: r.read(countExpr)!))
+            .toList());
   }
 
-  Stream<List<TypedResult>> watchPriceTotals() {
-    final sum = artworks.purchasePrice.sum();
+  Stream<List<({String currency, double total})>> watchPriceTotals() {
+    final sumExpr = artworks.purchasePrice.sum();
     return (selectOnly(artworks)
-          ..addColumns([artworks.currency, sum])
+          ..addColumns([artworks.currency, sumExpr])
           ..where(artworks.purchasePrice.isNotNull())
           ..groupBy([artworks.currency])
-          ..orderBy([OrderingTerm.desc(sum)]))
-        .watch();
+          ..orderBy([OrderingTerm.desc(sumExpr)]))
+        .watch()
+        .map((rows) => rows
+            .map((r) => (currency: r.read(artworks.currency)!, total: r.read(sumExpr) ?? 0.0))
+            .toList());
   }
 
   Stream<List<String>> watchDistinctMediums() =>
@@ -62,10 +73,10 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
             ..addColumns([artworks.medium])
             ..where(artworks.medium.isNotValue(''))
             ..orderBy([OrderingTerm.asc(artworks.medium)]))
-          .map((r) => r.read(artworks.medium)!)
-          .watch();
+          .watch()
+          .map((rows) => rows.map((r) => r.read(artworks.medium)!).toList());
 
-  // ── One-shot ─────────────────────────────────────────────────────────────
+  // ── One-shot reads ────────────────────────────────────────────────────────
 
   Future<Artwork?> getById(int id) =>
       (select(artworks)..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -86,8 +97,16 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
 
   Future<void> deleteAll() => delete(artworks).go();
 
-  Future<void> replaceAll(List<ArtworksCompanion> rows) async {
-    await deleteAll();
-    await batch((b) => b.insertAll(artworks, rows));
+  Future<void> replaceAll(
+    List<ArtworksCompanion> rows,
+    List<ArtworkPhotosCompanion> photos,
+  ) async {
+    await transaction(() async {
+      await deleteAll();
+      await batch((b) => b.insertAll(artworks, rows));
+      if (photos.isNotEmpty) {
+        await batch((b) => b.insertAll(artworkPhotos, photos));
+      }
+    });
   }
 }
