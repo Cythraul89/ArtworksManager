@@ -1121,6 +1121,24 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
   late final GeneratedColumn<int> lastSyncAt = GeneratedColumn<int>(
       'last_sync_at', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _autoSyncEnabledMeta =
+      const VerificationMeta('autoSyncEnabled');
+  @override
+  late final GeneratedColumn<bool> autoSyncEnabled = GeneratedColumn<bool>(
+      'auto_sync_enabled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("auto_sync_enabled" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _autoSyncIntervalHoursMeta =
+      const VerificationMeta('autoSyncIntervalHours');
+  @override
+  late final GeneratedColumn<int> autoSyncIntervalHours = GeneratedColumn<int>(
+      'auto_sync_interval_hours', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(24));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1131,7 +1149,9 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         nextcloudPath,
         nextcloudCertFingerprint,
         nextcloudKeepExports,
-        lastSyncAt
+        lastSyncAt,
+        autoSyncEnabled,
+        autoSyncIntervalHours
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1193,6 +1213,18 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           lastSyncAt.isAcceptableOrUnknown(
               data['last_sync_at']!, _lastSyncAtMeta));
     }
+    if (data.containsKey('auto_sync_enabled')) {
+      context.handle(
+          _autoSyncEnabledMeta,
+          autoSyncEnabled.isAcceptableOrUnknown(
+              data['auto_sync_enabled']!, _autoSyncEnabledMeta));
+    }
+    if (data.containsKey('auto_sync_interval_hours')) {
+      context.handle(
+          _autoSyncIntervalHoursMeta,
+          autoSyncIntervalHours.isAcceptableOrUnknown(
+              data['auto_sync_interval_hours']!, _autoSyncIntervalHoursMeta));
+    }
     return context;
   }
 
@@ -1221,6 +1253,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           DriftSqlType.int, data['${effectivePrefix}nextcloud_keep_exports'])!,
       lastSyncAt: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}last_sync_at']),
+      autoSyncEnabled: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}auto_sync_enabled'])!,
+      autoSyncIntervalHours: attachedDatabase.typeMapping.read(DriftSqlType.int,
+          data['${effectivePrefix}auto_sync_interval_hours'])!,
     );
   }
 
@@ -1240,6 +1276,8 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String nextcloudCertFingerprint;
   final int nextcloudKeepExports;
   final int? lastSyncAt;
+  final bool autoSyncEnabled;
+  final int autoSyncIntervalHours;
   const Setting(
       {required this.id,
       required this.currency,
@@ -1249,7 +1287,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       required this.nextcloudPath,
       required this.nextcloudCertFingerprint,
       required this.nextcloudKeepExports,
-      this.lastSyncAt});
+      this.lastSyncAt,
+      required this.autoSyncEnabled,
+      required this.autoSyncIntervalHours});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1265,6 +1305,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     if (!nullToAbsent || lastSyncAt != null) {
       map['last_sync_at'] = Variable<int>(lastSyncAt);
     }
+    map['auto_sync_enabled'] = Variable<bool>(autoSyncEnabled);
+    map['auto_sync_interval_hours'] = Variable<int>(autoSyncIntervalHours);
     return map;
   }
 
@@ -1281,6 +1323,8 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastSyncAt: lastSyncAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncAt),
+      autoSyncEnabled: Value(autoSyncEnabled),
+      autoSyncIntervalHours: Value(autoSyncIntervalHours),
     );
   }
 
@@ -1299,6 +1343,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudKeepExports:
           serializer.fromJson<int>(json['nextcloudKeepExports']),
       lastSyncAt: serializer.fromJson<int?>(json['lastSyncAt']),
+      autoSyncEnabled: serializer.fromJson<bool>(json['autoSyncEnabled']),
+      autoSyncIntervalHours:
+          serializer.fromJson<int>(json['autoSyncIntervalHours']),
     );
   }
   @override
@@ -1315,6 +1362,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           serializer.toJson<String>(nextcloudCertFingerprint),
       'nextcloudKeepExports': serializer.toJson<int>(nextcloudKeepExports),
       'lastSyncAt': serializer.toJson<int?>(lastSyncAt),
+      'autoSyncEnabled': serializer.toJson<bool>(autoSyncEnabled),
+      'autoSyncIntervalHours': serializer.toJson<int>(autoSyncIntervalHours),
     };
   }
 
@@ -1327,7 +1376,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           String? nextcloudPath,
           String? nextcloudCertFingerprint,
           int? nextcloudKeepExports,
-          Value<int?> lastSyncAt = const Value.absent()}) =>
+          Value<int?> lastSyncAt = const Value.absent(),
+          bool? autoSyncEnabled,
+          int? autoSyncIntervalHours}) =>
       Setting(
         id: id ?? this.id,
         currency: currency ?? this.currency,
@@ -1339,6 +1390,9 @@ class Setting extends DataClass implements Insertable<Setting> {
             nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
         nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
         lastSyncAt: lastSyncAt.present ? lastSyncAt.value : this.lastSyncAt,
+        autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
+        autoSyncIntervalHours:
+            autoSyncIntervalHours ?? this.autoSyncIntervalHours,
       );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -1364,6 +1418,12 @@ class Setting extends DataClass implements Insertable<Setting> {
           : this.nextcloudKeepExports,
       lastSyncAt:
           data.lastSyncAt.present ? data.lastSyncAt.value : this.lastSyncAt,
+      autoSyncEnabled: data.autoSyncEnabled.present
+          ? data.autoSyncEnabled.value
+          : this.autoSyncEnabled,
+      autoSyncIntervalHours: data.autoSyncIntervalHours.present
+          ? data.autoSyncIntervalHours.value
+          : this.autoSyncIntervalHours,
     );
   }
 
@@ -1378,7 +1438,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('nextcloudPath: $nextcloudPath, ')
           ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
-          ..write('lastSyncAt: $lastSyncAt')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('autoSyncEnabled: $autoSyncEnabled, ')
+          ..write('autoSyncIntervalHours: $autoSyncIntervalHours')
           ..write(')'))
         .toString();
   }
@@ -1393,7 +1455,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudPath,
       nextcloudCertFingerprint,
       nextcloudKeepExports,
-      lastSyncAt);
+      lastSyncAt,
+      autoSyncEnabled,
+      autoSyncIntervalHours);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1406,7 +1470,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.nextcloudPath == this.nextcloudPath &&
           other.nextcloudCertFingerprint == this.nextcloudCertFingerprint &&
           other.nextcloudKeepExports == this.nextcloudKeepExports &&
-          other.lastSyncAt == this.lastSyncAt);
+          other.lastSyncAt == this.lastSyncAt &&
+          other.autoSyncEnabled == this.autoSyncEnabled &&
+          other.autoSyncIntervalHours == this.autoSyncIntervalHours);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -1419,6 +1485,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String> nextcloudCertFingerprint;
   final Value<int> nextcloudKeepExports;
   final Value<int?> lastSyncAt;
+  final Value<bool> autoSyncEnabled;
+  final Value<int> autoSyncIntervalHours;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.currency = const Value.absent(),
@@ -1429,6 +1497,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudCertFingerprint = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
+    this.autoSyncEnabled = const Value.absent(),
+    this.autoSyncIntervalHours = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1440,6 +1510,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudCertFingerprint = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
+    this.autoSyncEnabled = const Value.absent(),
+    this.autoSyncIntervalHours = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -1451,6 +1523,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? nextcloudCertFingerprint,
     Expression<int>? nextcloudKeepExports,
     Expression<int>? lastSyncAt,
+    Expression<bool>? autoSyncEnabled,
+    Expression<int>? autoSyncIntervalHours,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1464,6 +1538,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (nextcloudKeepExports != null)
         'nextcloud_keep_exports': nextcloudKeepExports,
       if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
+      if (autoSyncEnabled != null) 'auto_sync_enabled': autoSyncEnabled,
+      if (autoSyncIntervalHours != null)
+        'auto_sync_interval_hours': autoSyncIntervalHours,
     });
   }
 
@@ -1476,7 +1553,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       Value<String>? nextcloudPath,
       Value<String>? nextcloudCertFingerprint,
       Value<int>? nextcloudKeepExports,
-      Value<int?>? lastSyncAt}) {
+      Value<int?>? lastSyncAt,
+      Value<bool>? autoSyncEnabled,
+      Value<int>? autoSyncIntervalHours}) {
     return SettingsCompanion(
       id: id ?? this.id,
       currency: currency ?? this.currency,
@@ -1488,6 +1567,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
       nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
+      autoSyncIntervalHours:
+          autoSyncIntervalHours ?? this.autoSyncIntervalHours,
     );
   }
 
@@ -1522,6 +1604,13 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (lastSyncAt.present) {
       map['last_sync_at'] = Variable<int>(lastSyncAt.value);
     }
+    if (autoSyncEnabled.present) {
+      map['auto_sync_enabled'] = Variable<bool>(autoSyncEnabled.value);
+    }
+    if (autoSyncIntervalHours.present) {
+      map['auto_sync_interval_hours'] =
+          Variable<int>(autoSyncIntervalHours.value);
+    }
     return map;
   }
 
@@ -1536,7 +1625,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('nextcloudPath: $nextcloudPath, ')
           ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
-          ..write('lastSyncAt: $lastSyncAt')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('autoSyncEnabled: $autoSyncEnabled, ')
+          ..write('autoSyncIntervalHours: $autoSyncIntervalHours')
           ..write(')'))
         .toString();
   }
@@ -2268,6 +2359,8 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudCertFingerprint,
   Value<int> nextcloudKeepExports,
   Value<int?> lastSyncAt,
+  Value<bool> autoSyncEnabled,
+  Value<int> autoSyncIntervalHours,
 });
 typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<int> id,
@@ -2279,6 +2372,8 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudCertFingerprint,
   Value<int> nextcloudKeepExports,
   Value<int?> lastSyncAt,
+  Value<bool> autoSyncEnabled,
+  Value<int> autoSyncIntervalHours,
 });
 
 class $$SettingsTableFilterComposer
@@ -2320,6 +2415,14 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get autoSyncEnabled => $composableBuilder(
+      column: $table.autoSyncEnabled,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get autoSyncIntervalHours => $composableBuilder(
+      column: $table.autoSyncIntervalHours,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$SettingsTableOrderingComposer
@@ -2363,6 +2466,14 @@ class $$SettingsTableOrderingComposer
 
   ColumnOrderings<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get autoSyncEnabled => $composableBuilder(
+      column: $table.autoSyncEnabled,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get autoSyncIntervalHours => $composableBuilder(
+      column: $table.autoSyncIntervalHours,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$SettingsTableAnnotationComposer
@@ -2400,6 +2511,12 @@ class $$SettingsTableAnnotationComposer
 
   GeneratedColumn<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoSyncEnabled => $composableBuilder(
+      column: $table.autoSyncEnabled, builder: (column) => column);
+
+  GeneratedColumn<int> get autoSyncIntervalHours => $composableBuilder(
+      column: $table.autoSyncIntervalHours, builder: (column) => column);
 }
 
 class $$SettingsTableTableManager extends RootTableManager<
@@ -2434,6 +2551,8 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudCertFingerprint = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
+            Value<bool> autoSyncEnabled = const Value.absent(),
+            Value<int> autoSyncIntervalHours = const Value.absent(),
           }) =>
               SettingsCompanion(
             id: id,
@@ -2445,6 +2564,8 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudCertFingerprint: nextcloudCertFingerprint,
             nextcloudKeepExports: nextcloudKeepExports,
             lastSyncAt: lastSyncAt,
+            autoSyncEnabled: autoSyncEnabled,
+            autoSyncIntervalHours: autoSyncIntervalHours,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -2456,6 +2577,8 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudCertFingerprint = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
+            Value<bool> autoSyncEnabled = const Value.absent(),
+            Value<int> autoSyncIntervalHours = const Value.absent(),
           }) =>
               SettingsCompanion.insert(
             id: id,
@@ -2467,6 +2590,8 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudCertFingerprint: nextcloudCertFingerprint,
             nextcloudKeepExports: nextcloudKeepExports,
             lastSyncAt: lastSyncAt,
+            autoSyncEnabled: autoSyncEnabled,
+            autoSyncIntervalHours: autoSyncIntervalHours,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

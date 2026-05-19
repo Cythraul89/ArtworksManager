@@ -49,6 +49,8 @@ class Settings extends Table {
   TextColumn get nextcloudCertFingerprint => text().withDefault(const Constant(''))();
   IntColumn get nextcloudKeepExports => integer().withDefault(const Constant(5))();
   IntColumn get lastSyncAt => integer().nullable()(); // Unix ms
+  BoolColumn get autoSyncEnabled => boolean().withDefault(const Constant(false))();
+  IntColumn get autoSyncIntervalHours => integer().withDefault(const Constant(24))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -65,7 +67,17 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(settings, settings.autoSyncEnabled);
+        await m.addColumn(settings, settings.autoSyncIntervalHours);
+      }
+    },
+  );
 }
 
 LazyDatabase _openConnection() {

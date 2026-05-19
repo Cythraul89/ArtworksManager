@@ -46,6 +46,7 @@ dependencies:
 
   # Background tasks (Android only; no-op on macOS/Linux)
   workmanager: ^0.6.0
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

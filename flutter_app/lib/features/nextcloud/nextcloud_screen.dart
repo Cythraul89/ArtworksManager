@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
+import 'package:workmanager/workmanager.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/nextcloud_service.dart';
 import '../../core/services/secure_credentials_service.dart';
+import '../../core/services/sync_worker.dart';
 import '../settings/settings_providers.dart';
 
 enum _Op { idle, testing, backing, restoring }
@@ -29,6 +32,9 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   final _pathCtrl = TextEditingController();
   final _fingerprintCtrl = TextEditingController();
   int _keepExports = 5;
+  bool _autoSync = false;
+  int _syncIntervalHours = 24;
+  int _androidSdkInt = 0;
   bool _obscurePassword = true;
   bool _loaded = false;
   _Op _op = _Op.idle;
@@ -41,6 +47,11 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     SecureCredentialsService.readPassword().then((pw) {
       if (mounted) setState(() => _passwordCtrl.text = pw);
     });
+    if (Platform.isAndroid) {
+      DeviceInfoPlugin().androidInfo.then((info) {
+        if (mounted) setState(() => _androidSdkInt = info.version.sdkInt);
+      });
+    }
   }
 
   @override
@@ -59,7 +70,11 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     _usernameCtrl.text = s.nextcloudUsername;
     _pathCtrl.text = s.nextcloudPath;
     _fingerprintCtrl.text = s.nextcloudCertFingerprint;
-    setState(() => _keepExports = s.nextcloudKeepExports);
+    setState(() {
+      _keepExports = s.nextcloudKeepExports;
+      _autoSync = s.autoSyncEnabled;
+      _syncIntervalHours = s.autoSyncIntervalHours;
+    });
   }
 
   void _setMsg(String msg, {required bool isError}) {
@@ -97,6 +112,10 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           _field(_fingerprintCtrl, 'Certificate fingerprint (SHA-256, optional)'),
           const SizedBox(height: 4),
           _keepRow(),
+          if (Platform.isAndroid) ...[
+            const SizedBox(height: 8),
+            _autoSyncSection(),
+          ],
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 8),
@@ -205,6 +224,43 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         ],
       );
 
+  Widget _autoSyncSection() {
+    final supported = _androidSdkInt >= 33;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Auto-backup'),
+          subtitle: Text(supported
+              ? 'Periodic Nextcloud backup in the background'
+              : 'Requires Android 13 or later'),
+          value: supported && _autoSync,
+          onChanged: supported ? (v) => setState(() => _autoSync = v) : null,
+        ),
+        if (supported && _autoSync)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Row(
+              children: [
+                const Text('Interval'),
+                const SizedBox(width: 16),
+                DropdownButton<int>(
+                  value: _syncIntervalHours,
+                  items: const [
+                    DropdownMenuItem(value: 24, child: Text('Daily')),
+                    DropdownMenuItem(value: 48, child: Text('Every 2 days')),
+                    DropdownMenuItem(value: 168, child: Text('Weekly')),
+                  ],
+                  onChanged: (v) => setState(() => _syncIntervalHours = v ?? 24),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   // ── Actions ────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
@@ -219,7 +275,25 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           nextcloudPath: Value(path),
           nextcloudCertFingerprint: Value(_fingerprintCtrl.text.trim()),
           nextcloudKeepExports: Value(_keepExports),
+          autoSyncEnabled: Value(_autoSync),
+          autoSyncIntervalHours: Value(_syncIntervalHours),
         ));
+    await _scheduleOrCancelSync(path);
+  }
+
+  Future<void> _scheduleOrCancelSync(String remotePath) async {
+    if (_androidSdkInt < 33) return;
+    if (_autoSync && _urlCtrl.text.trim().isNotEmpty) {
+      await Workmanager().registerPeriodicTask(
+        SyncWorker.taskName,
+        SyncWorker.taskName,
+        frequency: Duration(hours: _syncIntervalHours),
+        constraints: Constraints(networkType: NetworkType.connected),
+        existingWorkPolicy: ExistingWorkPolicy.replace,
+      );
+    } else {
+      await Workmanager().cancelByUniqueName(SyncWorker.taskName);
+    }
   }
 
   String? _pin(Setting s) =>
