@@ -1,5 +1,9 @@
 # App Requirements
 
+> **Implementation status**
+> The original Kotlin/Android app (`app/`) fulfils the v1 requirements below.
+> The Flutter cross-platform rewrite (`flutter_app/`) is the active development target and adds the extensions described in the [Flutter Rewrite Extensions](#flutter-rewrite-extensions) section.
+
 ## Overview
 
 A personal artwork catalogue app for a private collector. The app gives the owner a clear overview of their collection and lets them record, browse, and manage up to 1000 artworks from their Android device.
@@ -81,3 +85,42 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Accessibility:** Adequate contrast and content descriptions on images
 - **Dark mode:** The app must follow the device system dark/light mode setting; all screens must be legible and visually consistent in both modes
 - **Internet:** `INTERNET` and `ACCESS_NETWORK_STATE` permissions are declared; used for the optional live exchange rate fetch and, when configured, the Nextcloud backup upload
+
+---
+
+## Flutter Rewrite Extensions
+
+The Flutter rewrite (`flutter_app/`) adds and changes the following relative to the Kotlin v1 requirements above.
+
+### New Features
+
+- **Cross-platform** — single codebase targets Android, macOS, and Linux (iOS supported by Flutter but no build config in repo; Windows out of scope)
+- **Adaptive shell** — `BottomNavigationBar` on mobile (< 600 dp), `NavigationRail` on tablet/desktop (≥ 600 dp), extended rail with labels at ≥ 1200 dp
+- **Diagnostic logs screen** (Settings → App logs) — view last 300 log lines color-coded by severity (INFO / WARN / ERROR); export log file; clear with confirmation
+- **Configurable auto-sync interval** — daily (24 h), every 2 days (48 h), or weekly (168 h); previously fixed at daily
+- **Keep last N backups** — configurable number of Nextcloud backups to retain (1–∞, default 5); older files are pruned automatically after each successful upload
+- **Restore from Nextcloud** — browse and download specific backup files directly from the Nextcloud screen without leaving the app
+- **Stale exchange-rates indicator** — Dashboard shows "Rates from Xh ago" when the cached rates are more than 1 hour old, so the user knows the portfolio value may be imprecise
+- **Sync error tile** — Settings screen shows the last sync failure message as a distinct tile; cleared automatically on the next successful backup
+- **Certificate fingerprint pinning** (replaces trust-all checkbox) — SHA-256 fingerprint field; empty = no pinning; avoids blanket MITM risk of the Kotlin trust-all approach
+- **Nextcloud remote path** — configurable remote directory (default `ArtworksManager`); previously hard-coded
+- **Sort by year** — collection can now be sorted by artwork year in addition to title, artist, and date added
+
+### Changed Behaviours
+
+| Area | Kotlin v1 | Flutter rewrite |
+|------|-----------|-----------------|
+| Nextcloud credential storage | `SharedPreferences` (plain text) | Password in platform Keystore/Keychain via `flutter_secure_storage` |
+| Cert trust | Trust-all checkbox | SHA-256 fingerprint |
+| Auto-sync scheduling | Fixed 1-day `PeriodicWorkRequest` | Configurable interval; Android 13+ only |
+| Backup filename | `artworks_backup.zip` (single, overwritten) | Timestamped `artworks_yyyyMMdd_HHmmss.zip` with N-file retention |
+| Exchange rate fallback | Return `null`; show "Offline" | Return 24h stale cache; show "Rates from Xh ago" |
+| Settings screen structure | Single flat list | Grouped by section with `_SectionLabel` headers |
+
+### Non-Functional Requirements (Flutter)
+
+- **Min Android API:** 33 (background auto-sync); app runs on lower APIs but auto-sync is silently skipped
+- **Target platforms:** Android, macOS, Linux (primary); iOS (Flutter-capable, no build config yet)
+- **Storage:** Photos and DB in `getApplicationDocumentsDirectory()`; log file and rate cache in same dir (⚠ cache should move to temp dir — known issue)
+- **Background sync:** WorkManager (`workmanager` package); no-op on non-Android platforms
+- **Dark mode:** Flutter Material 3 `ColorScheme` with system brightness; all screens adapt automatically
