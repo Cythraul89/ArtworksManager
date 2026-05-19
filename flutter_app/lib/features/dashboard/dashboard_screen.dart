@@ -79,6 +79,7 @@ class _StatsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final (:value, :currency) = ref.watch(portfolioValueProvider);
     final totals = ref.watch(priceTotalsProvider).valueOrNull ?? [];
 
     return Column(
@@ -88,15 +89,47 @@ class _StatsSection extends ConsumerWidget {
             icon: Icons.photo_library_outlined,
             label: 'Total artworks',
             value: '$count'),
-        ...totals.map((t) => Padding(
+        value.when(
+          loading: () => Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _card(context,
+                icon: Icons.payments_outlined,
+                label: 'Portfolio value · $currency',
+                value: '…'),
+          ),
+          error: (_, __) => _fallback(context, totals),
+          data: (unified) {
+            if (unified == null) return _fallback(context, totals);
+            return Padding(
               padding: const EdgeInsets.only(top: 8),
               child: _card(context,
                   icon: Icons.payments_outlined,
-                  label: 'Total value · ${t.currency}',
+                  label: 'Portfolio value · $currency',
                   value:
-                      '${Currency.fromCode(t.currency).symbol}${NumberFormat('#,##0.00').format(t.total)}'),
-            )),
+                      '${Currency.fromCode(currency).symbol}${NumberFormat('#,##0.00').format(unified)}'),
+            );
+          },
+        ),
       ],
+    );
+  }
+
+  // Shown when exchange rates are unavailable — lists each currency separately.
+  Widget _fallback(BuildContext context,
+      List<({String currency, double total})> totals) {
+    if (totals.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: totals
+          .map((t) => Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _card(context,
+                    icon: Icons.payments_outlined,
+                    label: 'Total value · ${t.currency}',
+                    value:
+                        '${Currency.fromCode(t.currency).symbol}${NumberFormat('#,##0.00').format(t.total)}'),
+              ))
+          .toList(),
     );
   }
 

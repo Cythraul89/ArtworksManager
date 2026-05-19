@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Network (Nextcloud sync, exchange rates) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Camera for photo capture -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Gallery access: READ_MEDIA_IMAGES on Android 13+, READ_EXTERNAL_STORAGE on ≤12 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+
     <application
         android:label="artworks_manager"
         android:name="${applicationName}"
