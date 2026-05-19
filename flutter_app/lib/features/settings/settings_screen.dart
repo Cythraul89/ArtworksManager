@@ -56,10 +56,33 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+            if (_isSyncOverdue(setting))
+              ListTile(
+                leading: Icon(Icons.warning_amber_rounded,
+                    color: Theme.of(context).colorScheme.error),
+                title: Text(
+                  setting.lastSyncAt == null
+                      ? 'Auto-backup never ran'
+                      : 'Auto-backup is overdue',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.error),
+                ),
+                subtitle: const Text('Open Nextcloud settings to check'),
+                dense: true,
+                onTap: () => context.go('/settings/nextcloud'),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  bool _isSyncOverdue(Setting s) {
+    if (!s.autoSyncEnabled) return false;
+    if (s.lastSyncAt == null) return true;
+    final age = DateTime.now().difference(
+        DateTime.fromMillisecondsSinceEpoch(s.lastSyncAt!));
+    return age > Duration(hours: s.autoSyncIntervalHours * 2);
   }
 
   void _pickCurrency(

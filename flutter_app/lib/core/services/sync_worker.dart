@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' show Value;
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../database/app_database.dart';
 import 'backup_service.dart';
@@ -26,8 +25,7 @@ class SyncWorker {
       }
 
       final bytes = await BackupService().exportToZip(artworks, photosByArtwork);
-      final now = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final remotePath = '${s.nextcloudPath}/artworks_$now.zip';
+      final remotePath = '${s.nextcloudPath}/${BackupService.generateFilename()}';
       final pin = s.nextcloudCertFingerprint.isEmpty ? null : s.nextcloudCertFingerprint;
 
       final nc = NextcloudService();

@@ -92,25 +92,42 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         error: (e, _) => ErrorView(e),
         data: (artworks) {
           if (artworks.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            return RefreshIndicator(
+              onRefresh: () async =>
+                  ref.invalidate(filteredArtworksProvider),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  Icon(Icons.photo_library_outlined,
-                      size: 64, color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(height: 16),
-                  Text(
-                    filter.search.isNotEmpty || filter.medium.isNotEmpty
-                        ? 'No artworks match your filter'
-                        : 'No artworks yet.\nTap + to add one.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                  SizedBox(
+                    height: 300,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_outlined,
+                              size: 64,
+                              color: Theme.of(context).colorScheme.outline),
+                          const SizedBox(height: 16),
+                          Text(
+                            filter.search.isNotEmpty ||
+                                    filter.medium.isNotEmpty
+                                ? 'No artworks match your filter'
+                                : 'No artworks yet.\nTap + to add one.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             );
           }
-          return filter.isGrid ? _buildGrid(artworks) : _buildList(artworks);
+          return RefreshIndicator(
+            onRefresh: () async => ref.invalidate(filteredArtworksProvider),
+            child: filter.isGrid ? _buildGrid(artworks) : _buildList(artworks),
+          );
         },
       ),
       floatingActionButton: FloatingActionButton(
@@ -123,6 +140,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
 
   Widget _buildGrid(List artworks) => GridView.builder(
         padding: const EdgeInsets.all(8),
+        physics: const AlwaysScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 8,
@@ -138,6 +156,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       );
 
   Widget _buildList(List artworks) => ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: artworks.length,
         itemBuilder: (_, i) => ArtworkCard(
           artwork: artworks[i],

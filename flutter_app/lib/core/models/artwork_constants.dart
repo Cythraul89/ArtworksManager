@@ -31,3 +31,5 @@ const List<String> artworkMediums = [
 ];
 
 enum SortBy { dateAdded, title, artist, year }
+
+const kDefaultRemotePath = 'ArtworksManager';

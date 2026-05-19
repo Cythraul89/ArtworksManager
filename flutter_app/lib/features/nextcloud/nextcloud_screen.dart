@@ -5,11 +5,11 @@ import 'package:drift/drift.dart' show Value;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:workmanager/workmanager.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
+import '../../core/models/artwork_constants.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/nextcloud_service.dart';
 import '../../core/services/secure_credentials_service.dart';
@@ -267,7 +267,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
 
   Future<void> _save() async {
     final path = _pathCtrl.text.trim().isEmpty
-        ? 'ArtworksManager'
+        ? kDefaultRemotePath
         : _pathCtrl.text.trim();
     await SecureCredentialsService.writePassword(_passwordCtrl.text);
     await ref.read(databaseProvider).settingsDao.save(SettingsCompanion(
@@ -356,8 +356,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       }
       final bytes =
           await BackupService().exportToZip(artworks, photosByArtwork);
-      final filename =
-          '${s.nextcloudPath}/artworks_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.zip';
+      final filename = '${s.nextcloudPath}/${BackupService.generateFilename()}';
       final nc = NextcloudService();
       final result = await nc.uploadBackup(
         s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,

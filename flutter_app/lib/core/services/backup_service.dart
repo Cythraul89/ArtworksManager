@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../database/app_database.dart';
@@ -171,6 +172,10 @@ class BackupService {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /// Returns a timestamped filename for a new backup, e.g. `artworks_20240115_142305.zip`.
+  static String generateFilename() =>
+      'artworks_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.zip';
 
   Future<Directory> _artworksDir() async {
     final docs = await getApplicationDocumentsDirectory();
