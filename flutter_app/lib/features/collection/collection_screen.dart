@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/models/artwork_constants.dart';
+import '../../core/widgets/error_view.dart';
 import 'collection_providers.dart';
 import 'widgets/artwork_card.dart';
 
@@ -87,7 +89,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       ),
       body: artworksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => ErrorView(e),
         data: (artworks) {
           if (artworks.isEmpty) {
             return Center(

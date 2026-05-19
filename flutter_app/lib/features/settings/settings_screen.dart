@@ -85,9 +85,17 @@ class SettingsScreen extends ConsumerWidget {
                       : null,
                   onTap: () async {
                     Navigator.pop(ctx);
-                    await ref.read(databaseProvider).settingsDao.save(
-                          SettingsCompanion(currency: Value(c.code)),
+                    try {
+                      await ref.read(databaseProvider).settingsDao.save(
+                            SettingsCompanion(currency: Value(c.code)),
+                          );
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to save: $e')),
                         );
+                      }
+                    }
                   },
                 )),
             const SizedBox(height: 8),

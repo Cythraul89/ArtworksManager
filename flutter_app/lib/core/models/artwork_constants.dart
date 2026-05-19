@@ -29,3 +29,5 @@ const List<String> artworkMediums = [
   'Fabric',
   'Other',
 ];
+
+enum SortBy { dateAdded, title, artist, year }

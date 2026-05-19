@@ -65,12 +65,19 @@ class BackupService {
       }
     }
 
+    final missingPaths = <String>[];
     for (final path in referencedPaths) {
       final file = File(path);
       if (await file.exists()) {
         final bytes = await file.readAsBytes();
         archive.addFile(ArchiveFile('photos/${_filename(path)}', bytes.length, bytes));
+      } else {
+        missingPaths.add(path);
       }
+    }
+    if (missingPaths.isNotEmpty) {
+      throw Exception(
+          '${missingPaths.length} referenced file(s) not found: ${missingPaths.join(', ')}');
     }
 
     return Uint8List.fromList(ZipEncoder().encode(archive) ?? []);
@@ -97,48 +104,65 @@ class BackupService {
     }
 
     // Parse artworks.json
-    final jsonFile = archive.files.firstWhere((f) => f.name == 'artworks.json');
-    final jsonStr = utf8.decode(jsonFile.content as List<int>);
-    final root = jsonDecode(jsonStr) as Map<String, dynamic>;
-    final array = root['artworks'] as List<dynamic>;
+    final jsonEntry = archive.files
+        .cast<ArchiveFile?>()
+        .firstWhere((f) => f?.name == 'artworks.json', orElse: () => null);
+    if (jsonEntry == null) {
+      throw Exception('Invalid backup: artworks.json not found');
+    }
+    final jsonStr = utf8.decode(jsonEntry.content as List<int>);
+    final root = jsonDecode(jsonStr);
+    if (root is! Map<String, dynamic>) {
+      throw Exception('Invalid backup: unexpected JSON root type');
+    }
+    final array = root['artworks'];
+    if (array is! List) {
+      throw Exception('Invalid backup: missing artworks array');
+    }
 
     final artworks = <ArtworksCompanion>[];
     final photos = <ArtworkPhotosCompanion>[];
 
     for (final item in array) {
-      final o = item as Map<String, dynamic>;
-      final id = o['id'] as int;
+      if (item is! Map<String, dynamic>) continue;
+      final o = item;
+      final id = o['id'];
+      if (id is! int) continue;
 
       artworks.add(ArtworksCompanion(
         id: Value(id),
-        title: Value(o['title'] as String),
-        artist: Value(o['artist'] as String? ?? ''),
+        title: Value((o['title'] as String?) ?? ''),
+        artist: Value((o['artist'] as String?) ?? ''),
         year: Value(o['year'] as int?),
-        type: Value(o['type'] as String? ?? ''),
-        medium: Value(o['medium'] as String? ?? ''),
+        type: Value((o['type'] as String?) ?? ''),
+        medium: Value((o['medium'] as String?) ?? ''),
         heightCm: Value((o['heightCm'] as num?)?.toDouble()),
         widthCm: Value((o['widthCm'] as num?)?.toDouble()),
         depthCm: Value((o['depthCm'] as num?)?.toDouble()),
-        location: Value(o['location'] as String? ?? ''),
+        location: Value((o['location'] as String?) ?? ''),
         acquisitionDate: Value(_parseDate(o['acquisitionDate'] as String?)),
-        currency: Value(o['currency'] as String? ?? ''),
+        currency: Value((o['currency'] as String?) ?? ''),
         purchasePrice: Value((o['purchasePrice'] as num?)?.toDouble()),
-        description: Value(o['description'] as String? ?? ''),
+        description: Value((o['description'] as String?) ?? ''),
         photoPath: Value(extractedFiles[o['photo'] as String? ?? ''] ?? ''),
-        certificatePath: Value(extractedFiles[o['certificate'] as String? ?? ''] ?? ''),
+        certificatePath:
+            Value(extractedFiles[o['certificate'] as String? ?? ''] ?? ''),
         createdAt: Value(_parseIso(o['createdAt'] as String?)),
       ));
 
-      final additionalPhotos = o['additionalPhotos'] as List<dynamic>? ?? [];
-      for (var j = 0; j < additionalPhotos.length; j++) {
-        final ph = additionalPhotos[j] as Map<String, dynamic>;
-        final path = extractedFiles[ph['photo'] as String? ?? ''] ?? '';
-        if (path.isNotEmpty) {
-          photos.add(ArtworkPhotosCompanion(
-            artworkId: Value(id),
-            photoPath: Value(path),
-            sortOrder: Value(ph['sortOrder'] as int? ?? j),
-          ));
+      final additionalPhotos = o['additionalPhotos'];
+      if (additionalPhotos is List) {
+        for (var j = 0; j < additionalPhotos.length; j++) {
+          final ph = additionalPhotos[j];
+          if (ph is! Map<String, dynamic>) continue;
+          final path = extractedFiles[ph['photo'] as String? ?? ''] ?? '';
+          if (path.isNotEmpty) {
+            photos.add(ArtworkPhotosCompanion(
+              artworkId: Value(id),
+              photoPath: Value(path),
+              sortOrder: Value(ph['sortOrder'] as int? ?? j),
+            ));
+          }
         }
       }
     }

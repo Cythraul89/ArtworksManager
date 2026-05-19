@@ -9,12 +9,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/artwork_constants.dart';
 import '../../core/models/currency.dart';
 import '../../core/widgets/photo_strip.dart';
-import '../detail/detail_providers.dart';
+
+const _uuid = Uuid();
 
 class AddEditScreen extends ConsumerStatefulWidget {
   const AddEditScreen({super.key, this.artworkId});
@@ -26,7 +28,6 @@ class AddEditScreen extends ConsumerStatefulWidget {
 
 class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _loaded = false;
   bool _saving = false;
 
   // Text controllers
@@ -55,6 +56,28 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   bool get _isEdit => widget.artworkId != null;
 
   @override
+  void initState() {
+    super.initState();
+    if (_isEdit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadForEdit());
+    }
+  }
+
+  Future<void> _loadForEdit() async {
+    final db = ref.read(databaseProvider);
+    final artwork = await db.artworksDao.getById(widget.artworkId!);
+    if (!mounted || artwork == null) return;
+    _prefill(artwork);
+    final photos = await db.photosDao.getForArtwork(widget.artworkId!);
+    if (!mounted) return;
+    setState(() {
+      _photoItems
+        ..clear()
+        ..addAll(photos.map((p) => (record: p, path: p.photoPath)));
+    });
+  }
+
+  @override
   void dispose() {
     for (final c in [_title, _artist, _year, _height, _width, _depth, _location, _price, _description]) {
       c.dispose();
@@ -64,22 +87,6 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // One-shot prefill when editing
-    if (_isEdit && !_loaded) {
-      final artworkAsync = ref.watch(artworkByIdProvider(widget.artworkId!));
-      final photosAsync = ref.watch(photosByArtworkProvider(widget.artworkId!));
-      artworkAsync.whenData((a) {
-        if (a != null && !_loaded) _prefill(a);
-      });
-      photosAsync.whenData((photos) {
-        if (!_loaded && photos.isNotEmpty) {
-          _photoItems
-            ..clear()
-            ..addAll(photos.map((p) => (record: p, path: p.photoPath)));
-        }
-      });
-    }
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -265,7 +272,6 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   // ── Prefill ────────────────────────────────────────────────────────────────
 
   void _prefill(Artwork a) {
-    _loaded = true;
     _title.text = a.title;
     _artist.text = a.artist;
     _year.text = a.year?.toString() ?? '';
@@ -355,7 +361,7 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
         (await getApplicationDocumentsDirectory()).path,
         'artworks',
       ))..createSync(recursive: true);
-      final dest = File(p.join(dir.path, '$prefix${DateTime.now().millisecondsSinceEpoch}.$extension'));
+      final dest = File(p.join(dir.path, '$prefix${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4()}.$extension'));
       await File(src).copy(dest.path);
       return dest.path;
     } catch (_) {
@@ -389,27 +395,28 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
         certificatePath: Value(_certificatePath),
       );
 
-      final int savedId;
-      if (_isEdit) {
-        await db.artworksDao.updateArtwork(companion);
-        savedId = widget.artworkId!;
-      } else {
-        savedId = await db.artworksDao.insertArtwork(companion);
-      }
-
-      for (final photo in _photosToDelete) {
-        await db.photosDao.deleteById(photo.id);
-      }
-      for (var i = 0; i < _photoItems.length; i++) {
-        final item = _photoItems[i];
-        if (item.record == null) {
-          await db.photosDao.insert(ArtworkPhotosCompanion(
-            artworkId: Value(savedId),
-            photoPath: Value(item.path),
-            sortOrder: Value(i),
-          ));
+      var savedId = 0;
+      await db.transaction(() async {
+        if (_isEdit) {
+          await db.artworksDao.updateArtwork(companion);
+          savedId = widget.artworkId!;
+        } else {
+          savedId = await db.artworksDao.insertArtwork(companion);
         }
-      }
+        for (final photo in _photosToDelete) {
+          await db.photosDao.deleteById(photo.id);
+        }
+        for (var i = 0; i < _photoItems.length; i++) {
+          final item = _photoItems[i];
+          if (item.record == null) {
+            await db.photosDao.insert(ArtworkPhotosCompanion(
+              artworkId: Value(savedId),
+              photoPath: Value(item.path),
+              sortOrder: Value(i),
+            ));
+          }
+        }
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

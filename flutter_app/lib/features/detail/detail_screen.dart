@@ -188,10 +188,14 @@ class _DetailBody extends StatelessWidget {
     return parts.join('  ·  ');
   }
 
-  String _fmt(double v) => v == v.truncateToDouble() ? v.toInt().toString() : v.toString();
+  String _fmt(double v) {
+    if (!v.isFinite) return '?';
+    return v == v.truncateToDouble() ? v.toInt().toString() : v.toString();
+  }
 
   void _openCertificate(BuildContext context, String path) async {
     if (!File(path).existsSync()) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Certificate file not found')),
       );

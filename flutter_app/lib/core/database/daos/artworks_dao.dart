@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import '../app_database.dart';
+import '../../models/artwork_constants.dart';
 
 part 'artworks_dao.g.dart';
 
@@ -11,6 +12,19 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
 
   Stream<List<Artwork>> watchAll() =>
       (select(artworks)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
+
+  Stream<List<Artwork>> watchAllSorted(SortBy sortBy) {
+    return (select(artworks)
+          ..orderBy([
+            (t) => switch (sortBy) {
+                  SortBy.dateAdded => OrderingTerm.desc(t.createdAt),
+                  SortBy.title => OrderingTerm.asc(t.title),
+                  SortBy.artist => OrderingTerm.asc(t.artist),
+                  SortBy.year => OrderingTerm.desc(t.year),
+                }
+          ]))
+        .watch();
+  }
 
   Stream<Artwork?> watchById(int id) =>
       (select(artworks)..where((t) => t.id.equals(id))).watchSingleOrNull();

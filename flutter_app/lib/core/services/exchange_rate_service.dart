@@ -15,9 +15,13 @@ class ExchangeRateService {
         'https://api.frankfurter.app/latest',
         queryParameters: {'base': base},
       );
-      final rates = (resp.data?['rates'] as Map?)?.cast<String, dynamic>() ?? {};
-      final result = {base: 1.0};
-      rates.forEach((k, v) => result[k] = (v as num).toDouble());
+      if (resp.statusCode != 200 || resp.data == null) return null;
+      final rates = resp.data!['rates'] as Map<String, dynamic>?;
+      if (rates == null) return null;
+      final result = <String, double>{base: 1.0};
+      rates.forEach((k, v) {
+        if (v is num) result[k] = v.toDouble();
+      });
       return result;
     } catch (_) {
       return null;

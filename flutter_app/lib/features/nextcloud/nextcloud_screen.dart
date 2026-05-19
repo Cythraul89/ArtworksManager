@@ -10,6 +10,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/nextcloud_service.dart';
+import '../../core/services/secure_credentials_service.dart';
 import '../settings/settings_providers.dart';
 
 enum _Op { idle, testing, backing, restoring }
@@ -35,6 +36,14 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   bool _messageIsError = false;
 
   @override
+  void initState() {
+    super.initState();
+    SecureCredentialsService.readPassword().then((pw) {
+      if (mounted) setState(() => _passwordCtrl.text = pw);
+    });
+  }
+
+  @override
   void dispose() {
     _urlCtrl.dispose();
     _usernameCtrl.dispose();
@@ -48,7 +57,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     _loaded = true;
     _urlCtrl.text = s.nextcloudUrl;
     _usernameCtrl.text = s.nextcloudUsername;
-    _passwordCtrl.text = s.nextcloudPassword;
     _pathCtrl.text = s.nextcloudPath;
     _fingerprintCtrl.text = s.nextcloudCertFingerprint;
     setState(() => _keepExports = s.nextcloudKeepExports);
@@ -203,10 +211,11 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     final path = _pathCtrl.text.trim().isEmpty
         ? 'ArtworksManager'
         : _pathCtrl.text.trim();
+    await SecureCredentialsService.writePassword(_passwordCtrl.text);
     await ref.read(databaseProvider).settingsDao.save(SettingsCompanion(
           nextcloudUrl: Value(_urlCtrl.text.trim()),
           nextcloudUsername: Value(_usernameCtrl.text.trim()),
-          nextcloudPassword: Value(_passwordCtrl.text),
+          nextcloudPassword: const Value(''),
           nextcloudPath: Value(path),
           nextcloudCertFingerprint: Value(_fingerprintCtrl.text.trim()),
           nextcloudKeepExports: Value(_keepExports),
@@ -225,7 +234,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     }
     setState(() { _op = _Op.testing; _message = null; });
     final result = await NextcloudService().verifyCredentials(
-      s.nextcloudUrl, s.nextcloudUsername, s.nextcloudPassword,
+      s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
       pinnedFingerprint: _pin(s),
     );
     if (!mounted) return;
@@ -262,7 +271,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           '${s.nextcloudPath}/artworks_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.zip';
       final nc = NextcloudService();
       final result = await nc.uploadBackup(
-        s.nextcloudUrl, s.nextcloudUsername, s.nextcloudPassword,
+        s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
         filename, bytes,
         pinnedFingerprint: _pin(s),
       );
@@ -288,7 +297,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
 
   Future<void> _pruneOldBackups(NextcloudService nc, Setting s) async {
     final result = await nc.listFiles(
-      s.nextcloudUrl, s.nextcloudUsername, s.nextcloudPassword,
+      s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
       s.nextcloudPath, pinnedFingerprint: _pin(s),
     );
     if (result is! NcSuccess<List<String>>) return;
@@ -296,7 +305,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     if (files.length <= s.nextcloudKeepExports) return;
     for (final href in files.sublist(0, files.length - s.nextcloudKeepExports)) {
       await nc.deleteFile(
-        s.nextcloudUrl, s.nextcloudUsername, s.nextcloudPassword,
+        s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
         '${s.nextcloudPath}/${p.basename(href)}',
         pinnedFingerprint: _pin(s),
       );
@@ -313,7 +322,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     setState(() { _op = _Op.restoring; _message = null; });
     final nc = NextcloudService();
     final listResult = await nc.listFiles(
-      s.nextcloudUrl, s.nextcloudUsername, s.nextcloudPassword,
+      s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
       s.nextcloudPath, pinnedFingerprint: _pin(s),
     );
     if (!mounted) return;
@@ -341,7 +350,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         if (confirmed != true || !mounted) return;
         setState(() { _op = _Op.restoring; _message = null; });
         final dlResult = await nc.downloadFile(
-          s.nextcloudUrl, s.nextcloudUsername, s.nextcloudPassword,
+          s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
           '${s.nextcloudPath}/${p.basename(selected)}',
           pinnedFingerprint: _pin(s),
         );

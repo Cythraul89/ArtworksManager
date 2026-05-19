@@ -45,8 +45,16 @@ class NextcloudService {
       (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final client = HttpClient();
         client.badCertificateCallback = (cert, host, port) {
-          final fingerprint = sha256.convert(cert.der).toString();
-          return fingerprint == pinnedFingerprint;
+          final actual = sha256.convert(cert.der).toString();
+          assert(() {
+            if (actual != pinnedFingerprint) {
+              // ignore: avoid_print
+              print('[ArtworksManager] cert-pin mismatch on $host: '
+                  'expected $pinnedFingerprint, got $actual');
+            }
+            return true;
+          }());
+          return actual == pinnedFingerprint;
         };
         return client;
       };

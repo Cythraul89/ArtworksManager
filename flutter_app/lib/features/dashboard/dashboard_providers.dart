@@ -49,7 +49,7 @@ final portfolioValueProvider =
       // All prices already in the default currency — no network call needed.
       if (totals.every((t) => t.currency == currency)) {
         return AsyncValue<double?>.data(
-            totals.fold(0.0, (s, t) => s + t.total));
+            totals.fold<double>(0.0, (s, t) => s + t.total));
       }
 
       // Multi-currency: convert everything to the default currency.
