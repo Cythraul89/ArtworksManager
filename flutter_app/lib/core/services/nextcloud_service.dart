@@ -212,6 +212,7 @@ class NextcloudService {
     }
     final code = e.response?.statusCode;
     if (code == 401) return NcFailure('Invalid credentials');
+    if (code == 507) return NcFailure('Insufficient storage on server');
     return NcFailure(e.message ?? 'Network error');
   }
 }

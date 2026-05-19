@@ -130,9 +130,9 @@ class PdfExporter {
         field('Condition', a.condition.isNotEmpty ? a.condition : null);
 
         final dimParts = <String>[
-          if (a.heightCm != null) _fmtDim(a.heightCm!),
-          if (a.widthCm != null) _fmtDim(a.widthCm!),
-          if (a.depthCm != null) _fmtDim(a.depthCm!),
+          if (a.heightCm != null) fmtDim(a.heightCm!),
+          if (a.widthCm != null) fmtDim(a.widthCm!),
+          if (a.depthCm != null) fmtDim(a.depthCm!),
         ];
         if (dimParts.isNotEmpty) {
           field('Dimensions', '${dimParts.join(' × ')} cm');
@@ -166,7 +166,7 @@ class PdfExporter {
   }
 
   // Formats a dimension value: integers without decimals, others with 1dp.
-  static String _fmtDim(double v) {
+  static String fmtDim(double v) {
     if (v == v.truncateToDouble()) return v.toInt().toString();
     return v.toStringAsFixed(1).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
   }
