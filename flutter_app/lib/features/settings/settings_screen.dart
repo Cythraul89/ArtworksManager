@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/currency.dart';
+import '../../core/services/app_logger.dart';
+import '../../core/services/pdf_exporter.dart';
 import 'settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -31,6 +34,9 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _pickCurrency(context, ref, setting),
             ),
+            const Divider(indent: 16, endIndent: 16),
+            _SectionLabel('Export'),
+            _PdfExportTile(currency: setting.currency),
             const Divider(indent: 16, endIndent: 16),
             _SectionLabel('Backup & Sync'),
             ListTile(
@@ -154,6 +160,72 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
+
+// ── PDF export tile ───────────────────────────────────────────────────────────
+
+class _PdfExportTile extends ConsumerStatefulWidget {
+  const _PdfExportTile({required this.currency});
+  final String currency;
+
+  @override
+  ConsumerState<_PdfExportTile> createState() => _PdfExportTileState();
+}
+
+class _PdfExportTileState extends ConsumerState<_PdfExportTile> {
+  bool _busy = false;
+
+  Future<void> _export() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final artworks =
+          await ref.read(databaseProvider).artworksDao.getAll();
+      if (artworks.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No artworks to export')),
+          );
+        }
+        return;
+      }
+      await AppLogger.info(
+          'PdfExporter: exporting ${artworks.length} artworks');
+      final bytes = await PdfExporter(defaultCurrencyCode: widget.currency)
+          .generate(artworks);
+      final filename =
+          'artworks_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
+      await Printing.sharePdf(bytes: bytes, filename: filename);
+    } catch (e, st) {
+      await AppLogger.error('PdfExporter: export failed', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF export failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: _busy
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.picture_as_pdf_outlined),
+      title: const Text('Export to PDF'),
+      subtitle: const Text('One page per artwork'),
+      trailing: _busy ? null : const Icon(Icons.chevron_right),
+      onTap: _busy ? null : _export,
+    );
+  }
+}
+
+// ── Section label ─────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.label);

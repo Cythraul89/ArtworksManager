@@ -67,6 +67,7 @@ flutter build macos --release
 | Background sync | WorkManager (`workmanager`) — Android only, no-op on macOS/Linux |
 | Secure storage | `flutter_secure_storage` (Keychain / Keystore) |
 | Permissions | `permission_handler` |
+| PDF export | `pdf` + `printing` (`PdfGoogleFonts.notoSans*` for cross-platform fonts) |
 | Logging | `AppLogger` (custom, see `lib/core/services/app_logger.dart`) |
 
 ### Module Structure
@@ -89,6 +90,7 @@ flutter_app/lib/
 │   │   ├── backup_service.dart    ZIP export/import; BackupService.generateFilename()
 │   │   ├── exchange_rate_service.dart  Frankfurter API + 24h disk cache + AppLogger
 │   │   ├── nextcloud_service.dart WebDAV client; sealed NcResult<T> (NcSuccess/NcFailure/NcTransient)
+│   │   ├── pdf_exporter.dart      A4 PDF: one page per artwork, EXIF-corrected photo, Noto Sans
 │   │   ├── secure_credentials_service.dart  Nextcloud password via flutter_secure_storage
 │   │   └── sync_worker.dart       WorkManager background task; uses AppDatabase.openForIsolate()
 │   └── widgets/
