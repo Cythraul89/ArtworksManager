@@ -103,6 +103,9 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/settings/logs'),
             ),
+            const Divider(indent: 16, endIndent: 16),
+            _SectionLabel('About'),
+            _AboutTile(),
           ],
         ),
       ),
@@ -221,6 +224,29 @@ class _PdfExportTileState extends ConsumerState<_PdfExportTile> {
       subtitle: const Text('One page per artwork'),
       trailing: _busy ? null : const Icon(Icons.chevron_right),
       onTap: _busy ? null : _export,
+    );
+  }
+}
+
+// ── About tile ────────────────────────────────────────────────────────────────
+
+class _AboutTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(packageInfoProvider);
+    final String? version = info.maybeWhen(
+      data: (p) => '${p.version}+${p.buildNumber}',
+      orElse: () => null,
+    );
+    return ListTile(
+      leading: const Icon(Icons.info_outline),
+      title: const Text('Artworks Manager'),
+      subtitle: Text(version ?? 'Loading…'),
+      onTap: () => showLicensePage(
+        context: context,
+        applicationName: 'Artworks Manager',
+        applicationVersion: version,
+      ),
     );
   }
 }

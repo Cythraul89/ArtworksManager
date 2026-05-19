@@ -64,10 +64,11 @@ flutter build macos --release
 | Navigation | `go_router` |
 | Database | Drift (SQLite ORM) — all generated code in `*.g.dart` |
 | HTTP | Dio |
-| Background sync | WorkManager (`workmanager`) — Android only, no-op on macOS/Linux |
+| Background sync | WorkManager (`workmanager`) — Android only, no-op on macOS/Linux/iOS/Windows |
 | Secure storage | `flutter_secure_storage` (Keychain / Keystore) |
 | Permissions | `permission_handler` |
 | PDF export | `pdf` + `printing` (`PdfGoogleFonts.notoSans*` for cross-platform fonts) |
+| App version | `package_info_plus` (About tile in Settings) |
 | Logging | `AppLogger` (custom, see `lib/core/services/app_logger.dart`) |
 
 ### Module Structure
@@ -125,7 +126,7 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 
 `AppDatabase` (Drift) has three tables: **Artworks**, **ArtworkPhotos**, **Settings**.
 
-- **Schema version 3** — migrations defined in `app_database.dart`
+- **Schema version 4** — migrations defined in `app_database.dart`
 - Always run `build_runner` after any schema change
 - `AppDatabase.forTesting(DatabaseConnection(NativeDatabase.memory()))` for in-memory tests
 - `AppDatabase.openForIsolate()` for WorkManager background tasks (direct `NativeDatabase`, not `createInBackground`, because the task is already in its own isolate)

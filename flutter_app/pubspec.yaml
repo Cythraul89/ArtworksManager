@@ -48,6 +48,9 @@ dependencies:
   workmanager: ^0.6.0
   device_info_plus: ^10.1.0
 
+  # App version / about screen
+  package_info_plus: ^8.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

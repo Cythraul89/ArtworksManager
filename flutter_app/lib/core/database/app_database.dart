@@ -44,7 +44,6 @@ class Settings extends Table {
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   TextColumn get nextcloudUrl => text().withDefault(const Constant(''))();
   TextColumn get nextcloudUsername => text().withDefault(const Constant(''))();
-  TextColumn get nextcloudPassword => text().withDefault(const Constant(''))();
   TextColumn get nextcloudPath => text().withDefault(const Constant('ArtworksManager'))();
   TextColumn get nextcloudCertFingerprint => text().withDefault(const Constant(''))();
   IntColumn get nextcloudKeepExports => integer().withDefault(const Constant(5))();
@@ -68,7 +67,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,6 +78,12 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.addColumn(settings, settings.lastSyncError);
+      }
+      if (from < 4) {
+        // Drop the vestigial nextcloud_password column — password is stored
+        // in flutter_secure_storage (platform Keystore/Keychain), not the DB.
+        await m.database.customStatement(
+            'ALTER TABLE settings DROP COLUMN nextcloud_password');
       }
     },
   );

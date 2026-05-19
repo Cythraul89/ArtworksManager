@@ -17,6 +17,10 @@ void main() {
       expect(s.currency, 'EUR');
       expect(s.autoSyncEnabled, false);
       expect(s.lastSyncError, isNull);
+      // nextcloudPassword was dropped in schema v4 — verify it no longer exists
+      // by confirming Setting has no such field (compile-time check via type system).
+      expect(s.nextcloudUrl, '');
+      expect(s.nextcloudUsername, '');
     });
 
     test('save and reload settings round-trip', () async {

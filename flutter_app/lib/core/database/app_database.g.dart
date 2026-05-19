@@ -1083,14 +1083,6 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           defaultValue: const Constant(''));
-  static const VerificationMeta _nextcloudPasswordMeta =
-      const VerificationMeta('nextcloudPassword');
-  @override
-  late final GeneratedColumn<String> nextcloudPassword =
-      GeneratedColumn<String>('nextcloud_password', aliasedName, false,
-          type: DriftSqlType.string,
-          requiredDuringInsert: false,
-          defaultValue: const Constant(''));
   static const VerificationMeta _nextcloudPathMeta =
       const VerificationMeta('nextcloudPath');
   @override
@@ -1151,7 +1143,6 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         currency,
         nextcloudUrl,
         nextcloudUsername,
-        nextcloudPassword,
         nextcloudPath,
         nextcloudCertFingerprint,
         nextcloudKeepExports,
@@ -1188,12 +1179,6 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           _nextcloudUsernameMeta,
           nextcloudUsername.isAcceptableOrUnknown(
               data['nextcloud_username']!, _nextcloudUsernameMeta));
-    }
-    if (data.containsKey('nextcloud_password')) {
-      context.handle(
-          _nextcloudPasswordMeta,
-          nextcloudPassword.isAcceptableOrUnknown(
-              data['nextcloud_password']!, _nextcloudPasswordMeta));
     }
     if (data.containsKey('nextcloud_path')) {
       context.handle(
@@ -1255,8 +1240,6 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           .read(DriftSqlType.string, data['${effectivePrefix}nextcloud_url'])!,
       nextcloudUsername: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}nextcloud_username'])!,
-      nextcloudPassword: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}nextcloud_password'])!,
       nextcloudPath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nextcloud_path'])!,
       nextcloudCertFingerprint: attachedDatabase.typeMapping.read(
@@ -1286,7 +1269,6 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String currency;
   final String nextcloudUrl;
   final String nextcloudUsername;
-  final String nextcloudPassword;
   final String nextcloudPath;
   final String nextcloudCertFingerprint;
   final int nextcloudKeepExports;
@@ -1299,7 +1281,6 @@ class Setting extends DataClass implements Insertable<Setting> {
       required this.currency,
       required this.nextcloudUrl,
       required this.nextcloudUsername,
-      required this.nextcloudPassword,
       required this.nextcloudPath,
       required this.nextcloudCertFingerprint,
       required this.nextcloudKeepExports,
@@ -1314,7 +1295,6 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['currency'] = Variable<String>(currency);
     map['nextcloud_url'] = Variable<String>(nextcloudUrl);
     map['nextcloud_username'] = Variable<String>(nextcloudUsername);
-    map['nextcloud_password'] = Variable<String>(nextcloudPassword);
     map['nextcloud_path'] = Variable<String>(nextcloudPath);
     map['nextcloud_cert_fingerprint'] =
         Variable<String>(nextcloudCertFingerprint);
@@ -1336,7 +1316,6 @@ class Setting extends DataClass implements Insertable<Setting> {
       currency: Value(currency),
       nextcloudUrl: Value(nextcloudUrl),
       nextcloudUsername: Value(nextcloudUsername),
-      nextcloudPassword: Value(nextcloudPassword),
       nextcloudPath: Value(nextcloudPath),
       nextcloudCertFingerprint: Value(nextcloudCertFingerprint),
       nextcloudKeepExports: Value(nextcloudKeepExports),
@@ -1359,7 +1338,6 @@ class Setting extends DataClass implements Insertable<Setting> {
       currency: serializer.fromJson<String>(json['currency']),
       nextcloudUrl: serializer.fromJson<String>(json['nextcloudUrl']),
       nextcloudUsername: serializer.fromJson<String>(json['nextcloudUsername']),
-      nextcloudPassword: serializer.fromJson<String>(json['nextcloudPassword']),
       nextcloudPath: serializer.fromJson<String>(json['nextcloudPath']),
       nextcloudCertFingerprint:
           serializer.fromJson<String>(json['nextcloudCertFingerprint']),
@@ -1380,7 +1358,6 @@ class Setting extends DataClass implements Insertable<Setting> {
       'currency': serializer.toJson<String>(currency),
       'nextcloudUrl': serializer.toJson<String>(nextcloudUrl),
       'nextcloudUsername': serializer.toJson<String>(nextcloudUsername),
-      'nextcloudPassword': serializer.toJson<String>(nextcloudPassword),
       'nextcloudPath': serializer.toJson<String>(nextcloudPath),
       'nextcloudCertFingerprint':
           serializer.toJson<String>(nextcloudCertFingerprint),
@@ -1397,7 +1374,6 @@ class Setting extends DataClass implements Insertable<Setting> {
           String? currency,
           String? nextcloudUrl,
           String? nextcloudUsername,
-          String? nextcloudPassword,
           String? nextcloudPath,
           String? nextcloudCertFingerprint,
           int? nextcloudKeepExports,
@@ -1410,7 +1386,6 @@ class Setting extends DataClass implements Insertable<Setting> {
         currency: currency ?? this.currency,
         nextcloudUrl: nextcloudUrl ?? this.nextcloudUrl,
         nextcloudUsername: nextcloudUsername ?? this.nextcloudUsername,
-        nextcloudPassword: nextcloudPassword ?? this.nextcloudPassword,
         nextcloudPath: nextcloudPath ?? this.nextcloudPath,
         nextcloudCertFingerprint:
             nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
@@ -1432,9 +1407,6 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudUsername: data.nextcloudUsername.present
           ? data.nextcloudUsername.value
           : this.nextcloudUsername,
-      nextcloudPassword: data.nextcloudPassword.present
-          ? data.nextcloudPassword.value
-          : this.nextcloudPassword,
       nextcloudPath: data.nextcloudPath.present
           ? data.nextcloudPath.value
           : this.nextcloudPath,
@@ -1465,7 +1437,6 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('currency: $currency, ')
           ..write('nextcloudUrl: $nextcloudUrl, ')
           ..write('nextcloudUsername: $nextcloudUsername, ')
-          ..write('nextcloudPassword: $nextcloudPassword, ')
           ..write('nextcloudPath: $nextcloudPath, ')
           ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
@@ -1483,7 +1454,6 @@ class Setting extends DataClass implements Insertable<Setting> {
       currency,
       nextcloudUrl,
       nextcloudUsername,
-      nextcloudPassword,
       nextcloudPath,
       nextcloudCertFingerprint,
       nextcloudKeepExports,
@@ -1499,7 +1469,6 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.currency == this.currency &&
           other.nextcloudUrl == this.nextcloudUrl &&
           other.nextcloudUsername == this.nextcloudUsername &&
-          other.nextcloudPassword == this.nextcloudPassword &&
           other.nextcloudPath == this.nextcloudPath &&
           other.nextcloudCertFingerprint == this.nextcloudCertFingerprint &&
           other.nextcloudKeepExports == this.nextcloudKeepExports &&
@@ -1514,7 +1483,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String> currency;
   final Value<String> nextcloudUrl;
   final Value<String> nextcloudUsername;
-  final Value<String> nextcloudPassword;
   final Value<String> nextcloudPath;
   final Value<String> nextcloudCertFingerprint;
   final Value<int> nextcloudKeepExports;
@@ -1527,7 +1495,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.currency = const Value.absent(),
     this.nextcloudUrl = const Value.absent(),
     this.nextcloudUsername = const Value.absent(),
-    this.nextcloudPassword = const Value.absent(),
     this.nextcloudPath = const Value.absent(),
     this.nextcloudCertFingerprint = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
@@ -1541,7 +1508,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.currency = const Value.absent(),
     this.nextcloudUrl = const Value.absent(),
     this.nextcloudUsername = const Value.absent(),
-    this.nextcloudPassword = const Value.absent(),
     this.nextcloudPath = const Value.absent(),
     this.nextcloudCertFingerprint = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
@@ -1555,7 +1521,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? currency,
     Expression<String>? nextcloudUrl,
     Expression<String>? nextcloudUsername,
-    Expression<String>? nextcloudPassword,
     Expression<String>? nextcloudPath,
     Expression<String>? nextcloudCertFingerprint,
     Expression<int>? nextcloudKeepExports,
@@ -1569,7 +1534,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (currency != null) 'currency': currency,
       if (nextcloudUrl != null) 'nextcloud_url': nextcloudUrl,
       if (nextcloudUsername != null) 'nextcloud_username': nextcloudUsername,
-      if (nextcloudPassword != null) 'nextcloud_password': nextcloudPassword,
       if (nextcloudPath != null) 'nextcloud_path': nextcloudPath,
       if (nextcloudCertFingerprint != null)
         'nextcloud_cert_fingerprint': nextcloudCertFingerprint,
@@ -1588,7 +1552,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       Value<String>? currency,
       Value<String>? nextcloudUrl,
       Value<String>? nextcloudUsername,
-      Value<String>? nextcloudPassword,
       Value<String>? nextcloudPath,
       Value<String>? nextcloudCertFingerprint,
       Value<int>? nextcloudKeepExports,
@@ -1601,7 +1564,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       currency: currency ?? this.currency,
       nextcloudUrl: nextcloudUrl ?? this.nextcloudUrl,
       nextcloudUsername: nextcloudUsername ?? this.nextcloudUsername,
-      nextcloudPassword: nextcloudPassword ?? this.nextcloudPassword,
       nextcloudPath: nextcloudPath ?? this.nextcloudPath,
       nextcloudCertFingerprint:
           nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
@@ -1628,9 +1590,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     }
     if (nextcloudUsername.present) {
       map['nextcloud_username'] = Variable<String>(nextcloudUsername.value);
-    }
-    if (nextcloudPassword.present) {
-      map['nextcloud_password'] = Variable<String>(nextcloudPassword.value);
     }
     if (nextcloudPath.present) {
       map['nextcloud_path'] = Variable<String>(nextcloudPath.value);
@@ -1665,7 +1624,6 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('currency: $currency, ')
           ..write('nextcloudUrl: $nextcloudUrl, ')
           ..write('nextcloudUsername: $nextcloudUsername, ')
-          ..write('nextcloudPassword: $nextcloudPassword, ')
           ..write('nextcloudPath: $nextcloudPath, ')
           ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
@@ -2399,7 +2357,6 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String> currency,
   Value<String> nextcloudUrl,
   Value<String> nextcloudUsername,
-  Value<String> nextcloudPassword,
   Value<String> nextcloudPath,
   Value<String> nextcloudCertFingerprint,
   Value<int> nextcloudKeepExports,
@@ -2413,7 +2370,6 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<String> currency,
   Value<String> nextcloudUrl,
   Value<String> nextcloudUsername,
-  Value<String> nextcloudPassword,
   Value<String> nextcloudPath,
   Value<String> nextcloudCertFingerprint,
   Value<int> nextcloudKeepExports,
@@ -2443,10 +2399,6 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<String> get nextcloudUsername => $composableBuilder(
       column: $table.nextcloudUsername,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get nextcloudPassword => $composableBuilder(
-      column: $table.nextcloudPassword,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get nextcloudPath => $composableBuilder(
@@ -2498,10 +2450,6 @@ class $$SettingsTableOrderingComposer
       column: $table.nextcloudUsername,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get nextcloudPassword => $composableBuilder(
-      column: $table.nextcloudPassword,
-      builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<String> get nextcloudPath => $composableBuilder(
       column: $table.nextcloudPath,
       builder: (column) => ColumnOrderings(column));
@@ -2550,9 +2498,6 @@ class $$SettingsTableAnnotationComposer
 
   GeneratedColumn<String> get nextcloudUsername => $composableBuilder(
       column: $table.nextcloudUsername, builder: (column) => column);
-
-  GeneratedColumn<String> get nextcloudPassword => $composableBuilder(
-      column: $table.nextcloudPassword, builder: (column) => column);
 
   GeneratedColumn<String> get nextcloudPath => $composableBuilder(
       column: $table.nextcloudPath, builder: (column) => column);
@@ -2603,7 +2548,6 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> currency = const Value.absent(),
             Value<String> nextcloudUrl = const Value.absent(),
             Value<String> nextcloudUsername = const Value.absent(),
-            Value<String> nextcloudPassword = const Value.absent(),
             Value<String> nextcloudPath = const Value.absent(),
             Value<String> nextcloudCertFingerprint = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
@@ -2617,7 +2561,6 @@ class $$SettingsTableTableManager extends RootTableManager<
             currency: currency,
             nextcloudUrl: nextcloudUrl,
             nextcloudUsername: nextcloudUsername,
-            nextcloudPassword: nextcloudPassword,
             nextcloudPath: nextcloudPath,
             nextcloudCertFingerprint: nextcloudCertFingerprint,
             nextcloudKeepExports: nextcloudKeepExports,
@@ -2631,7 +2574,6 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> currency = const Value.absent(),
             Value<String> nextcloudUrl = const Value.absent(),
             Value<String> nextcloudUsername = const Value.absent(),
-            Value<String> nextcloudPassword = const Value.absent(),
             Value<String> nextcloudPath = const Value.absent(),
             Value<String> nextcloudCertFingerprint = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
@@ -2645,7 +2587,6 @@ class $$SettingsTableTableManager extends RootTableManager<
             currency: currency,
             nextcloudUrl: nextcloudUrl,
             nextcloudUsername: nextcloudUsername,
-            nextcloudPassword: nextcloudPassword,
             nextcloudPath: nextcloudPath,
             nextcloudCertFingerprint: nextcloudCertFingerprint,
             nextcloudKeepExports: nextcloudKeepExports,

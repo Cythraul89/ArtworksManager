@@ -145,7 +145,7 @@ flutter_app/lib/
 
 ## Database Schema (Drift / SQLite)
 
-**Schema version: 3**
+**Schema version: 4**
 
 ### Artworks
 
@@ -186,7 +186,6 @@ flutter_app/lib/
 | `currency` | TEXT | `'EUR'` | Global display currency |
 | `nextcloudUrl` | TEXT | `''` | |
 | `nextcloudUsername` | TEXT | `''` | |
-| `nextcloudPassword` | TEXT | `''` | **Vestigial** — password stored in `flutter_secure_storage` |
 | `nextcloudPath` | TEXT | `'ArtworksManager'` | Remote directory |
 | `nextcloudCertFingerprint` | TEXT | `''` | SHA-256 hex; empty = no pinning |
 | `nextcloudKeepExports` | INTEGER | 5 | Max files to keep on server |
@@ -202,6 +201,7 @@ flutter_app/lib/
 | 1 | Initial schema (Artworks, ArtworkPhotos, Settings) |
 | 2 | Added `autoSyncEnabled`, `autoSyncIntervalHours` to Settings |
 | 3 | Added `lastSyncError` to Settings |
+| 4 | Dropped `nextcloudPassword` column — password moved to `flutter_secure_storage` |
 
 ---
 

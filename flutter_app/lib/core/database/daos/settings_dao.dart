@@ -18,7 +18,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase> with _$SettingsDaoMixin 
   Stream<Setting> watch() {
     return (select(settings)..where((t) => t.id.equals(1)))
         .watchSingleOrNull()
-        .map((s) => s ?? const Setting(id: 1, currency: 'EUR', nextcloudUrl: '', nextcloudUsername: '', nextcloudPassword: '', nextcloudPath: kDefaultRemotePath, nextcloudCertFingerprint: '', nextcloudKeepExports: 5, lastSyncAt: null, lastSyncError: null, autoSyncEnabled: false, autoSyncIntervalHours: 24));
+        .map((s) => s ?? const Setting(id: 1, currency: 'EUR', nextcloudUrl: '', nextcloudUsername: '', nextcloudPath: kDefaultRemotePath, nextcloudCertFingerprint: '', nextcloudKeepExports: 5, lastSyncAt: null, lastSyncError: null, autoSyncEnabled: false, autoSyncIntervalHours: 24));
   }
 
   Future<void> save(SettingsCompanion companion) =>

@@ -56,7 +56,6 @@ classDiagram
         +currency : TextColumn
         +nextcloudUrl : TextColumn
         +nextcloudUsername : TextColumn
-        +nextcloudPassword : TextColumn
         +nextcloudPath : TextColumn
         +nextcloudCertFingerprint : TextColumn
         +nextcloudKeepExports : IntColumn

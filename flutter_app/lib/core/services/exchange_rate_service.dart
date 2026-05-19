@@ -15,7 +15,7 @@ class ExchangeRateService {
   ));
 
   static Future<File> _cacheFile(String base) async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getTemporaryDirectory();
     return File(p.join(dir.path, 'rates_$base.json'));
   }
 

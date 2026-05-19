@@ -241,7 +241,9 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           title: const Text('Auto-backup'),
           subtitle: Text(supported
               ? 'Periodic Nextcloud backup in the background'
-              : 'Requires Android 13 or later'),
+              : Platform.isAndroid
+                  ? 'Requires Android 13 or later (not supported on this device)'
+                  : 'Available on Android 13+ only'),
           value: supported && _autoSync,
           onChanged: supported ? (v) => setState(() => _autoSync = v) : null,
         ),
@@ -279,7 +281,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       await ref.read(databaseProvider).settingsDao.save(SettingsCompanion(
             nextcloudUrl: Value(_urlCtrl.text.trim()),
             nextcloudUsername: Value(_usernameCtrl.text.trim()),
-            nextcloudPassword: const Value(''),
             nextcloudPath: Value(path),
             nextcloudCertFingerprint: Value(_fingerprintCtrl.text.trim()),
             nextcloudKeepExports: Value(_keepExports),
