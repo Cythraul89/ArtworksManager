@@ -9,6 +9,7 @@ void main() {
     test('default values', () {
       expect(base.search, '');
       expect(base.medium, '');
+      expect(base.condition, '');
       expect(base.sortBy, SortBy.dateAdded);
       expect(base.isGrid, true);
     });
@@ -18,7 +19,16 @@ void main() {
       expect(f.search, 'Monet');
       expect(f.sortBy, SortBy.artist);
       expect(f.medium, '');
+      expect(f.condition, '');
       expect(f.isGrid, true);
+    });
+
+    test('copyWith with condition filter', () {
+      final f = base.copyWith(condition: 'Good');
+      expect(f.condition, 'Good');
+      expect(f.medium, '');
+      expect(f.search, '');
+      expect(f.sortBy, SortBy.dateAdded);
     });
 
     test('copyWith with medium filter', () {

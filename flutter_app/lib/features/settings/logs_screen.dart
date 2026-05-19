@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:open_filex/open_filex.dart';
 import '../../core/services/app_logger.dart';
 
@@ -33,7 +34,43 @@ class _LogsScreenState extends State<LogsScreen> {
       }
       return;
     }
-    await OpenFilex.open(file.path);
+    final result = await OpenFilex.open(file.path);
+    if (result.type != ResultType.done && mounted) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Log file'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Could not open the file automatically.'),
+              const SizedBox(height: 8),
+              SelectableText(
+                file.path,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: file.path));
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Path copied to clipboard')),
+                );
+              },
+              child: const Text('Copy path'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _clear() async {

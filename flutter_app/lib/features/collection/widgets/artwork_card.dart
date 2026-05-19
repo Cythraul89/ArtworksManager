@@ -63,6 +63,8 @@ class _GridCard extends StatelessWidget {
                         color: theme.colorScheme.outline,
                       ),
                     ),
+                  if (artwork.condition.isNotEmpty)
+                    _ConditionLabel(condition: artwork.condition),
                 ],
               ),
             ),
@@ -91,8 +93,17 @@ class _ListTile extends StatelessWidget {
         ),
       ),
       title: Text(artwork.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: artwork.artist.isNotEmpty
-          ? Text(artwork.artist, maxLines: 1, overflow: TextOverflow.ellipsis)
+      subtitle: (artwork.artist.isNotEmpty || artwork.condition.isNotEmpty)
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (artwork.artist.isNotEmpty)
+                  Text(artwork.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (artwork.condition.isNotEmpty)
+                  _ConditionLabel(condition: artwork.condition),
+              ],
+            )
           : null,
       trailing: artwork.year != null
           ? Text(
@@ -136,6 +147,30 @@ class _Placeholder extends StatelessWidget {
         size: 36,
         color: Theme.of(context).colorScheme.outline,
       ),
+    );
+  }
+}
+
+class _ConditionLabel extends StatelessWidget {
+  const _ConditionLabel({required this.condition});
+  final String condition;
+
+  Color _color() => switch (condition) {
+        'Excellent' => Colors.green.shade600,
+        'Good' => Colors.blue.shade600,
+        'Fair' => Colors.orange.shade700,
+        'Poor' => Colors.red.shade700,
+        _ => Colors.grey.shade600,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      condition,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: _color(),
+            fontWeight: FontWeight.w600,
+          ),
     );
   }
 }

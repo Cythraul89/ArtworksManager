@@ -67,7 +67,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             icon: Stack(
               children: [
                 const Icon(Icons.filter_list),
-                if (filter.medium.isNotEmpty || filter.sortBy != SortBy.dateAdded)
+                if (filter.medium.isNotEmpty || filter.condition.isNotEmpty || filter.sortBy != SortBy.dateAdded)
                   Positioned(
                     right: 0,
                     top: 0,
@@ -110,7 +110,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           const SizedBox(height: 16),
                           Text(
                             filter.search.isNotEmpty ||
-                                    filter.medium.isNotEmpty
+                                    filter.medium.isNotEmpty ||
+                                    filter.condition.isNotEmpty
                                 ? 'No artworks match your filter'
                                 : 'No artworks yet.\nTap + to add one.',
                             textAlign: TextAlign.center,
@@ -208,7 +209,7 @@ class _FilterSheet extends ConsumerWidget {
                 onPressed: () {
                   parentRef
                       .read(collectionFilterProvider.notifier)
-                      .update((s) => s.copyWith(medium: '', sortBy: SortBy.dateAdded));
+                      .update((s) => s.copyWith(medium: '', condition: '', sortBy: SortBy.dateAdded));
                   Navigator.pop(context);
                 },
                 child: const Text('Reset'),
@@ -240,6 +241,28 @@ class _FilterSheet extends ConsumerWidget {
                     )),
               ],
             ),
+          ),
+          const SizedBox(height: 16),
+          Text('Condition', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              FilterChip(
+                label: const Text('All'),
+                selected: filter.condition.isEmpty,
+                onSelected: (_) => parentRef
+                    .read(collectionFilterProvider.notifier)
+                    .update((s) => s.copyWith(condition: '')),
+              ),
+              ...artworkConditions.map((c) => FilterChip(
+                    label: Text(c),
+                    selected: filter.condition == c,
+                    onSelected: (_) => parentRef
+                        .read(collectionFilterProvider.notifier)
+                        .update((s) => s.copyWith(condition: c)),
+                  )),
+            ],
           ),
           const SizedBox(height: 16),
           Text('Sort by', style: Theme.of(context).textTheme.labelLarge),
