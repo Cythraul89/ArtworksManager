@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../database/app_database.dart';
+import 'app_logger.dart';
 
 /// Serialises and deserialises the full artwork collection as a ZIP archive.
 ///
@@ -77,6 +78,8 @@ class BackupService {
       }
     }
     if (missingPaths.isNotEmpty) {
+      await AppLogger.warn(
+          'BackupService: ${missingPaths.length} file(s) missing during export: ${missingPaths.join(', ')}');
       throw Exception(
           '${missingPaths.length} referenced file(s) not found: ${missingPaths.join(', ')}');
     }
@@ -109,15 +112,18 @@ class BackupService {
         .cast<ArchiveFile?>()
         .firstWhere((f) => f?.name == 'artworks.json', orElse: () => null);
     if (jsonEntry == null) {
+      await AppLogger.error('BackupService: artworks.json not found in ZIP');
       throw Exception('Invalid backup: artworks.json not found');
     }
     final jsonStr = utf8.decode(jsonEntry.content as List<int>);
     final root = jsonDecode(jsonStr);
     if (root is! Map<String, dynamic>) {
+      await AppLogger.error('BackupService: unexpected JSON root type (${root.runtimeType})');
       throw Exception('Invalid backup: unexpected JSON root type');
     }
     final array = root['artworks'];
     if (array is! List) {
+      await AppLogger.error('BackupService: missing artworks array in JSON');
       throw Exception('Invalid backup: missing artworks array');
     }
 

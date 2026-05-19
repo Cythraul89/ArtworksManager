@@ -460,6 +460,13 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
         );
         context.go('/collection/artwork/$savedId');
       }
+    } catch (e, st) {
+      await AppLogger.error('AddEdit: failed to save artwork', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
