@@ -21,9 +21,9 @@ class ExchangeRateService {
   static Future<Map<String, double>?> _readCache(String base) async {
     try {
       final file = await _cacheFile(base);
-      if (!file.existsSync()) return null;
+      if (!file.existsSync()) { return null; }
       if (DateTime.now().difference(file.lastModifiedSync()) >
-          const Duration(hours: 24)) return null;
+          const Duration(hours: 24)) { return null; }
       final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       return json.map((k, v) => MapEntry(k, (v as num).toDouble()));
     } catch (_) {
