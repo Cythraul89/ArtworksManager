@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
@@ -308,12 +309,29 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   Future<String?> _pickImage() async {
     final source = await _askPhotoSource();
     if (source == null) return null;
+    if (!await _requestPermission(source)) return null;
 
     final picker = ImagePicker();
     final XFile? picked = await picker.pickImage(source: source, imageQuality: 85);
     if (picked == null) return null;
 
     return _copyToArtworksDir(picked.path, extension: 'jpg');
+  }
+
+  Future<bool> _requestPermission(ImageSource source) async {
+    final permission =
+        source == ImageSource.camera ? Permission.camera : Permission.photos;
+    final status = await permission.request();
+    if (status.isGranted || status.isLimited) return true;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(source == ImageSource.camera
+            ? 'Camera permission denied'
+            : 'Gallery permission denied'),
+        action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
+      ));
+    }
+    return false;
   }
 
   Future<ImageSource?> _askPhotoSource() async {

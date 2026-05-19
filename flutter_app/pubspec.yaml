@@ -28,11 +28,7 @@ dependencies:
   # File handling
   file_picker: ^8.1.0
   image_picker: ^1.1.2
-  share_plus: ^10.0.0
   open_filex: ^4.4.1
-
-  # UI
-  cached_network_image: ^3.3.1
 
   # Serialization / Backup
   archive: ^3.6.1
@@ -41,8 +37,8 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   uuid: ^4.4.0
   intl: ^0.19.0
-  equatable: ^2.0.5
   crypto: ^3.0.3
+  permission_handler: ^11.3.1
 
   # Background tasks (Android only; no-op on macOS/Linux)
   workmanager: ^0.6.0

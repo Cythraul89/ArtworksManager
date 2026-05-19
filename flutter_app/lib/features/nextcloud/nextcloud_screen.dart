@@ -95,6 +95,8 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         actions: [
           TextButton(
             onPressed: busy ? null : () async {
+              final urlErr = _urlError(_urlCtrl.text.trim());
+              if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
               await _save();
               _setMsg('Settings saved', isError: false);
             },
@@ -299,7 +301,20 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   String? _pin(Setting s) =>
       s.nextcloudCertFingerprint.isNotEmpty ? s.nextcloudCertFingerprint : null;
 
+  /// Returns an error message if [url] is non-empty but malformed, else null.
+  String? _urlError(String url) {
+    if (url.isEmpty) return null;
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host.isEmpty) return 'Enter a valid URL';
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return 'URL must start with https://';
+    }
+    return null;
+  }
+
   Future<void> _testConnection() async {
+    final urlErr = _urlError(_urlCtrl.text.trim());
+    if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
     await _save();
     final s = await ref.read(databaseProvider).settingsDao.get();
     if (s.nextcloudUrl.isEmpty) {
