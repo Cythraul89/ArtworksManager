@@ -42,10 +42,12 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   final _location = TextEditingController();
   final _price = TextEditingController();
   final _description = TextEditingController();
+  final _provenance = TextEditingController();
 
   // Dropdown / picker state
   String _type = '';
   String _medium = '';
+  String _condition = '';
   Currency _currency = Currency.eur;
   DateTime? _acquisitionDate;
   String _photoPath = '';
@@ -81,7 +83,7 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
 
   @override
   void dispose() {
-    for (final c in [_title, _artist, _year, _height, _width, _depth, _location, _price, _description]) {
+    for (final c in [_title, _artist, _year, _height, _width, _depth, _location, _price, _description, _provenance]) {
       c.dispose();
     }
     super.dispose();
@@ -133,9 +135,10 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
 
-                // Type & medium
+                // Type, medium & condition
                 _dropdown('Type', artworkTypes, _type, (v) => setState(() => _type = v ?? '')),
                 _dropdown('Medium', artworkMediums, _medium, (v) => setState(() => _medium = v ?? '')),
+                _dropdown('Condition', artworkConditions, _condition, (v) => setState(() => _condition = v ?? '')),
 
                 // Dimensions
                 _sectionLabel('Dimensions (cm)'),
@@ -187,6 +190,7 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
                 const SizedBox(height: 8),
 
                 _field(_description, 'Description', maxLines: 4),
+                _field(_provenance, 'Provenance / ownership history', maxLines: 4),
 
                 // Certificate
                 _CertificatePicker(
@@ -285,6 +289,8 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
     _location.text = a.location;
     _price.text = a.purchasePrice?.toString() ?? '';
     _description.text = a.description;
+    _provenance.text = a.provenance;
+    _condition = a.condition;
     _currency = Currency.fromCode(a.currency.isEmpty ? 'EUR' : a.currency);
     _acquisitionDate = a.acquisitionDate != null
         ? DateTime.fromMillisecondsSinceEpoch(a.acquisitionDate!)
@@ -427,6 +433,8 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
         currency: Value(_currency.code),
         purchasePrice: Value(double.tryParse(_price.text)),
         description: Value(_description.text.trim()),
+        condition: Value(_condition),
+        provenance: Value(_provenance.text.trim()),
         photoPath: Value(_photoPath),
         certificatePath: Value(_certificatePath),
       );

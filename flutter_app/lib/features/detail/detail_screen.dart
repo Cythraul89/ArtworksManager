@@ -107,10 +107,12 @@ class _DetailBody extends StatelessWidget {
 
                   _row(context, 'Type', artwork.type),
                   _row(context, 'Medium', artwork.medium),
+                  _row(context, 'Condition', artwork.condition),
                   _row(context, 'Location', artwork.location),
                   _row(context, 'Dimensions', _dims()),
                   _row(context, 'Acquired', _acquired()),
                   _row(context, 'Description', artwork.description),
+                  _row(context, 'Provenance', artwork.provenance),
                 ],
               ),
             ),

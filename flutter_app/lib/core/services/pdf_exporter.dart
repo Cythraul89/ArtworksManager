@@ -127,6 +127,7 @@ class PdfExporter {
 
         field('Type', a.type.isNotEmpty ? a.type : null);
         field('Medium', a.medium.isNotEmpty ? a.medium : null);
+        field('Condition', a.condition.isNotEmpty ? a.condition : null);
 
         final dimParts = <String>[
           if (a.heightCm != null) _fmtDim(a.heightCm!),
@@ -153,6 +154,8 @@ class PdfExporter {
 
         field('Description',
             a.description.isNotEmpty ? a.description : null);
+        field('Provenance',
+            a.provenance.isNotEmpty ? a.provenance : null);
 
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,

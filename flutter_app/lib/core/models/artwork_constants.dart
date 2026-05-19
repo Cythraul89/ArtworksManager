@@ -9,6 +9,13 @@ const List<String> artworkTypes = [
   'Other',
 ];
 
+const List<String> artworkConditions = [
+  'Excellent',
+  'Good',
+  'Fair',
+  'Poor',
+];
+
 const List<String> artworkMediums = [
   'Oil on canvas',
   'Acrylic',

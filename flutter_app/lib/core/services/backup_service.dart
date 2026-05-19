@@ -45,6 +45,8 @@ class BackupService {
         if (a.currency.isNotEmpty) 'currency': a.currency,
         if (a.purchasePrice != null) 'purchasePrice': a.purchasePrice,
         if (a.description.isNotEmpty) 'description': a.description,
+        if (a.condition.isNotEmpty) 'condition': a.condition,
+        if (a.provenance.isNotEmpty) 'provenance': a.provenance,
         if (a.photoPath.isNotEmpty) 'photo': _filename(a.photoPath),
         if (a.certificatePath.isNotEmpty) 'certificate': _filename(a.certificatePath),
         'createdAt': _formatIso(a.createdAt),
@@ -151,6 +153,8 @@ class BackupService {
         currency: Value((o['currency'] as String?) ?? ''),
         purchasePrice: Value((o['purchasePrice'] as num?)?.toDouble()),
         description: Value((o['description'] as String?) ?? ''),
+        condition: Value((o['condition'] as String?) ?? ''),
+        provenance: Value((o['provenance'] as String?) ?? ''),
         photoPath: Value(extractedFiles[o['photo'] as String? ?? ''] ?? ''),
         certificatePath:
             Value(extractedFiles[o['certificate'] as String? ?? ''] ?? ''),

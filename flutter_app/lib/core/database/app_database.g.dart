@@ -102,6 +102,22 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant(''));
+  static const VerificationMeta _conditionMeta =
+      const VerificationMeta('condition');
+  @override
+  late final GeneratedColumn<String> condition = GeneratedColumn<String>(
+      'condition', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _provenanceMeta =
+      const VerificationMeta('provenance');
+  @override
+  late final GeneratedColumn<String> provenance = GeneratedColumn<String>(
+      'provenance', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _photoPathMeta =
       const VerificationMeta('photoPath');
   @override
@@ -142,6 +158,8 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
         currency,
         purchasePrice,
         description,
+        condition,
+        provenance,
         photoPath,
         certificatePath,
         createdAt
@@ -219,6 +237,16 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
           description.isAcceptableOrUnknown(
               data['description']!, _descriptionMeta));
     }
+    if (data.containsKey('condition')) {
+      context.handle(_conditionMeta,
+          condition.isAcceptableOrUnknown(data['condition']!, _conditionMeta));
+    }
+    if (data.containsKey('provenance')) {
+      context.handle(
+          _provenanceMeta,
+          provenance.isAcceptableOrUnknown(
+              data['provenance']!, _provenanceMeta));
+    }
     if (data.containsKey('photo_path')) {
       context.handle(_photoPathMeta,
           photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta));
@@ -270,6 +298,10 @@ class $ArtworksTable extends Artworks with TableInfo<$ArtworksTable, Artwork> {
           .read(DriftSqlType.double, data['${effectivePrefix}purchase_price']),
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description'])!,
+      condition: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}condition'])!,
+      provenance: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}provenance'])!,
       photoPath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}photo_path'])!,
       certificatePath: attachedDatabase.typeMapping.read(
@@ -300,6 +332,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
   final String currency;
   final double? purchasePrice;
   final String description;
+  final String condition;
+  final String provenance;
   final String photoPath;
   final String certificatePath;
   final int createdAt;
@@ -318,6 +352,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       required this.currency,
       this.purchasePrice,
       required this.description,
+      required this.condition,
+      required this.provenance,
       required this.photoPath,
       required this.certificatePath,
       required this.createdAt});
@@ -350,6 +386,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       map['purchase_price'] = Variable<double>(purchasePrice);
     }
     map['description'] = Variable<String>(description);
+    map['condition'] = Variable<String>(condition);
+    map['provenance'] = Variable<String>(provenance);
     map['photo_path'] = Variable<String>(photoPath);
     map['certificate_path'] = Variable<String>(certificatePath);
     map['created_at'] = Variable<int>(createdAt);
@@ -382,6 +420,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           ? const Value.absent()
           : Value(purchasePrice),
       description: Value(description),
+      condition: Value(condition),
+      provenance: Value(provenance),
       photoPath: Value(photoPath),
       certificatePath: Value(certificatePath),
       createdAt: Value(createdAt),
@@ -406,6 +446,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       currency: serializer.fromJson<String>(json['currency']),
       purchasePrice: serializer.fromJson<double?>(json['purchasePrice']),
       description: serializer.fromJson<String>(json['description']),
+      condition: serializer.fromJson<String>(json['condition']),
+      provenance: serializer.fromJson<String>(json['provenance']),
       photoPath: serializer.fromJson<String>(json['photoPath']),
       certificatePath: serializer.fromJson<String>(json['certificatePath']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
@@ -429,6 +471,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       'currency': serializer.toJson<String>(currency),
       'purchasePrice': serializer.toJson<double?>(purchasePrice),
       'description': serializer.toJson<String>(description),
+      'condition': serializer.toJson<String>(condition),
+      'provenance': serializer.toJson<String>(provenance),
       'photoPath': serializer.toJson<String>(photoPath),
       'certificatePath': serializer.toJson<String>(certificatePath),
       'createdAt': serializer.toJson<int>(createdAt),
@@ -450,6 +494,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           String? currency,
           Value<double?> purchasePrice = const Value.absent(),
           String? description,
+          String? condition,
+          String? provenance,
           String? photoPath,
           String? certificatePath,
           int? createdAt}) =>
@@ -471,6 +517,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
         purchasePrice:
             purchasePrice.present ? purchasePrice.value : this.purchasePrice,
         description: description ?? this.description,
+        condition: condition ?? this.condition,
+        provenance: provenance ?? this.provenance,
         photoPath: photoPath ?? this.photoPath,
         certificatePath: certificatePath ?? this.certificatePath,
         createdAt: createdAt ?? this.createdAt,
@@ -496,6 +544,9 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           : this.purchasePrice,
       description:
           data.description.present ? data.description.value : this.description,
+      condition: data.condition.present ? data.condition.value : this.condition,
+      provenance:
+          data.provenance.present ? data.provenance.value : this.provenance,
       photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
       certificatePath: data.certificatePath.present
           ? data.certificatePath.value
@@ -521,6 +572,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           ..write('currency: $currency, ')
           ..write('purchasePrice: $purchasePrice, ')
           ..write('description: $description, ')
+          ..write('condition: $condition, ')
+          ..write('provenance: $provenance, ')
           ..write('photoPath: $photoPath, ')
           ..write('certificatePath: $certificatePath, ')
           ..write('createdAt: $createdAt')
@@ -544,6 +597,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
       currency,
       purchasePrice,
       description,
+      condition,
+      provenance,
       photoPath,
       certificatePath,
       createdAt);
@@ -565,6 +620,8 @@ class Artwork extends DataClass implements Insertable<Artwork> {
           other.currency == this.currency &&
           other.purchasePrice == this.purchasePrice &&
           other.description == this.description &&
+          other.condition == this.condition &&
+          other.provenance == this.provenance &&
           other.photoPath == this.photoPath &&
           other.certificatePath == this.certificatePath &&
           other.createdAt == this.createdAt);
@@ -585,6 +642,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
   final Value<String> currency;
   final Value<double?> purchasePrice;
   final Value<String> description;
+  final Value<String> condition;
+  final Value<String> provenance;
   final Value<String> photoPath;
   final Value<String> certificatePath;
   final Value<int> createdAt;
@@ -603,6 +662,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.currency = const Value.absent(),
     this.purchasePrice = const Value.absent(),
     this.description = const Value.absent(),
+    this.condition = const Value.absent(),
+    this.provenance = const Value.absent(),
     this.photoPath = const Value.absent(),
     this.certificatePath = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -622,6 +683,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     this.currency = const Value.absent(),
     this.purchasePrice = const Value.absent(),
     this.description = const Value.absent(),
+    this.condition = const Value.absent(),
+    this.provenance = const Value.absent(),
     this.photoPath = const Value.absent(),
     this.certificatePath = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -641,6 +704,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     Expression<String>? currency,
     Expression<double>? purchasePrice,
     Expression<String>? description,
+    Expression<String>? condition,
+    Expression<String>? provenance,
     Expression<String>? photoPath,
     Expression<String>? certificatePath,
     Expression<int>? createdAt,
@@ -660,6 +725,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       if (currency != null) 'currency': currency,
       if (purchasePrice != null) 'purchase_price': purchasePrice,
       if (description != null) 'description': description,
+      if (condition != null) 'condition': condition,
+      if (provenance != null) 'provenance': provenance,
       if (photoPath != null) 'photo_path': photoPath,
       if (certificatePath != null) 'certificate_path': certificatePath,
       if (createdAt != null) 'created_at': createdAt,
@@ -681,6 +748,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       Value<String>? currency,
       Value<double?>? purchasePrice,
       Value<String>? description,
+      Value<String>? condition,
+      Value<String>? provenance,
       Value<String>? photoPath,
       Value<String>? certificatePath,
       Value<int>? createdAt}) {
@@ -699,6 +768,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
       currency: currency ?? this.currency,
       purchasePrice: purchasePrice ?? this.purchasePrice,
       description: description ?? this.description,
+      condition: condition ?? this.condition,
+      provenance: provenance ?? this.provenance,
       photoPath: photoPath ?? this.photoPath,
       certificatePath: certificatePath ?? this.certificatePath,
       createdAt: createdAt ?? this.createdAt,
@@ -750,6 +821,12 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (condition.present) {
+      map['condition'] = Variable<String>(condition.value);
+    }
+    if (provenance.present) {
+      map['provenance'] = Variable<String>(provenance.value);
+    }
     if (photoPath.present) {
       map['photo_path'] = Variable<String>(photoPath.value);
     }
@@ -779,6 +856,8 @@ class ArtworksCompanion extends UpdateCompanion<Artwork> {
           ..write('currency: $currency, ')
           ..write('purchasePrice: $purchasePrice, ')
           ..write('description: $description, ')
+          ..write('condition: $condition, ')
+          ..write('provenance: $provenance, ')
           ..write('photoPath: $photoPath, ')
           ..write('certificatePath: $certificatePath, ')
           ..write('createdAt: $createdAt')
@@ -1680,6 +1759,8 @@ typedef $$ArtworksTableCreateCompanionBuilder = ArtworksCompanion Function({
   Value<String> currency,
   Value<double?> purchasePrice,
   Value<String> description,
+  Value<String> condition,
+  Value<String> provenance,
   Value<String> photoPath,
   Value<String> certificatePath,
   Value<int> createdAt,
@@ -1699,6 +1780,8 @@ typedef $$ArtworksTableUpdateCompanionBuilder = ArtworksCompanion Function({
   Value<String> currency,
   Value<double?> purchasePrice,
   Value<String> description,
+  Value<String> condition,
+  Value<String> provenance,
   Value<String> photoPath,
   Value<String> certificatePath,
   Value<int> createdAt,
@@ -1775,6 +1858,12 @@ class $$ArtworksTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get condition => $composableBuilder(
+      column: $table.condition, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get provenance => $composableBuilder(
+      column: $table.provenance, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get photoPath => $composableBuilder(
       column: $table.photoPath, builder: (column) => ColumnFilters(column));
@@ -1861,6 +1950,12 @@ class $$ArtworksTableOrderingComposer
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get condition => $composableBuilder(
+      column: $table.condition, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get provenance => $composableBuilder(
+      column: $table.provenance, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get photoPath => $composableBuilder(
       column: $table.photoPath, builder: (column) => ColumnOrderings(column));
 
@@ -1922,6 +2017,12 @@ class $$ArtworksTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<String> get condition =>
+      $composableBuilder(column: $table.condition, builder: (column) => column);
+
+  GeneratedColumn<String> get provenance => $composableBuilder(
+      column: $table.provenance, builder: (column) => column);
 
   GeneratedColumn<String> get photoPath =>
       $composableBuilder(column: $table.photoPath, builder: (column) => column);
@@ -1991,6 +2092,8 @@ class $$ArtworksTableTableManager extends RootTableManager<
             Value<String> currency = const Value.absent(),
             Value<double?> purchasePrice = const Value.absent(),
             Value<String> description = const Value.absent(),
+            Value<String> condition = const Value.absent(),
+            Value<String> provenance = const Value.absent(),
             Value<String> photoPath = const Value.absent(),
             Value<String> certificatePath = const Value.absent(),
             Value<int> createdAt = const Value.absent(),
@@ -2010,6 +2113,8 @@ class $$ArtworksTableTableManager extends RootTableManager<
             currency: currency,
             purchasePrice: purchasePrice,
             description: description,
+            condition: condition,
+            provenance: provenance,
             photoPath: photoPath,
             certificatePath: certificatePath,
             createdAt: createdAt,
@@ -2029,6 +2134,8 @@ class $$ArtworksTableTableManager extends RootTableManager<
             Value<String> currency = const Value.absent(),
             Value<double?> purchasePrice = const Value.absent(),
             Value<String> description = const Value.absent(),
+            Value<String> condition = const Value.absent(),
+            Value<String> provenance = const Value.absent(),
             Value<String> photoPath = const Value.absent(),
             Value<String> certificatePath = const Value.absent(),
             Value<int> createdAt = const Value.absent(),
@@ -2048,6 +2155,8 @@ class $$ArtworksTableTableManager extends RootTableManager<
             currency: currency,
             purchasePrice: purchasePrice,
             description: description,
+            condition: condition,
+            provenance: provenance,
             photoPath: photoPath,
             certificatePath: certificatePath,
             createdAt: createdAt,

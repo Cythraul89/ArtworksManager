@@ -50,8 +50,8 @@ A single private individual who owns a personal art collection of up to 1000 art
 - Tags / custom categories
 - Export collection as CSV
 - Estimated current value field separate from purchase price
-- Provenance / ownership history notes
-- Condition field (excellent, good, fair, poor)
+- ~~Provenance / ownership history notes~~ — implemented in Flutter rewrite
+- ~~Condition field (excellent, good, fair, poor)~~ — implemented in Flutter rewrite
 
 ## Out of Scope
 

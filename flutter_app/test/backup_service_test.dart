@@ -26,6 +26,8 @@ Artwork _artwork({
   String artist = '',
   String medium = '',
   String currency = 'EUR',
+  String condition = '',
+  String provenance = '',
 }) =>
     Artwork(
       id: id,
@@ -42,6 +44,8 @@ Artwork _artwork({
       currency: currency,
       purchasePrice: null,
       description: '',
+      condition: condition,
+      provenance: provenance,
       photoPath: '',
       certificatePath: '',
       createdAt: 0,
@@ -100,6 +104,21 @@ void main() {
       expect(a.title.value, 'Starry Night');
       expect(a.artist.value, 'Van Gogh');
       expect(a.medium.value, 'Oil');
+    });
+
+    test('round-trip preserves condition and provenance', () async {
+      final artwork = _artwork(
+        id: 99,
+        title: 'Sunflowers',
+        condition: 'Good',
+        provenance: 'Purchased from Sotheby\'s, 2020',
+      );
+      final bytes = await BackupService().exportToZip([artwork], {});
+      final data = await BackupService().importFromBytes(bytes);
+
+      final a = data.artworks.first;
+      expect(a.condition.value, 'Good');
+      expect(a.provenance.value, 'Purchased from Sotheby\'s, 2020');
     });
 
     test('round-trip with multiple artworks preserves count', () async {
