@@ -222,21 +222,23 @@ class _FilterSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text('Sort by', style: Theme.of(context).textTheme.labelLarge),
-          ...SortBy.values.map((s) => ListTile(
+          RadioGroup<SortBy>(
+            groupValue: filter.sortBy,
+            onChanged: (v) => parentRef
+                .read(collectionFilterProvider.notifier)
+                .update((f) => f.copyWith(sortBy: v)),
+            child: Column(
+              children: SortBy.values.map((s) => ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(_sortLabel(s)),
-                leading: Radio<SortBy>(
-                  value: s,
-                  groupValue: filter.sortBy,
-                  onChanged: (_) => parentRef
-                      .read(collectionFilterProvider.notifier)
-                      .update((f) => f.copyWith(sortBy: s)),
-                ),
+                leading: Radio<SortBy>(value: s),
                 onTap: () => parentRef
                     .read(collectionFilterProvider.notifier)
                     .update((f) => f.copyWith(sortBy: s)),
-              )),
+              )).toList(),
+            ),
+          ),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,

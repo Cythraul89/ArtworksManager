@@ -153,7 +153,8 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
                   SizedBox(
                     width: 110,
                     child: DropdownButtonFormField<Currency>(
-                      value: _currency,
+                      key: ValueKey(_currency),
+                      initialValue: _currency,
                       decoration: const InputDecoration(
                         labelText: 'Currency',
                         border: OutlineInputBorder(),
@@ -242,7 +243,8 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: DropdownButtonFormField<String>(
-          value: current.isEmpty ? null : current,
+          key: ValueKey(current),
+          initialValue: current.isEmpty ? null : current,
           decoration: InputDecoration(
             labelText: label,
             border: const OutlineInputBorder(),

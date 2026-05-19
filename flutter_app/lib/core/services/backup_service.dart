@@ -11,7 +11,7 @@ import '../database/app_database.dart';
 ///
 /// ZIP layout:
 ///   artworks.json      — all artwork metadata (array)
-///   photos/<filename>  — all referenced image and certificate files
+///   photos/`<filename>`  — all referenced image and certificate files
 class BackupService {
   /// Exports [artworks] and their [photos] to a ZIP in memory.
   Future<Uint8List> exportToZip(
