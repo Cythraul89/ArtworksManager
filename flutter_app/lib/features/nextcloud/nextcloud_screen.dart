@@ -10,6 +10,7 @@ import 'package:workmanager/workmanager.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/artwork_constants.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/nextcloud_service.dart';
 import '../../core/services/secure_credentials_service.dart';
@@ -46,10 +47,14 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     super.initState();
     SecureCredentialsService.readPassword().then((pw) {
       if (mounted) setState(() => _passwordCtrl.text = pw);
+    }).catchError((Object e, StackTrace st) {
+      AppLogger.error('NextcloudScreen: failed to load password', e, st);
     });
     if (Platform.isAndroid) {
       DeviceInfoPlugin().androidInfo.then((info) {
         if (mounted) setState(() => _androidSdkInt = info.version.sdkInt);
+      }).catchError((Object e, StackTrace st) {
+        AppLogger.error('NextcloudScreen: failed to get device info', e, st);
       });
     }
   }

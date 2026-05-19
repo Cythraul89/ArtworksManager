@@ -27,6 +27,12 @@ final exchangeRatesProvider =
     FutureProvider.family<Map<String, double>?, String>(
         (ref, base) => ExchangeRateService.fetchRates(base));
 
+/// Last-modified time of the on-disk rate cache for [base], or null if none.
+/// Used to show a stale-rates hint on the dashboard.
+final ratesCacheTimeProvider =
+    FutureProvider.family<DateTime?, String>(
+        (ref, base) => ExchangeRateService.cacheModifiedTime(base));
+
 /// Unified portfolio value converted to the user's default currency.
 ///
 /// - Returns `AsyncLoading` while DB totals or (when needed) exchange rates load.

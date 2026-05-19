@@ -49,6 +49,7 @@ class Settings extends Table {
   TextColumn get nextcloudCertFingerprint => text().withDefault(const Constant(''))();
   IntColumn get nextcloudKeepExports => integer().withDefault(const Constant(5))();
   IntColumn get lastSyncAt => integer().nullable()(); // Unix ms
+  TextColumn get lastSyncError => text().nullable()();
   BoolColumn get autoSyncEnabled => boolean().withDefault(const Constant(false))();
   IntColumn get autoSyncIntervalHours => integer().withDefault(const Constant(24))();
 
@@ -67,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,8 +77,19 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(settings, settings.autoSyncEnabled);
         await m.addColumn(settings, settings.autoSyncIntervalHours);
       }
+      if (from < 3) {
+        await m.addColumn(settings, settings.lastSyncError);
+      }
     },
   );
+
+  /// Opens a direct (non-background-isolate) connection for use in WorkManager
+  /// background tasks, which are already running in their own isolate.
+  static Future<AppDatabase> openForIsolate() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'artworks.db'));
+    return AppDatabase.forTesting(DatabaseConnection(NativeDatabase(file)));
+  }
 }
 
 LazyDatabase _openConnection() {

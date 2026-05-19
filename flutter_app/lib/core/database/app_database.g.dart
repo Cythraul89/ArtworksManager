@@ -1121,6 +1121,12 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
   late final GeneratedColumn<int> lastSyncAt = GeneratedColumn<int>(
       'last_sync_at', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncErrorMeta =
+      const VerificationMeta('lastSyncError');
+  @override
+  late final GeneratedColumn<String> lastSyncError = GeneratedColumn<String>(
+      'last_sync_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _autoSyncEnabledMeta =
       const VerificationMeta('autoSyncEnabled');
   @override
@@ -1150,6 +1156,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         nextcloudCertFingerprint,
         nextcloudKeepExports,
         lastSyncAt,
+        lastSyncError,
         autoSyncEnabled,
         autoSyncIntervalHours
       ];
@@ -1213,6 +1220,12 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           lastSyncAt.isAcceptableOrUnknown(
               data['last_sync_at']!, _lastSyncAtMeta));
     }
+    if (data.containsKey('last_sync_error')) {
+      context.handle(
+          _lastSyncErrorMeta,
+          lastSyncError.isAcceptableOrUnknown(
+              data['last_sync_error']!, _lastSyncErrorMeta));
+    }
     if (data.containsKey('auto_sync_enabled')) {
       context.handle(
           _autoSyncEnabledMeta,
@@ -1253,6 +1266,8 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           DriftSqlType.int, data['${effectivePrefix}nextcloud_keep_exports'])!,
       lastSyncAt: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}last_sync_at']),
+      lastSyncError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_sync_error']),
       autoSyncEnabled: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}auto_sync_enabled'])!,
       autoSyncIntervalHours: attachedDatabase.typeMapping.read(DriftSqlType.int,
@@ -1276,6 +1291,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String nextcloudCertFingerprint;
   final int nextcloudKeepExports;
   final int? lastSyncAt;
+  final String? lastSyncError;
   final bool autoSyncEnabled;
   final int autoSyncIntervalHours;
   const Setting(
@@ -1288,6 +1304,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       required this.nextcloudCertFingerprint,
       required this.nextcloudKeepExports,
       this.lastSyncAt,
+      this.lastSyncError,
       required this.autoSyncEnabled,
       required this.autoSyncIntervalHours});
   @override
@@ -1304,6 +1321,9 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['nextcloud_keep_exports'] = Variable<int>(nextcloudKeepExports);
     if (!nullToAbsent || lastSyncAt != null) {
       map['last_sync_at'] = Variable<int>(lastSyncAt);
+    }
+    if (!nullToAbsent || lastSyncError != null) {
+      map['last_sync_error'] = Variable<String>(lastSyncError);
     }
     map['auto_sync_enabled'] = Variable<bool>(autoSyncEnabled);
     map['auto_sync_interval_hours'] = Variable<int>(autoSyncIntervalHours);
@@ -1323,6 +1343,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastSyncAt: lastSyncAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncAt),
+      lastSyncError: lastSyncError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncError),
       autoSyncEnabled: Value(autoSyncEnabled),
       autoSyncIntervalHours: Value(autoSyncIntervalHours),
     );
@@ -1343,6 +1366,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudKeepExports:
           serializer.fromJson<int>(json['nextcloudKeepExports']),
       lastSyncAt: serializer.fromJson<int?>(json['lastSyncAt']),
+      lastSyncError: serializer.fromJson<String?>(json['lastSyncError']),
       autoSyncEnabled: serializer.fromJson<bool>(json['autoSyncEnabled']),
       autoSyncIntervalHours:
           serializer.fromJson<int>(json['autoSyncIntervalHours']),
@@ -1362,6 +1386,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           serializer.toJson<String>(nextcloudCertFingerprint),
       'nextcloudKeepExports': serializer.toJson<int>(nextcloudKeepExports),
       'lastSyncAt': serializer.toJson<int?>(lastSyncAt),
+      'lastSyncError': serializer.toJson<String?>(lastSyncError),
       'autoSyncEnabled': serializer.toJson<bool>(autoSyncEnabled),
       'autoSyncIntervalHours': serializer.toJson<int>(autoSyncIntervalHours),
     };
@@ -1377,6 +1402,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           String? nextcloudCertFingerprint,
           int? nextcloudKeepExports,
           Value<int?> lastSyncAt = const Value.absent(),
+          Value<String?> lastSyncError = const Value.absent(),
           bool? autoSyncEnabled,
           int? autoSyncIntervalHours}) =>
       Setting(
@@ -1390,6 +1416,8 @@ class Setting extends DataClass implements Insertable<Setting> {
             nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
         nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
         lastSyncAt: lastSyncAt.present ? lastSyncAt.value : this.lastSyncAt,
+        lastSyncError:
+            lastSyncError.present ? lastSyncError.value : this.lastSyncError,
         autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
         autoSyncIntervalHours:
             autoSyncIntervalHours ?? this.autoSyncIntervalHours,
@@ -1418,6 +1446,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           : this.nextcloudKeepExports,
       lastSyncAt:
           data.lastSyncAt.present ? data.lastSyncAt.value : this.lastSyncAt,
+      lastSyncError: data.lastSyncError.present
+          ? data.lastSyncError.value
+          : this.lastSyncError,
       autoSyncEnabled: data.autoSyncEnabled.present
           ? data.autoSyncEnabled.value
           : this.autoSyncEnabled,
@@ -1439,6 +1470,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
           ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('lastSyncError: $lastSyncError, ')
           ..write('autoSyncEnabled: $autoSyncEnabled, ')
           ..write('autoSyncIntervalHours: $autoSyncIntervalHours')
           ..write(')'))
@@ -1456,6 +1488,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudCertFingerprint,
       nextcloudKeepExports,
       lastSyncAt,
+      lastSyncError,
       autoSyncEnabled,
       autoSyncIntervalHours);
   @override
@@ -1471,6 +1504,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.nextcloudCertFingerprint == this.nextcloudCertFingerprint &&
           other.nextcloudKeepExports == this.nextcloudKeepExports &&
           other.lastSyncAt == this.lastSyncAt &&
+          other.lastSyncError == this.lastSyncError &&
           other.autoSyncEnabled == this.autoSyncEnabled &&
           other.autoSyncIntervalHours == this.autoSyncIntervalHours);
 }
@@ -1485,6 +1519,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String> nextcloudCertFingerprint;
   final Value<int> nextcloudKeepExports;
   final Value<int?> lastSyncAt;
+  final Value<String?> lastSyncError;
   final Value<bool> autoSyncEnabled;
   final Value<int> autoSyncIntervalHours;
   const SettingsCompanion({
@@ -1497,6 +1532,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudCertFingerprint = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
     this.autoSyncEnabled = const Value.absent(),
     this.autoSyncIntervalHours = const Value.absent(),
   });
@@ -1510,6 +1546,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudCertFingerprint = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
     this.autoSyncEnabled = const Value.absent(),
     this.autoSyncIntervalHours = const Value.absent(),
   });
@@ -1523,6 +1560,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? nextcloudCertFingerprint,
     Expression<int>? nextcloudKeepExports,
     Expression<int>? lastSyncAt,
+    Expression<String>? lastSyncError,
     Expression<bool>? autoSyncEnabled,
     Expression<int>? autoSyncIntervalHours,
   }) {
@@ -1538,6 +1576,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (nextcloudKeepExports != null)
         'nextcloud_keep_exports': nextcloudKeepExports,
       if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
+      if (lastSyncError != null) 'last_sync_error': lastSyncError,
       if (autoSyncEnabled != null) 'auto_sync_enabled': autoSyncEnabled,
       if (autoSyncIntervalHours != null)
         'auto_sync_interval_hours': autoSyncIntervalHours,
@@ -1554,6 +1593,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       Value<String>? nextcloudCertFingerprint,
       Value<int>? nextcloudKeepExports,
       Value<int?>? lastSyncAt,
+      Value<String?>? lastSyncError,
       Value<bool>? autoSyncEnabled,
       Value<int>? autoSyncIntervalHours}) {
     return SettingsCompanion(
@@ -1567,6 +1607,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
       nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      lastSyncError: lastSyncError ?? this.lastSyncError,
       autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
       autoSyncIntervalHours:
           autoSyncIntervalHours ?? this.autoSyncIntervalHours,
@@ -1604,6 +1645,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (lastSyncAt.present) {
       map['last_sync_at'] = Variable<int>(lastSyncAt.value);
     }
+    if (lastSyncError.present) {
+      map['last_sync_error'] = Variable<String>(lastSyncError.value);
+    }
     if (autoSyncEnabled.present) {
       map['auto_sync_enabled'] = Variable<bool>(autoSyncEnabled.value);
     }
@@ -1626,6 +1670,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
           ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('lastSyncError: $lastSyncError, ')
           ..write('autoSyncEnabled: $autoSyncEnabled, ')
           ..write('autoSyncIntervalHours: $autoSyncIntervalHours')
           ..write(')'))
@@ -2359,6 +2404,7 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudCertFingerprint,
   Value<int> nextcloudKeepExports,
   Value<int?> lastSyncAt,
+  Value<String?> lastSyncError,
   Value<bool> autoSyncEnabled,
   Value<int> autoSyncIntervalHours,
 });
@@ -2372,6 +2418,7 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudCertFingerprint,
   Value<int> nextcloudKeepExports,
   Value<int?> lastSyncAt,
+  Value<String?> lastSyncError,
   Value<bool> autoSyncEnabled,
   Value<int> autoSyncIntervalHours,
 });
@@ -2415,6 +2462,9 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastSyncError => $composableBuilder(
+      column: $table.lastSyncError, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get autoSyncEnabled => $composableBuilder(
       column: $table.autoSyncEnabled,
@@ -2467,6 +2517,10 @@ class $$SettingsTableOrderingComposer
   ColumnOrderings<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get lastSyncError => $composableBuilder(
+      column: $table.lastSyncError,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get autoSyncEnabled => $composableBuilder(
       column: $table.autoSyncEnabled,
       builder: (column) => ColumnOrderings(column));
@@ -2512,6 +2566,9 @@ class $$SettingsTableAnnotationComposer
   GeneratedColumn<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => column);
 
+  GeneratedColumn<String> get lastSyncError => $composableBuilder(
+      column: $table.lastSyncError, builder: (column) => column);
+
   GeneratedColumn<bool> get autoSyncEnabled => $composableBuilder(
       column: $table.autoSyncEnabled, builder: (column) => column);
 
@@ -2551,6 +2608,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudCertFingerprint = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
+            Value<String?> lastSyncError = const Value.absent(),
             Value<bool> autoSyncEnabled = const Value.absent(),
             Value<int> autoSyncIntervalHours = const Value.absent(),
           }) =>
@@ -2564,6 +2622,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudCertFingerprint: nextcloudCertFingerprint,
             nextcloudKeepExports: nextcloudKeepExports,
             lastSyncAt: lastSyncAt,
+            lastSyncError: lastSyncError,
             autoSyncEnabled: autoSyncEnabled,
             autoSyncIntervalHours: autoSyncIntervalHours,
           ),
@@ -2577,6 +2636,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudCertFingerprint = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
+            Value<String?> lastSyncError = const Value.absent(),
             Value<bool> autoSyncEnabled = const Value.absent(),
             Value<int> autoSyncIntervalHours = const Value.absent(),
           }) =>
@@ -2590,6 +2650,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudCertFingerprint: nextcloudCertFingerprint,
             nextcloudKeepExports: nextcloudKeepExports,
             lastSyncAt: lastSyncAt,
+            lastSyncError: lastSyncError,
             autoSyncEnabled: autoSyncEnabled,
             autoSyncIntervalHours: autoSyncIntervalHours,
           ),

@@ -15,6 +15,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/artwork_constants.dart';
 import '../../core/models/currency.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/widgets/photo_strip.dart';
 
 const _uuid = Uuid();
@@ -315,7 +316,17 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
     final XFile? picked = await picker.pickImage(source: source, imageQuality: 85);
     if (picked == null) return null;
 
-    return _copyToArtworksDir(picked.path, extension: 'jpg');
+    try {
+      return await _copyToArtworksDir(picked.path, extension: 'jpg');
+    } catch (e, st) {
+      await AppLogger.error('AddEdit: failed to copy photo', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save photo — check storage')),
+        );
+      }
+      return null;
+    }
   }
 
   Future<bool> _requestPermission(ImageSource source) async {
@@ -365,26 +376,33 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
     if (result == null || result.files.isEmpty) return;
     final src = result.files.first.path;
     if (src == null) return;
-    final dest = await _copyToArtworksDir(src, extension: 'pdf', prefix: 'cert_');
-    if (dest != null) setState(() => _certificatePath = dest);
+    try {
+      final dest = await _copyToArtworksDir(src, extension: 'pdf', prefix: 'cert_');
+      setState(() => _certificatePath = dest);
+    } catch (e, st) {
+      await AppLogger.error('AddEdit: failed to copy certificate', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save certificate — check storage')),
+        );
+      }
+    }
   }
 
-  Future<String?> _copyToArtworksDir(
+  // Throws on I/O failure so callers can show a meaningful SnackBar.
+  Future<String> _copyToArtworksDir(
     String src, {
     required String extension,
     String prefix = '',
   }) async {
-    try {
-      final dir = Directory(p.join(
-        (await getApplicationDocumentsDirectory()).path,
-        'artworks',
-      ))..createSync(recursive: true);
-      final dest = File(p.join(dir.path, '$prefix${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4()}.$extension'));
-      await File(src).copy(dest.path);
-      return dest.path;
-    } catch (_) {
-      return null;
-    }
+    final dir = Directory(p.join(
+      (await getApplicationDocumentsDirectory()).path,
+      'artworks',
+    ))..createSync(recursive: true);
+    final dest = File(p.join(dir.path,
+        '$prefix${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4()}.$extension'));
+    await File(src).copy(dest.path);
+    return dest.path;
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────

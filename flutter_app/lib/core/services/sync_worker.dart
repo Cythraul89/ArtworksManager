@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:path/path.dart' as p;
 import '../database/app_database.dart';
+import 'app_logger.dart';
 import 'backup_service.dart';
 import 'nextcloud_service.dart';
 import 'secure_credentials_service.dart';
@@ -9,14 +10,27 @@ class SyncWorker {
   static const taskName = 'nc_auto_backup';
 
   static Future<bool> run() async {
-    final db = AppDatabase();
+    // openForIsolate() uses NativeDatabase directly (no nested isolate) since
+    // WorkManager already dispatches into a background isolate.
+    final db = await AppDatabase.openForIsolate();
     try {
+      await AppLogger.info('SyncWorker: task started');
       final s = await db.settingsDao.get();
-      if (!s.autoSyncEnabled) return true;
-      if (s.nextcloudUrl.isEmpty || s.nextcloudUsername.isEmpty) return true;
+
+      if (!s.autoSyncEnabled) {
+        await AppLogger.info('SyncWorker: auto-sync disabled — skipping');
+        return true;
+      }
+      if (s.nextcloudUrl.isEmpty || s.nextcloudUsername.isEmpty) {
+        await AppLogger.warn('SyncWorker: Nextcloud not configured — skipping');
+        return true;
+      }
 
       final password = await SecureCredentialsService.readPassword();
-      if (password.isEmpty) return true;
+      if (password.isEmpty) {
+        await AppLogger.warn('SyncWorker: no password stored — skipping');
+        return true;
+      }
 
       final artworks = await db.artworksDao.getAll();
       final photosByArtwork = <int, List<ArtworkPhoto>>{};
@@ -25,24 +39,42 @@ class SyncWorker {
       }
 
       final bytes = await BackupService().exportToZip(artworks, photosByArtwork);
-      final remotePath = '${s.nextcloudPath}/${BackupService.generateFilename()}';
+      final filename = BackupService.generateFilename();
+      final remotePath = '${s.nextcloudPath}/$filename';
       final pin = s.nextcloudCertFingerprint.isEmpty ? null : s.nextcloudCertFingerprint;
 
+      await AppLogger.info('SyncWorker: uploading $filename');
       final nc = NextcloudService();
       final result = await nc.uploadBackup(
         s.nextcloudUrl, s.nextcloudUsername, password,
         remotePath, bytes, pinnedFingerprint: pin,
       );
 
-      if (result is! NcSuccess) return false;
+      if (result is! NcSuccess) {
+        final msg = switch (result) {
+          NcFailure(:final message) => message,
+          _ => 'Transient network error',
+        };
+        await AppLogger.error('SyncWorker: upload failed — $msg');
+        await db.settingsDao.save(SettingsCompanion(lastSyncError: Value(msg)));
+        return false;
+      }
 
       await db.settingsDao.save(SettingsCompanion(
         lastSyncAt: Value(DateTime.now().millisecondsSinceEpoch),
+        lastSyncError: const Value(null),
       ));
+      await AppLogger.info('SyncWorker: sync completed successfully');
 
       await _pruneOldBackups(nc, s, password, pin);
       return true;
-    } catch (_) {
+    } catch (e, st) {
+      await AppLogger.error('SyncWorker: unexpected error', e, st);
+      try {
+        await db.settingsDao.save(SettingsCompanion(
+          lastSyncError: Value('Unexpected error: $e'),
+        ));
+      } catch (_) {}
       return false;
     } finally {
       await db.close();
@@ -63,11 +95,14 @@ class SyncWorker {
     final files = result.value..sort();
     if (files.length <= s.nextcloudKeepExports) return;
     for (final href in files.sublist(0, files.length - s.nextcloudKeepExports)) {
-      await nc.deleteFile(
+      final del = await nc.deleteFile(
         s.nextcloudUrl, s.nextcloudUsername, password,
         '${s.nextcloudPath}/${p.basename(href)}',
         pinnedFingerprint: pin,
       );
+      if (del is! NcSuccess) {
+        await AppLogger.warn('SyncWorker: could not prune $href');
+      }
     }
   }
 }

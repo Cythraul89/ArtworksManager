@@ -56,7 +56,24 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-            if (_isSyncOverdue(setting))
+            if (setting.lastSyncError != null)
+              ListTile(
+                leading: Icon(Icons.sync_problem_outlined,
+                    color: Theme.of(context).colorScheme.error),
+                title: Text(
+                  'Last sync failed',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.error),
+                ),
+                subtitle: Text(
+                  setting.lastSyncError!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                dense: true,
+                onTap: () => context.go('/settings/nextcloud'),
+              )
+            else if (_isSyncOverdue(setting))
               ListTile(
                 leading: Icon(Icons.warning_amber_rounded,
                     color: Theme.of(context).colorScheme.error),
@@ -71,6 +88,15 @@ class SettingsScreen extends ConsumerWidget {
                 dense: true,
                 onTap: () => context.go('/settings/nextcloud'),
               ),
+            const Divider(indent: 16, endIndent: 16),
+            _SectionLabel('Diagnostics'),
+            ListTile(
+              leading: const Icon(Icons.bug_report_outlined),
+              title: const Text('App logs'),
+              subtitle: const Text('View and export diagnostic logs'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/settings/logs'),
+            ),
           ],
         ),
       ),

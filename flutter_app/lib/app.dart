@@ -6,6 +6,7 @@ import 'features/collection/collection_screen.dart';
 import 'features/detail/detail_screen.dart';
 import 'features/addedit/addedit_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/settings/logs_screen.dart';
 import 'features/nextcloud/nextcloud_screen.dart';
 
 final _router = GoRouter(
@@ -50,6 +51,10 @@ final _router = GoRouter(
               GoRoute(
                 path: 'nextcloud',
                 builder: (_, __) => const NextcloudScreen(),
+              ),
+              GoRoute(
+                path: 'logs',
+                builder: (_, __) => const LogsScreen(),
               ),
             ],
           ),

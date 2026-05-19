@@ -16,7 +16,7 @@ class DashboardScreen extends ConsumerWidget {
     if (countAsync.hasError) {
       return Scaffold(
         appBar: AppBar(title: const Text('Dashboard')),
-        body: ErrorView(countAsync.error!),
+        body: ErrorView(countAsync.error ?? Exception('Unknown error')),
       );
     }
     final count = countAsync.valueOrNull;
@@ -89,6 +89,7 @@ class _StatsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final (:value, :currency) = ref.watch(portfolioValueProvider);
     final totals = ref.watch(priceTotalsProvider).valueOrNull ?? [];
+    final cacheTime = ref.watch(ratesCacheTimeProvider(currency)).valueOrNull;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -108,13 +109,34 @@ class _StatsSection extends ConsumerWidget {
           error: (_, __) => _fallback(context, totals),
           data: (unified) {
             if (unified == null) return _fallback(context, totals);
+            String? staleHint;
+            if (cacheTime != null) {
+              final age = DateTime.now().difference(cacheTime);
+              if (age > const Duration(hours: 1)) {
+                staleHint = 'Rates from ${age.inHours}h ago';
+              }
+            }
             return Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: _card(context,
-                  icon: Icons.payments_outlined,
-                  label: 'Portfolio value · $currency',
-                  value:
-                      '${Currency.fromCode(currency).symbol}${NumberFormat('#,##0.00').format(unified)}'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _card(context,
+                      icon: Icons.payments_outlined,
+                      label: 'Portfolio value · $currency',
+                      value: '${Currency.fromCode(currency).symbol}${NumberFormat('#,##0.00').format(unified)}'),
+                  if (staleHint != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
+                      child: Text(
+                        staleHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
+                    ),
+                ],
+              ),
             );
           },
         ),
