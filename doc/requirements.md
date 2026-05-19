@@ -33,7 +33,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 - **Browse collection** — scrollable list/grid of all artworks with thumbnail, title, and artist
 - **Artwork detail view** — full-screen view of all recorded details, the cover photo, and the additional photo strip
 - **Search** — find artworks by title or artist name
-- **Filter & sort** — filter by medium; sort by title, artist, or acquisition date
+- **Filter & sort** — filter by medium or condition; sort by title, artist, acquisition date, or year
 - **Dashboard / overview** — summary statistics:
   - Total number of artworks
   - Breakdown by medium

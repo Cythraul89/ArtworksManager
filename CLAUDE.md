@@ -136,9 +136,11 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 
 - `databaseProvider` — app-lifetime singleton, not autoDispose
 - `settingsProvider` — `StreamProvider<Setting>` in `settings_providers.dart`
+- `packageInfoProvider` — `FutureProvider<PackageInfo>` in `settings_providers.dart`; used by About tile
 - `filteredArtworksProvider` — `StreamProvider` combining DB stream + `CollectionFilter` state
+- `collectionFilterProvider` — `StateProvider<CollectionFilter>` with fields: `search`, `medium`, `condition`, `sortBy`, `isGrid`
 - `portfolioValueProvider` — synchronous `Provider` that composes `priceTotalsProvider` + `exchangeRatesProvider`
-- `exchangeRatesProvider` — `FutureProvider.family<Map<String,double>?, String>` keyed by base currency
+- `exchangeRatesProvider` — `FutureProvider.family<Map<String,double>?, String>` keyed by base currency; cache in temp dir
 - `ratesCacheTimeProvider` — `FutureProvider.family<DateTime?, String>` for stale-rates hint
 
 ### Navigation (GoRouter)
@@ -154,9 +156,9 @@ Sub-routes: `/collection/artwork/:id`, `/collection/add`, `/collection/edit/:id`
 ### Nextcloud / Security
 
 - Password stored in `flutter_secure_storage` via `SecureCredentialsService` — never in the DB
-- `Settings.nextcloudPassword` column exists but is unused (legacy schema column)
 - Certificate pinning via SHA-256 fingerprint in `NextcloudService._buildDio()`
 - `NcResult<T>` sealed class: `NcSuccess(value)`, `NcFailure(message)`, `NcTransient()` (retry)
+- `_mapDioError` handles 401 and 507 explicitly; all other errors → `NcFailure(e.message)`
 
 ### Logging
 
@@ -170,9 +172,12 @@ Test files live in `flutter_app/test/`:
 
 | File | Coverage |
 |------|----------|
-| `backup_service_test.dart` | ZIP export/import, generateFilename |
-| `collection_filter_test.dart` | CollectionFilter, SortBy enum |
+| `backup_service_test.dart` | ZIP export/import, generateFilename, condition/provenance round-trip |
+| `collection_filter_test.dart` | CollectionFilter (search, medium, condition, sortBy, isGrid), SortBy enum |
 | `database_migration_test.dart` | Schema defaults, settings save/clear, artworks CRUD |
+| `exchange_rate_service_test.dart` | cacheModifiedTime (null/DateTime/per-base isolation) via fake path_provider |
+| `nextcloud_service_test.dart` | NcResult types; verifyCredentials (200/401/500/refused); listFiles PROPFIND parsing; uploadBackup (201/204/507) — all via real loopback HttpServer |
+| `pdf_exporter_test.dart` | Currency.fromCode, fallback, symbols, codes; PdfExporter.fmtDim (integer/fractional/rounding) |
 | `widget_test.dart` | Empty placeholder (widget/integration tests require a device) |
 
 When writing DB tests: import `drift/drift.dart` with `hide isNull` to avoid a matcher conflict with `package:matcher`.

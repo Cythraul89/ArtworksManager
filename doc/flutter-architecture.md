@@ -77,7 +77,7 @@ flutter_app/lib/
 │   │       └── settings_dao.dart  watch(), get() [creates row on first call], save(SettingsCompanion)
 │   │
 │   ├── models/
-│   │   ├── artwork_constants.dart artworkTypes (8), artworkMediums (18), SortBy enum, kDefaultRemotePath
+│   │   ├── artwork_constants.dart artworkTypes (8), artworkMediums (18), artworkConditions (4), SortBy enum, kDefaultRemotePath
 │   │   └── currency.dart          Currency enum: EUR/USD/NOK/ZAR; fromCode() factory
 │   │
 │   ├── services/
@@ -116,10 +116,12 @@ flutter_app/lib/
 │   │   └── dashboard_screen.dart  Stats, medium chart, top artists, recent strip,
 │   │                              portfolio value with stale-rates hint
 │   ├── collection/
-│   │   ├── collection_providers.dart  collectionFilterProvider (StateProvider<CollectionFilter>)
+│   │   ├── collection_providers.dart  CollectionFilter (search, medium, condition, sortBy, isGrid)
+│   │   │                             collectionFilterProvider (StateProvider<CollectionFilter>)
 │   │   │                             filteredArtworksProvider, distinctMediumsProvider
-│   │   ├── collection_screen.dart    Grid/list toggle, search, filter, sort
-│   │   └── widgets/artwork_card.dart  Grid and list card renderer
+│   │   ├── collection_screen.dart    Grid/list toggle, search; filter sheet (medium + condition chips,
+│   │   │                             sort radio); filter-active dot indicator
+│   │   └── widgets/artwork_card.dart  Grid card + list tile; _ConditionLabel (color-coded)
 │   ├── addedit/
 │   │   └── addedit_screen.dart    Add + edit combined form; camera/gallery/file picker;
 │   │                              certificate picker; additional photos strip; unsaved-changes guard
@@ -128,9 +130,11 @@ flutter_app/lib/
 │   │   └── detail_screen.dart     Read-only view; certificate opener via open_filex
 │   ├── settings/
 │   │   ├── settings_providers.dart  settingsProvider (StreamProvider<Setting>)
+│   │   │                           packageInfoProvider (FutureProvider<PackageInfo>)
 │   │   ├── settings_screen.dart     Currency picker, PDF export, Nextcloud status tiles,
-│   │   │                           sync error / overdue warning tiles, logs link
-│   │   └── logs_screen.dart         Last 300 log lines; color-coded; export; clear
+│   │   │                           sync error / overdue warning tiles, logs link, About tile
+│   │   └── logs_screen.dart         Last 300 log lines; color-coded; export via open_filex
+│   │                               (path + copy-to-clipboard fallback on open failure)
 │   └── nextcloud/
 │       └── nextcloud_screen.dart  Credentials form (URL, username, password, remote path,
 │                                  cert fingerprint); keep-last-N; auto-sync config;
@@ -247,7 +251,7 @@ portfolioValueProvider (Provider)
   ├─ settingsProvider    → SettingsDao.watch()              base currency
   └─ exchangeRatesProvider(base) → ExchangeRateService.fetchRates(base)
        ├─ live: https://api.frankfurter.app/latest?base=<code>
-       └─ fallback: 24h disk cache in Documents dir
+       └─ fallback: 24h disk cache in temp dir (getTemporaryDirectory())
 ```
 
 `ratesCacheTimeProvider(base)` reads the cache file mtime; Dashboard shows "Rates from Xh ago" when cache age > 1 hour.
@@ -307,8 +311,8 @@ PdfExporter(defaultCurrencyCode: code)
                  ├─ Title (20pt bold, primary colour 0xFF5C6BC0)
                  ├─ Artist · Year (13pt, subtitle colour 0xFF6E6E73)
                  ├─ Divider (0xFFE0DED9)
-                 └─ Fields: Type, Medium, Dimensions, Location,
-                            Acquired, Price (symbol + formatted), Description
+                 └─ Fields: Type, Medium, Condition, Dimensions, Location,
+                            Acquired, Price (symbol + formatted), Description, Provenance
 ```
 
 ---

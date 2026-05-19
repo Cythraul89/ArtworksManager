@@ -484,7 +484,9 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
     final hasContent = _title.text.isNotEmpty ||
         _artist.text.isNotEmpty ||
         _description.text.isNotEmpty ||
-        _provenance.text.isNotEmpty;
+        _provenance.text.isNotEmpty ||
+        _photoPath.isNotEmpty ||
+        _photoItems.isNotEmpty;
     if (!hasContent) return true;
     final result = await showDialog<bool>(
       context: context,

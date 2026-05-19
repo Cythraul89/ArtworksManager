@@ -211,6 +211,7 @@ classDiagram
     class CollectionFilter {
         +searchQuery : String
         +filterMedium : String
+        +condition : String
         +sortBy : SortBy
         +isGrid : bool
         +copyWith(...) CollectionFilter
