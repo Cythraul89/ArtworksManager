@@ -168,9 +168,9 @@ class _DetailBody extends StatelessWidget {
 
   String _dims() {
     final parts = <String>[];
-    if (artwork.heightCm != null) parts.add('${_fmt(artwork.heightCm!)}');
-    if (artwork.widthCm != null) parts.add('${_fmt(artwork.widthCm!)}');
-    if (artwork.depthCm != null) parts.add('${_fmt(artwork.depthCm!)}');
+    if (artwork.heightCm != null) parts.add(_fmt(artwork.heightCm!));
+    if (artwork.widthCm != null) parts.add(_fmt(artwork.widthCm!));
+    if (artwork.depthCm != null) parts.add(_fmt(artwork.depthCm!));
     if (parts.isEmpty) return '';
     return '${parts.join(' × ')} cm';
   }

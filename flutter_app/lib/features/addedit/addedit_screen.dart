@@ -500,10 +500,9 @@ class _DatePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: ValueKey(date),
       readOnly: true,
-      controller: TextEditingController(
-        text: date != null ? DateFormat('dd MMM yyyy').format(date!) : '',
-      ),
+      initialValue: date != null ? DateFormat('dd MMM yyyy').format(date!) : '',
       decoration: InputDecoration(
         labelText: 'Acquisition date',
         border: const OutlineInputBorder(),

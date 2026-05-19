@@ -29,7 +29,7 @@ class Artworks extends Table {
   TextColumn get description => text().withDefault(const Constant(''))();
   TextColumn get photoPath => text().withDefault(const Constant(''))();
   TextColumn get certificatePath => text().withDefault(const Constant(''))();
-  IntColumn get createdAt => integer().withDefault(currentDateAndTime)();
+  IntColumn get createdAt => integer().clientDefault(() => DateTime.now().millisecondsSinceEpoch)();
 }
 
 class ArtworkPhotos extends Table {

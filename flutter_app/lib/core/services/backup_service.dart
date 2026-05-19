@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../database/app_database.dart';
@@ -84,7 +85,7 @@ class BackupService {
     // Extract photos first
     final extractedFiles = <String, String>{};
     for (final file in archive.files) {
-      if (file.name.startsWith('photos/') && !file.isDirectory) {
+      if (file.name.startsWith('photos/') && file.isFile) {
         final filename = p.basename(file.name);
         final dest = File(p.join(artworksDir.path, filename));
         // ZIP slip protection
