@@ -18,8 +18,10 @@ A single private individual who owns a personal art collection of up to 1000 art
   - Title
   - Artist name
   - Year of creation
-  - Type (Painting, Drawing, Photography, Sculpture, Print, Book, Textile, Ceramics, Other)
-  - Medium / technique (e.g. oil on canvas, watercolour, sculpture)
+  - Type (Painting, Drawing, Print, Photography, Sculpture, Textile, Digital, Other)
+  - Medium / technique (18 options: oil on canvas, acrylic, watercolor, etc.)
+  - Condition (Excellent, Good, Fair, Poor)
+  - Provenance / ownership history (free text)
   - Dimensions (height × width × depth where applicable)
   - Cover photo + additional photos (taken with camera, selected from gallery, or picked from any cloud storage provider installed on the device via the Android Storage Access Framework)
   - Description / notes

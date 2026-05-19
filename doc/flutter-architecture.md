@@ -145,7 +145,7 @@ flutter_app/lib/
 
 ## Database Schema (Drift / SQLite)
 
-**Schema version: 4**
+**Schema version: 5**
 
 ### Artworks
 
@@ -165,6 +165,8 @@ flutter_app/lib/
 | `currency` | TEXT | — | `''` | empty = use global |
 | `purchasePrice` | REAL | ✓ | — |
 | `description` | TEXT | — | `''` |
+| `condition` | TEXT | — | `''` | One of artworkConditions (v5) |
+| `provenance` | TEXT | — | `''` | Ownership history (v5) |
 | `photoPath` | TEXT | — | `''` |
 | `certificatePath` | TEXT | — | `''` |
 | `createdAt` | INTEGER | — | `now()` client-side |
@@ -202,6 +204,7 @@ flutter_app/lib/
 | 2 | Added `autoSyncEnabled`, `autoSyncIntervalHours` to Settings |
 | 3 | Added `lastSyncError` to Settings |
 | 4 | Dropped `nextcloudPassword` column — password moved to `flutter_secure_storage` |
+| 5 | Added `condition`, `provenance` columns to Artworks |
 
 ---
 

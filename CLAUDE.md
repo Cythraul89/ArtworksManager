@@ -126,7 +126,7 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 
 `AppDatabase` (Drift) has three tables: **Artworks**, **ArtworkPhotos**, **Settings**.
 
-- **Schema version 4** — migrations defined in `app_database.dart`
+- **Schema version 5** — migrations defined in `app_database.dart`
 - Always run `build_runner` after any schema change
 - `AppDatabase.forTesting(DatabaseConnection(NativeDatabase.memory()))` for in-memory tests
 - `AppDatabase.openForIsolate()` for WorkManager background tasks (direct `NativeDatabase`, not `createInBackground`, because the task is already in its own isolate)

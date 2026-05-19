@@ -140,3 +140,51 @@ jobs:
           name: macos-app
           path: flutter_app/build/macos/Build/Products/Release/artworks_manager.app
           retention-days: 14
+
+  build-ios:
+    name: Build iOS (no-codesign)
+    needs: analyze
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build iOS (simulator, no code signing)
+        run: flutter build ios --debug --no-codesign
+
+  build-windows:
+    name: Build Windows
+    needs: analyze
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: flutter_app/build/windows/x64/runner/Release/
+          retention-days: 14

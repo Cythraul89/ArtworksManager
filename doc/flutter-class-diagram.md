@@ -37,6 +37,8 @@ classDiagram
         +currency : TextColumn
         +purchasePrice : RealColumn?
         +description : TextColumn
+        +condition : TextColumn
+        +provenance : TextColumn
         +photoPath : TextColumn
         +certificatePath : TextColumn
         +createdAt : IntColumn

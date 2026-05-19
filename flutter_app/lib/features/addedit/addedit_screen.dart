@@ -481,7 +481,11 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   }
 
   Future<bool> _confirmDiscard(BuildContext context) async {
-    if (_title.text.isEmpty && _artist.text.isEmpty) return true;
+    final hasContent = _title.text.isNotEmpty ||
+        _artist.text.isNotEmpty ||
+        _description.text.isNotEmpty ||
+        _provenance.text.isNotEmpty;
+    if (!hasContent) return true;
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
