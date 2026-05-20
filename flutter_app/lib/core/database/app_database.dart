@@ -47,7 +47,7 @@ class Settings extends Table {
   TextColumn get nextcloudUrl => text().withDefault(const Constant(''))();
   TextColumn get nextcloudUsername => text().withDefault(const Constant(''))();
   TextColumn get nextcloudPath => text().withDefault(const Constant('AWoMa'))();
-  TextColumn get nextcloudCertFingerprint => text().withDefault(const Constant(''))();
+  BoolColumn get nextcloudTrustSelfSigned => boolean().withDefault(const Constant(false))();
   IntColumn get nextcloudKeepExports => integer().withDefault(const Constant(5))();
   IntColumn get lastSyncAt => integer().nullable()(); // Unix ms
   TextColumn get lastSyncError => text().nullable()();
@@ -69,7 +69,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +88,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await m.addColumn(artworks, artworks.condition);
         await m.addColumn(artworks, artworks.provenance);
+      }
+      if (from < 6) {
+        await m.addColumn(settings, settings.nextcloudTrustSelfSigned);
       }
     },
   );

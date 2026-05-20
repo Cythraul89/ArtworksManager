@@ -30,12 +30,12 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _pathCtrl = TextEditingController();
-  final _fingerprintCtrl = TextEditingController();
   int _keepExports = 5;
   bool _autoSync = false;
   int _syncIntervalHours = 24;
   int _androidSdkInt = 0;
   bool _obscurePassword = true;
+  bool _trustSelf = false;
   bool _loaded = false;
   _Op _op = _Op.idle;
   String? _message;
@@ -64,7 +64,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
     _pathCtrl.dispose();
-    _fingerprintCtrl.dispose();
     super.dispose();
   }
 
@@ -73,11 +72,11 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     _urlCtrl.text = s.nextcloudUrl;
     _usernameCtrl.text = s.nextcloudUsername;
     _pathCtrl.text = s.nextcloudPath;
-    _fingerprintCtrl.text = s.nextcloudCertFingerprint;
     setState(() {
       _keepExports = s.nextcloudKeepExports;
       _autoSync = s.autoSyncEnabled;
       _syncIntervalHours = s.autoSyncIntervalHours;
+      _trustSelf = s.nextcloudTrustSelfSigned;
     });
   }
 
@@ -115,7 +114,13 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           _field(_usernameCtrl, 'Username'),
           _pwField(),
           _field(_pathCtrl, 'Remote path', hint: 'AWoMa'),
-          _field(_fingerprintCtrl, 'Certificate fingerprint (SHA-256, optional)'),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Trust self-signed certificates'),
+            subtitle: const Text('Allow connections to servers with untrusted certificates'),
+            value: _trustSelf,
+            onChanged: (v) => setState(() => _trustSelf = v),
+          ),
           const SizedBox(height: 4),
           _keepRow(),
           if (Platform.isAndroid) ...[
@@ -269,7 +274,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
             nextcloudUrl: Value(_urlCtrl.text.trim()),
             nextcloudUsername: Value(_usernameCtrl.text.trim()),
             nextcloudPath: Value(path),
-            nextcloudCertFingerprint: Value(_fingerprintCtrl.text.trim()),
+            nextcloudTrustSelfSigned: Value(_trustSelf),
             nextcloudKeepExports: Value(_keepExports),
             autoSyncEnabled: Value(_autoSync),
             autoSyncIntervalHours: Value(_syncIntervalHours),
@@ -300,9 +305,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     }
   }
 
-  String? _pin(Setting s) =>
-      s.nextcloudCertFingerprint.isNotEmpty ? s.nextcloudCertFingerprint : null;
-
   /// Returns an error message if [url] is non-empty but malformed, else null.
   String? _urlError(String url) {
     if (url.isEmpty) return null;
@@ -326,7 +328,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     setState(() { _op = _Op.testing; _message = null; });
     final result = await NextcloudService().verifyCredentials(
       s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-      pinnedFingerprint: _pin(s),
+      trustSelfSigned: s.nextcloudTrustSelfSigned,
     );
     if (!mounted) return;
     setState(() => _op = _Op.idle);
@@ -367,7 +369,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       final result = await nc.uploadBackup(
         s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
         filename, bytes,
-        pinnedFingerprint: _pin(s),
+        trustSelfSigned: s.nextcloudTrustSelfSigned,
       );
       if (!mounted) return;
       switch (result) {
@@ -397,7 +399,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   Future<void> _pruneOldBackups(NextcloudService nc, Setting s) async {
     final result = await nc.listFiles(
       s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-      s.nextcloudPath, pinnedFingerprint: _pin(s),
+      s.nextcloudPath, trustSelfSigned: s.nextcloudTrustSelfSigned,
     );
     if (result is! NcSuccess<List<String>>) return;
     final files = [...result.value]..sort();
@@ -406,7 +408,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       final del = await nc.deleteFile(
         s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
         '${s.nextcloudPath}/${p.basename(href)}',
-        pinnedFingerprint: _pin(s),
+        trustSelfSigned: s.nextcloudTrustSelfSigned,
       );
       if (del is! NcSuccess) {
         await AppLogger.warn('NextcloudScreen: could not prune $href');
@@ -425,7 +427,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     final nc = NextcloudService();
     final listResult = await nc.listFiles(
       s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-      s.nextcloudPath, pinnedFingerprint: _pin(s),
+      s.nextcloudPath, trustSelfSigned: s.nextcloudTrustSelfSigned,
     );
     if (!mounted) return;
     setState(() => _op = _Op.idle);
@@ -454,7 +456,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         final dlResult = await nc.downloadFile(
           s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
           '${s.nextcloudPath}/${p.basename(selected)}',
-          pinnedFingerprint: _pin(s),
+          trustSelfSigned: s.nextcloudTrustSelfSigned,
         );
         if (!mounted) return;
         switch (dlResult) {

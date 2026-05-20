@@ -39,14 +39,12 @@ Future<bool> runSyncTask({
   final bytes = await backupService.exportToZip(artworks, photosByArtwork);
   final filename = BackupService.generateFilename();
   final remotePath = '${settings.nextcloudPath}/$filename';
-  final pin = settings.nextcloudCertFingerprint.isEmpty
-      ? null
-      : settings.nextcloudCertFingerprint;
 
   await AppLogger.info('SyncWorker: uploading $filename');
   final result = await nextcloudService.uploadBackup(
     settings.nextcloudUrl, settings.nextcloudUsername, password,
-    remotePath, bytes, pinnedFingerprint: pin,
+    remotePath, bytes,
+    trustSelfSigned: settings.nextcloudTrustSelfSigned,
   );
 
   if (result is! NcSuccess) {
@@ -65,7 +63,7 @@ Future<bool> runSyncTask({
   ));
   await AppLogger.info('SyncWorker: sync completed successfully');
 
-  await _pruneOldBackups(nextcloudService, settings, password, pin, db);
+  await _pruneOldBackups(nextcloudService, settings, password, db);
   return true;
 }
 
@@ -73,12 +71,12 @@ Future<void> _pruneOldBackups(
   NextcloudService nc,
   Setting s,
   String password,
-  String? pin,
   AppDatabase db,
 ) async {
   final result = await nc.listFiles(
     s.nextcloudUrl, s.nextcloudUsername, password,
-    s.nextcloudPath, pinnedFingerprint: pin,
+    s.nextcloudPath,
+    trustSelfSigned: s.nextcloudTrustSelfSigned,
   );
   if (result is! NcSuccess<List<String>>) return;
   final files = [...result.value]..sort();
@@ -87,7 +85,7 @@ Future<void> _pruneOldBackups(
     final del = await nc.deleteFile(
       s.nextcloudUrl, s.nextcloudUsername, password,
       '${s.nextcloudPath}/${p.basename(href)}',
-      pinnedFingerprint: pin,
+      trustSelfSigned: s.nextcloudTrustSelfSigned,
     );
     if (del is! NcSuccess) {
       await AppLogger.warn('SyncWorker: could not prune $href');

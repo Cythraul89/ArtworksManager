@@ -1170,14 +1170,17 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('AWoMa'));
-  static const VerificationMeta _nextcloudCertFingerprintMeta =
-      const VerificationMeta('nextcloudCertFingerprint');
+  static const VerificationMeta _nextcloudTrustSelfSignedMeta =
+      const VerificationMeta('nextcloudTrustSelfSigned');
   @override
-  late final GeneratedColumn<String> nextcloudCertFingerprint =
-      GeneratedColumn<String>('nextcloud_cert_fingerprint', aliasedName, false,
-          type: DriftSqlType.string,
+  late final GeneratedColumn<bool> nextcloudTrustSelfSigned =
+      GeneratedColumn<bool>(
+          'nextcloud_trust_self_signed', aliasedName, false,
+          type: DriftSqlType.bool,
           requiredDuringInsert: false,
-          defaultValue: const Constant(''));
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("nextcloud_trust_self_signed" IN (0, 1))'),
+          defaultValue: const Constant(false));
   static const VerificationMeta _nextcloudKeepExportsMeta =
       const VerificationMeta('nextcloudKeepExports');
   @override
@@ -1223,7 +1226,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         nextcloudUrl,
         nextcloudUsername,
         nextcloudPath,
-        nextcloudCertFingerprint,
+        nextcloudTrustSelfSigned,
         nextcloudKeepExports,
         lastSyncAt,
         lastSyncError,
@@ -1265,12 +1268,12 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           nextcloudPath.isAcceptableOrUnknown(
               data['nextcloud_path']!, _nextcloudPathMeta));
     }
-    if (data.containsKey('nextcloud_cert_fingerprint')) {
+    if (data.containsKey('nextcloud_trust_self_signed')) {
       context.handle(
-          _nextcloudCertFingerprintMeta,
-          nextcloudCertFingerprint.isAcceptableOrUnknown(
-              data['nextcloud_cert_fingerprint']!,
-              _nextcloudCertFingerprintMeta));
+          _nextcloudTrustSelfSignedMeta,
+          nextcloudTrustSelfSigned.isAcceptableOrUnknown(
+              data['nextcloud_trust_self_signed']!,
+              _nextcloudTrustSelfSignedMeta));
     }
     if (data.containsKey('nextcloud_keep_exports')) {
       context.handle(
@@ -1321,9 +1324,9 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           DriftSqlType.string, data['${effectivePrefix}nextcloud_username'])!,
       nextcloudPath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nextcloud_path'])!,
-      nextcloudCertFingerprint: attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}nextcloud_cert_fingerprint'])!,
+      nextcloudTrustSelfSigned: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}nextcloud_trust_self_signed'])!,
       nextcloudKeepExports: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}nextcloud_keep_exports'])!,
       lastSyncAt: attachedDatabase.typeMapping
@@ -1349,7 +1352,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String nextcloudUrl;
   final String nextcloudUsername;
   final String nextcloudPath;
-  final String nextcloudCertFingerprint;
+  final bool nextcloudTrustSelfSigned;
   final int nextcloudKeepExports;
   final int? lastSyncAt;
   final String? lastSyncError;
@@ -1361,7 +1364,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       required this.nextcloudUrl,
       required this.nextcloudUsername,
       required this.nextcloudPath,
-      required this.nextcloudCertFingerprint,
+      required this.nextcloudTrustSelfSigned,
       required this.nextcloudKeepExports,
       this.lastSyncAt,
       this.lastSyncError,
@@ -1375,8 +1378,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['nextcloud_url'] = Variable<String>(nextcloudUrl);
     map['nextcloud_username'] = Variable<String>(nextcloudUsername);
     map['nextcloud_path'] = Variable<String>(nextcloudPath);
-    map['nextcloud_cert_fingerprint'] =
-        Variable<String>(nextcloudCertFingerprint);
+    map['nextcloud_trust_self_signed'] =
+        Variable<bool>(nextcloudTrustSelfSigned);
     map['nextcloud_keep_exports'] = Variable<int>(nextcloudKeepExports);
     if (!nullToAbsent || lastSyncAt != null) {
       map['last_sync_at'] = Variable<int>(lastSyncAt);
@@ -1396,7 +1399,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudUrl: Value(nextcloudUrl),
       nextcloudUsername: Value(nextcloudUsername),
       nextcloudPath: Value(nextcloudPath),
-      nextcloudCertFingerprint: Value(nextcloudCertFingerprint),
+      nextcloudTrustSelfSigned: Value(nextcloudTrustSelfSigned),
       nextcloudKeepExports: Value(nextcloudKeepExports),
       lastSyncAt: lastSyncAt == null && nullToAbsent
           ? const Value.absent()
@@ -1418,8 +1421,8 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudUrl: serializer.fromJson<String>(json['nextcloudUrl']),
       nextcloudUsername: serializer.fromJson<String>(json['nextcloudUsername']),
       nextcloudPath: serializer.fromJson<String>(json['nextcloudPath']),
-      nextcloudCertFingerprint:
-          serializer.fromJson<String>(json['nextcloudCertFingerprint']),
+      nextcloudTrustSelfSigned:
+          serializer.fromJson<bool>(json['nextcloudTrustSelfSigned']),
       nextcloudKeepExports:
           serializer.fromJson<int>(json['nextcloudKeepExports']),
       lastSyncAt: serializer.fromJson<int?>(json['lastSyncAt']),
@@ -1438,8 +1441,8 @@ class Setting extends DataClass implements Insertable<Setting> {
       'nextcloudUrl': serializer.toJson<String>(nextcloudUrl),
       'nextcloudUsername': serializer.toJson<String>(nextcloudUsername),
       'nextcloudPath': serializer.toJson<String>(nextcloudPath),
-      'nextcloudCertFingerprint':
-          serializer.toJson<String>(nextcloudCertFingerprint),
+      'nextcloudTrustSelfSigned':
+          serializer.toJson<bool>(nextcloudTrustSelfSigned),
       'nextcloudKeepExports': serializer.toJson<int>(nextcloudKeepExports),
       'lastSyncAt': serializer.toJson<int?>(lastSyncAt),
       'lastSyncError': serializer.toJson<String?>(lastSyncError),
@@ -1454,7 +1457,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           String? nextcloudUrl,
           String? nextcloudUsername,
           String? nextcloudPath,
-          String? nextcloudCertFingerprint,
+          bool? nextcloudTrustSelfSigned,
           int? nextcloudKeepExports,
           Value<int?> lastSyncAt = const Value.absent(),
           Value<String?> lastSyncError = const Value.absent(),
@@ -1466,8 +1469,8 @@ class Setting extends DataClass implements Insertable<Setting> {
         nextcloudUrl: nextcloudUrl ?? this.nextcloudUrl,
         nextcloudUsername: nextcloudUsername ?? this.nextcloudUsername,
         nextcloudPath: nextcloudPath ?? this.nextcloudPath,
-        nextcloudCertFingerprint:
-            nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
+        nextcloudTrustSelfSigned:
+            nextcloudTrustSelfSigned ?? this.nextcloudTrustSelfSigned,
         nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
         lastSyncAt: lastSyncAt.present ? lastSyncAt.value : this.lastSyncAt,
         lastSyncError:
@@ -1489,9 +1492,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudPath: data.nextcloudPath.present
           ? data.nextcloudPath.value
           : this.nextcloudPath,
-      nextcloudCertFingerprint: data.nextcloudCertFingerprint.present
-          ? data.nextcloudCertFingerprint.value
-          : this.nextcloudCertFingerprint,
+      nextcloudTrustSelfSigned: data.nextcloudTrustSelfSigned.present
+          ? data.nextcloudTrustSelfSigned.value
+          : this.nextcloudTrustSelfSigned,
       nextcloudKeepExports: data.nextcloudKeepExports.present
           ? data.nextcloudKeepExports.value
           : this.nextcloudKeepExports,
@@ -1517,7 +1520,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('nextcloudUrl: $nextcloudUrl, ')
           ..write('nextcloudUsername: $nextcloudUsername, ')
           ..write('nextcloudPath: $nextcloudPath, ')
-          ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
+          ..write('nextcloudTrustSelfSigned: $nextcloudTrustSelfSigned, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
           ..write('lastSyncAt: $lastSyncAt, ')
           ..write('lastSyncError: $lastSyncError, ')
@@ -1534,7 +1537,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudUrl,
       nextcloudUsername,
       nextcloudPath,
-      nextcloudCertFingerprint,
+      nextcloudTrustSelfSigned,
       nextcloudKeepExports,
       lastSyncAt,
       lastSyncError,
@@ -1549,7 +1552,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.nextcloudUrl == this.nextcloudUrl &&
           other.nextcloudUsername == this.nextcloudUsername &&
           other.nextcloudPath == this.nextcloudPath &&
-          other.nextcloudCertFingerprint == this.nextcloudCertFingerprint &&
+          other.nextcloudTrustSelfSigned == this.nextcloudTrustSelfSigned &&
           other.nextcloudKeepExports == this.nextcloudKeepExports &&
           other.lastSyncAt == this.lastSyncAt &&
           other.lastSyncError == this.lastSyncError &&
@@ -1563,7 +1566,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String> nextcloudUrl;
   final Value<String> nextcloudUsername;
   final Value<String> nextcloudPath;
-  final Value<String> nextcloudCertFingerprint;
+  final Value<bool> nextcloudTrustSelfSigned;
   final Value<int> nextcloudKeepExports;
   final Value<int?> lastSyncAt;
   final Value<String?> lastSyncError;
@@ -1575,7 +1578,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudUrl = const Value.absent(),
     this.nextcloudUsername = const Value.absent(),
     this.nextcloudPath = const Value.absent(),
-    this.nextcloudCertFingerprint = const Value.absent(),
+    this.nextcloudTrustSelfSigned = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
     this.lastSyncError = const Value.absent(),
@@ -1588,7 +1591,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudUrl = const Value.absent(),
     this.nextcloudUsername = const Value.absent(),
     this.nextcloudPath = const Value.absent(),
-    this.nextcloudCertFingerprint = const Value.absent(),
+    this.nextcloudTrustSelfSigned = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
     this.lastSyncError = const Value.absent(),
@@ -1601,7 +1604,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? nextcloudUrl,
     Expression<String>? nextcloudUsername,
     Expression<String>? nextcloudPath,
-    Expression<String>? nextcloudCertFingerprint,
+    Expression<bool>? nextcloudTrustSelfSigned,
     Expression<int>? nextcloudKeepExports,
     Expression<int>? lastSyncAt,
     Expression<String>? lastSyncError,
@@ -1614,8 +1617,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (nextcloudUrl != null) 'nextcloud_url': nextcloudUrl,
       if (nextcloudUsername != null) 'nextcloud_username': nextcloudUsername,
       if (nextcloudPath != null) 'nextcloud_path': nextcloudPath,
-      if (nextcloudCertFingerprint != null)
-        'nextcloud_cert_fingerprint': nextcloudCertFingerprint,
+      if (nextcloudTrustSelfSigned != null)
+        'nextcloud_trust_self_signed': nextcloudTrustSelfSigned,
       if (nextcloudKeepExports != null)
         'nextcloud_keep_exports': nextcloudKeepExports,
       if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
@@ -1632,7 +1635,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       Value<String>? nextcloudUrl,
       Value<String>? nextcloudUsername,
       Value<String>? nextcloudPath,
-      Value<String>? nextcloudCertFingerprint,
+      Value<bool>? nextcloudTrustSelfSigned,
       Value<int>? nextcloudKeepExports,
       Value<int?>? lastSyncAt,
       Value<String?>? lastSyncError,
@@ -1644,8 +1647,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       nextcloudUrl: nextcloudUrl ?? this.nextcloudUrl,
       nextcloudUsername: nextcloudUsername ?? this.nextcloudUsername,
       nextcloudPath: nextcloudPath ?? this.nextcloudPath,
-      nextcloudCertFingerprint:
-          nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
+      nextcloudTrustSelfSigned:
+          nextcloudTrustSelfSigned ?? this.nextcloudTrustSelfSigned,
       nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
       lastSyncError: lastSyncError ?? this.lastSyncError,
@@ -1673,9 +1676,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (nextcloudPath.present) {
       map['nextcloud_path'] = Variable<String>(nextcloudPath.value);
     }
-    if (nextcloudCertFingerprint.present) {
-      map['nextcloud_cert_fingerprint'] =
-          Variable<String>(nextcloudCertFingerprint.value);
+    if (nextcloudTrustSelfSigned.present) {
+      map['nextcloud_trust_self_signed'] =
+          Variable<bool>(nextcloudTrustSelfSigned.value);
     }
     if (nextcloudKeepExports.present) {
       map['nextcloud_keep_exports'] = Variable<int>(nextcloudKeepExports.value);
@@ -1704,7 +1707,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('nextcloudUrl: $nextcloudUrl, ')
           ..write('nextcloudUsername: $nextcloudUsername, ')
           ..write('nextcloudPath: $nextcloudPath, ')
-          ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
+          ..write('nextcloudTrustSelfSigned: $nextcloudTrustSelfSigned, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
           ..write('lastSyncAt: $lastSyncAt, ')
           ..write('lastSyncError: $lastSyncError, ')
@@ -2467,7 +2470,7 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudUrl,
   Value<String> nextcloudUsername,
   Value<String> nextcloudPath,
-  Value<String> nextcloudCertFingerprint,
+  Value<bool> nextcloudTrustSelfSigned,
   Value<int> nextcloudKeepExports,
   Value<int?> lastSyncAt,
   Value<String?> lastSyncError,
@@ -2480,7 +2483,7 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudUrl,
   Value<String> nextcloudUsername,
   Value<String> nextcloudPath,
-  Value<String> nextcloudCertFingerprint,
+  Value<bool> nextcloudTrustSelfSigned,
   Value<int> nextcloudKeepExports,
   Value<int?> lastSyncAt,
   Value<String?> lastSyncError,
@@ -2513,8 +2516,8 @@ class $$SettingsTableFilterComposer
   ColumnFilters<String> get nextcloudPath => $composableBuilder(
       column: $table.nextcloudPath, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get nextcloudCertFingerprint => $composableBuilder(
-      column: $table.nextcloudCertFingerprint,
+  ColumnFilters<bool> get nextcloudTrustSelfSigned => $composableBuilder(
+      column: $table.nextcloudTrustSelfSigned,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get nextcloudKeepExports => $composableBuilder(
@@ -2563,8 +2566,8 @@ class $$SettingsTableOrderingComposer
       column: $table.nextcloudPath,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get nextcloudCertFingerprint => $composableBuilder(
-      column: $table.nextcloudCertFingerprint,
+  ColumnOrderings<bool> get nextcloudTrustSelfSigned => $composableBuilder(
+      column: $table.nextcloudTrustSelfSigned,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get nextcloudKeepExports => $composableBuilder(
@@ -2611,8 +2614,8 @@ class $$SettingsTableAnnotationComposer
   GeneratedColumn<String> get nextcloudPath => $composableBuilder(
       column: $table.nextcloudPath, builder: (column) => column);
 
-  GeneratedColumn<String> get nextcloudCertFingerprint => $composableBuilder(
-      column: $table.nextcloudCertFingerprint, builder: (column) => column);
+  GeneratedColumn<bool> get nextcloudTrustSelfSigned => $composableBuilder(
+      column: $table.nextcloudTrustSelfSigned, builder: (column) => column);
 
   GeneratedColumn<int> get nextcloudKeepExports => $composableBuilder(
       column: $table.nextcloudKeepExports, builder: (column) => column);
@@ -2658,7 +2661,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudUrl = const Value.absent(),
             Value<String> nextcloudUsername = const Value.absent(),
             Value<String> nextcloudPath = const Value.absent(),
-            Value<String> nextcloudCertFingerprint = const Value.absent(),
+            Value<bool> nextcloudTrustSelfSigned = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
             Value<String?> lastSyncError = const Value.absent(),
@@ -2671,7 +2674,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudUrl: nextcloudUrl,
             nextcloudUsername: nextcloudUsername,
             nextcloudPath: nextcloudPath,
-            nextcloudCertFingerprint: nextcloudCertFingerprint,
+            nextcloudTrustSelfSigned: nextcloudTrustSelfSigned,
             nextcloudKeepExports: nextcloudKeepExports,
             lastSyncAt: lastSyncAt,
             lastSyncError: lastSyncError,
@@ -2684,7 +2687,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudUrl = const Value.absent(),
             Value<String> nextcloudUsername = const Value.absent(),
             Value<String> nextcloudPath = const Value.absent(),
-            Value<String> nextcloudCertFingerprint = const Value.absent(),
+            Value<bool> nextcloudTrustSelfSigned = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
             Value<String?> lastSyncError = const Value.absent(),
@@ -2697,7 +2700,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudUrl: nextcloudUrl,
             nextcloudUsername: nextcloudUsername,
             nextcloudPath: nextcloudPath,
-            nextcloudCertFingerprint: nextcloudCertFingerprint,
+            nextcloudTrustSelfSigned: nextcloudTrustSelfSigned,
             nextcloudKeepExports: nextcloudKeepExports,
             lastSyncAt: lastSyncAt,
             lastSyncError: lastSyncError,

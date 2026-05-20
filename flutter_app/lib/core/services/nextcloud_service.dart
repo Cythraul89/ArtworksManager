@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 
@@ -31,7 +30,7 @@ class NextcloudService {
   static const _timeoutConnect = Duration(seconds: 15);
   static const _timeoutReceive = Duration(seconds: 60);
 
-  Dio _buildDio(String username, String password, {String? pinnedFingerprint}) {
+  Dio _buildDio(String username, String password, {bool trustSelfSigned = false}) {
     final dio = Dio(BaseOptions(
       connectTimeout: _timeoutConnect,
       receiveTimeout: _timeoutReceive,
@@ -41,21 +40,10 @@ class NextcloudService {
       },
     ));
 
-    if (pinnedFingerprint != null && pinnedFingerprint.isNotEmpty) {
+    if (trustSelfSigned) {
       (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) {
-          final actual = sha256.convert(cert.der).toString();
-          assert(() {
-            if (actual != pinnedFingerprint) {
-              // ignore: avoid_print
-              print('[AWoMa] cert-pin mismatch on $host: '
-                  'expected $pinnedFingerprint, got $actual');
-            }
-            return true;
-          }());
-          return actual == pinnedFingerprint;
-        };
+        client.badCertificateCallback = (cert, host, port) => true;
         return client;
       };
     }
@@ -70,10 +58,10 @@ class NextcloudService {
     String serverUrl,
     String username,
     String password, {
-    String? pinnedFingerprint,
+    bool trustSelfSigned = false,
   }) async {
     try {
-      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
+      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
       final resp = await dio.get('${serverUrl.trimRight()}/ocs/v2.php/cloud/user');
       if (resp.statusCode == 200) return const NcSuccess(null);
       return NcFailure('HTTP ${resp.statusCode}');
@@ -90,10 +78,10 @@ class NextcloudService {
     String password,
     String remotePath,
     Uint8List bytes, {
-    String? pinnedFingerprint,
+    bool trustSelfSigned = false,
   }) async {
     try {
-      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
+      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
       final base = _davBase(serverUrl, username);
       final dir = remotePath.contains('/')
           ? remotePath.substring(0, remotePath.lastIndexOf('/'))
@@ -133,10 +121,10 @@ class NextcloudService {
     String username,
     String password,
     String remotePath, {
-    String? pinnedFingerprint,
+    bool trustSelfSigned = false,
   }) async {
     try {
-      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
+      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
       final resp = await dio.get<List<int>>(
         '${_davBase(serverUrl, username)}/$remotePath',
         options: Options(responseType: ResponseType.bytes),
@@ -156,10 +144,10 @@ class NextcloudService {
     String username,
     String password,
     String remoteDir, {
-    String? pinnedFingerprint,
+    bool trustSelfSigned = false,
   }) async {
     try {
-      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
+      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
       final resp = await dio.request(
         '${_davBase(serverUrl, username)}/$remoteDir',
         options: Options(
@@ -190,10 +178,10 @@ class NextcloudService {
     String username,
     String password,
     String remotePath, {
-    String? pinnedFingerprint,
+    bool trustSelfSigned = false,
   }) async {
     try {
-      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
+      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
       await dio.delete('${_davBase(serverUrl, username)}/$remotePath');
       return const NcSuccess(null);
     } on DioException catch (e) {
@@ -218,8 +206,8 @@ class NextcloudService {
     // or edge cases wrap a HandshakeException inside unknown.
     if (e.type == DioExceptionType.badCertificate ||
         e.error is HandshakeException) {
-      return NcFailure(
-          'SSL certificate not trusted — enter the server\'s SHA-256 fingerprint in the Certificate fingerprint field');
+      return const NcFailure(
+          'SSL certificate not trusted — enable "Trust self-signed certificates" in settings');
     }
     final code = e.response?.statusCode;
     if (code == 401) return NcFailure('Invalid credentials');
