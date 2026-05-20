@@ -64,88 +64,140 @@ class _DetailBody extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Main photo
-            if (artwork.photoPath.isNotEmpty)
-              AspectRatio(
-                aspectRatio: 4 / 3,
-                child: Image.file(
-                  File(artwork.photoPath),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  errorBuilder: (_, __, ___) =>
-                      const Center(child: Icon(Icons.broken_image_outlined, size: 64)),
-                ),
-              ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title + artist/year
-                  Text(artwork.title,
-                      style: Theme.of(context).textTheme.headlineSmall),
-                  if (artwork.artist.isNotEmpty || artwork.year != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      [
-                        if (artwork.artist.isNotEmpty) artwork.artist,
-                        if (artwork.year != null) artwork.year.toString(),
-                      ].join('  ·  '),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
-
-                  _row(context, 'Type', artwork.type),
-                  _row(context, 'Medium', artwork.medium),
-                  _row(context, 'Condition', artwork.condition),
-                  _row(context, 'Location', artwork.location),
-                  _row(context, 'Dimensions', _dims()),
-                  _row(context, 'Acquired', _acquired()),
-                  _row(context, 'Description', artwork.description),
-                  _row(context, 'Provenance', artwork.provenance),
-                ],
-              ),
-            ),
-
-            // Certificate
-            if (artwork.certificatePath.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: const Text('View Certificate'),
-                  onPressed: () => _openCertificate(context, artwork.certificatePath),
-                ),
-              ),
-            ],
-
-            // Additional photos
-            if (additionalPhotos.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                child: Text('Photos',
-                    style: Theme.of(context).textTheme.labelLarge),
-              ),
-              PhotoStrip(paths: additionalPhotos),
-            ],
-          ],
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) => constraints.maxWidth >= 600
+            ? _buildWide(context, additionalPhotos)
+            : _buildNarrow(context, additionalPhotos),
       ),
     );
+  }
+
+  Widget _buildNarrow(BuildContext context, List<String> additionalPhotos) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (artwork.photoPath.isNotEmpty)
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Image.file(
+                File(artwork.photoPath),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                errorBuilder: (_, __, ___) =>
+                    const Center(child: Icon(Icons.broken_image_outlined, size: 64)),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _infoWidgets(context),
+            ),
+          ),
+          if (artwork.certificatePath.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('View Certificate'),
+                onPressed: () => _openCertificate(context, artwork.certificatePath),
+              ),
+            ),
+          ],
+          if (additionalPhotos.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(left: 16, bottom: 8),
+              child: Text('Photos', style: Theme.of(context).textTheme.labelLarge),
+            ),
+            PhotoStrip(paths: additionalPhotos),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWide(BuildContext context, List<String> additionalPhotos) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: artwork.photoPath.isNotEmpty
+              ? Image.file(
+                  File(artwork.photoPath),
+                  fit: BoxFit.cover,
+                  height: double.infinity,
+                  width: double.infinity,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Icon(Icons.broken_image_outlined,
+                        size: 64, color: Theme.of(context).colorScheme.outline),
+                  ),
+                )
+              : Center(
+                  child: Icon(Icons.image_outlined,
+                      size: 64, color: Theme.of(context).colorScheme.outline),
+                ),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ..._infoWidgets(context),
+                if (artwork.certificatePath.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: const Text('View Certificate'),
+                    onPressed: () => _openCertificate(context, artwork.certificatePath),
+                  ),
+                ],
+                if (additionalPhotos.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text('Photos', style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  PhotoStrip(paths: additionalPhotos),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _infoWidgets(BuildContext context) {
+    return [
+      Text(artwork.title, style: Theme.of(context).textTheme.headlineSmall),
+      if (artwork.artist.isNotEmpty || artwork.year != null) ...[
+        const SizedBox(height: 4),
+        Text(
+          [
+            if (artwork.artist.isNotEmpty) artwork.artist,
+            if (artwork.year != null) artwork.year.toString(),
+          ].join('  ·  '),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+        ),
+      ],
+      const SizedBox(height: 16),
+      const Divider(),
+      const SizedBox(height: 8),
+      _row(context, 'Type', artwork.type),
+      _row(context, 'Medium', artwork.medium),
+      _row(context, 'Condition', artwork.condition),
+      _row(context, 'Location', artwork.location),
+      _row(context, 'Dimensions', _dims()),
+      _row(context, 'Acquired', _acquired()),
+      _row(context, 'Description', artwork.description),
+      _row(context, 'Provenance', artwork.provenance),
+    ];
   }
 
   Widget _row(BuildContext context, String label, String value) {

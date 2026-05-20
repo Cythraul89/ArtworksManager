@@ -142,8 +142,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   Widget _buildGrid(List artworks) => GridView.builder(
         padding: const EdgeInsets.all(8),
         physics: const AlwaysScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 220,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           childAspectRatio: 0.72,

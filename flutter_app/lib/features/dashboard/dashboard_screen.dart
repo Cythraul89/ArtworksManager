@@ -314,49 +314,87 @@ class _RecentSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 4),
-        SizedBox(
-          height: 160,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: artworks.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (_, i) {
-              final a = artworks[i];
-              return GestureDetector(
-                onTap: () => context.go('/collection/artwork/${a.id}'),
-                child: SizedBox(
-                  width: 120,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: a.photoPath.isNotEmpty
-                              ? Image.file(File(a.photoPath),
-                                  fit: BoxFit.cover,
-                                  width: 120,
-                                  errorBuilder: (_, __, ___) =>
-                                      _placeholder(context))
-                              : _placeholder(context),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        a.title,
-                        style: Theme.of(context).textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth >= 600) {
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 160,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.82,
+                ),
+                itemCount: artworks.length,
+                itemBuilder: (_, i) => _RecentTile(
+                  artwork: artworks[i],
+                  onTap: () => context.go('/collection/artwork/${artworks[i].id}'),
                 ),
               );
-            },
-          ),
+            }
+            return SizedBox(
+              height: 160,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: artworks.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => _RecentTile(
+                  artwork: artworks[i],
+                  width: 120,
+                  onTap: () => context.go('/collection/artwork/${artworks[i].id}'),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
+  }
+
+}
+
+class _RecentTile extends StatelessWidget {
+  const _RecentTile({required this.artwork, required this.onTap, this.width});
+
+  final dynamic artwork;
+  final VoidCallback onTap;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget image = artwork.photoPath.isNotEmpty
+        ? Image.file(File(artwork.photoPath),
+            fit: BoxFit.cover,
+            width: width,
+            height: width,
+            errorBuilder: (_, __, ___) => _placeholder(context))
+        : _placeholder(context);
+
+    Widget tile = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: image,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          artwork.title,
+          style: Theme.of(context).textTheme.bodySmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+
+    if (width != null) {
+      tile = SizedBox(width: width, child: tile);
+    }
+
+    return GestureDetector(onTap: onTap, child: tile);
   }
 
   Widget _placeholder(BuildContext context) => Container(
