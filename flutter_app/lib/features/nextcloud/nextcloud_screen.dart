@@ -436,7 +436,12 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       );
       if (!mounted) return;
 
-      final remoteBackup = backupResult is NcSuccess<BackupInfo?> ? backupResult.value : null;
+      // If the backup check failed (network error) skip the dialog and just close.
+      if (backupResult is! NcSuccess<BackupInfo?>) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+      final remoteBackup = backupResult.value;
       final choice = await _showSyncChoiceDialog(remoteBackup);
       if (!mounted) return;
 
@@ -570,7 +575,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       url, _usernameCtrl.text.trim(), _passwordCtrl.text, path,
       pinnedFingerprint: _certFingerprint,
     );
-    if (!mounted) { setState(() => _op = _Op.idle); return; }
+    if (!mounted) return;
     setState(() => _op = _Op.idle);
 
     switch (listResult) {

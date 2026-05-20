@@ -50,7 +50,7 @@ flutter build linux --release
 flutter build macos --release
 ```
 
-> **Important:** The local Flutter SDK (3.32.x) is older than CI (stable channel, 3.44+). A handful of analyzer errors for `RadioGroup` and `DropdownButtonFormField.initialValue` appear locally but are valid on CI — do not "fix" these.
+> **Important:** The local Flutter SDK (3.32.x) is older than CI (stable channel, 3.44+). Five analyzer errors for `RadioGroup` and `DropdownButtonFormField.initialValue` appear locally but are valid on CI — do not "fix" these.
 
 ---
 
@@ -67,6 +67,7 @@ flutter build macos --release
 | Background sync | WorkManager (`workmanager`) — Android only, no-op on macOS/Linux/iOS/Windows |
 | Secure storage | `flutter_secure_storage` (Keychain / Keystore) |
 | Permissions | `permission_handler` |
+| File picking (desktop) | `file_picker` — used on macOS/Linux/Windows; `image_picker` used on mobile only |
 | PDF export | `pdf` + `printing` (`PdfGoogleFonts.notoSans*` for cross-platform fonts) |
 | App version | `package_info_plus` (About tile in Settings) |
 | Logging | `AppLogger` (custom, see `lib/core/services/app_logger.dart`) |
@@ -84,29 +85,30 @@ flutter_app/lib/
 │   │   ├── database_provider.dart databaseProvider (Riverpod Provider<AppDatabase>)
 │   │   └── daos/                  ArtworksDao, PhotosDao, SettingsDao + their *.g.dart
 │   ├── models/
-│   │   ├── artwork_constants.dart SortBy enum + artworkTypes (incl. Book) + kDefaultRemotePath = 'AWoMa'
+│   │   ├── artwork_constants.dart SortBy enum + artworkTypes (incl. Ceramics, Book) + kDefaultRemotePath = 'AWoMa'
 │   │   └── currency.dart          Currency enum (21 currencies: EUR/USD/GBP/JPY/CHF/CAD/AUD/BRL/CZK/DKK/HKD/HUF/INR/KRW/MXN/NOK/NZD/PLN/SEK/SGD/ZAR)
 │   ├── services/
 │   │   ├── app_logger.dart        File logger: AppLogger.info/warn/error(); fire-and-forget
 │   │   ├── backup_service.dart    ZIP export/import; BackupService.generateFilename()
 │   │   ├── exchange_rate_service.dart  Frankfurter API + 24h disk cache + AppLogger
-│   │   ├── nextcloud_service.dart WebDAV client; sealed NcResult<T> (NcSuccess/NcFailure/NcTransient)
+│   │   ├── nextcloud_service.dart WebDAV client; sealed NcResult<T>; CertificateInfo; BackupInfo
 │   │   ├── pdf_exporter.dart      A4 PDF: one page per artwork, EXIF-corrected photo, Noto Sans
+│   │   ├── remote_backup_check.dart   pendingRestoreProvider + checkForNewBackup(WidgetRef)
 │   │   ├── secure_credentials_service.dart  Nextcloud password via flutter_secure_storage
 │   │   └── sync_worker.dart       WorkManager background task; uses AppDatabase.openForIsolate()
 │   └── widgets/
 │       ├── error_view.dart        Shared error display widget
 │       └── photo_strip.dart       Horizontal scrolling photo strip
 ├── features/
-│   ├── dashboard/                 DashboardScreen, dashboard_providers.dart
-│   ├── collection/                CollectionScreen, collection_providers.dart
-│   ├── addedit/                   AddEditScreen (add + edit combined)
-│   ├── detail/                    DetailScreen, detail_providers.dart
+│   ├── dashboard/                 DashboardScreen — Recent section is a grid on wide screens
+│   ├── collection/                CollectionScreen — responsive grid (SliverGridDelegateWithMaxCrossAxisExtent)
+│   ├── addedit/                   AddEditScreen (add + edit combined); desktop uses file_picker for photos
+│   ├── detail/                    DetailScreen — 50/50 photo/info layout on wide screens; fullscreen photo viewer
 │   ├── settings/                  SettingsScreen, LogsScreen, settings_providers.dart
 │   ├── backup/                    LocalBackupScreen (ZIP export + restore from file)
-│   └── nextcloud/                 NextcloudScreen (credentials + cloud backup/restore + auto-sync config)
+│   └── nextcloud/                 NextcloudScreen — cert-pinning flow, auto-verify on load, sync-choice dialog
 └── shell/
-    └── adaptive_shell.dart        Bottom nav / NavigationRail adaptive wrapper
+    └── adaptive_shell.dart        ConsumerStatefulWidget; runs startup backup check; bottom nav / NavigationRail
 ```
 
 ### Data Flow
@@ -127,7 +129,7 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 
 `AppDatabase` (Drift) has three tables: **Artworks**, **ArtworkPhotos**, **Settings**.
 
-- **Schema version 5** — migrations defined in `app_database.dart`
+- **Schema version 8** — migrations defined in `app_database.dart`
 - Always run `build_runner` after any schema change
 - `AppDatabase.forTesting(DatabaseConnection(NativeDatabase.memory()))` for in-memory tests
 - `AppDatabase.openForIsolate()` for WorkManager background tasks (direct `NativeDatabase`, not `createInBackground`, because the task is already in its own isolate)
@@ -143,12 +145,32 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 - `portfolioValueProvider` — synchronous `Provider` that composes `priceTotalsProvider` + `exchangeRatesProvider`
 - `exchangeRatesProvider` — `FutureProvider.family<Map<String,double>?, String>` keyed by base currency; calls `ExchangeRateService().fetchRates(base)` (instance class with injectable `Dio`/`apiBase`)
 - `ratesCacheTimeProvider` — `FutureProvider.family<DateTime?, String>` for stale-rates hint
+- `pendingRestoreProvider` — `StateProvider<BackupInfo?>` in `remote_backup_check.dart`; set by `checkForNewBackup`, cleared by `AdaptiveShell` before showing the restore dialog
 
 ### Navigation (GoRouter)
 
 Three shell branches (bottom nav): `/dashboard`, `/collection`, `/settings`.
 
 Sub-routes: `/collection/artwork/:id`, `/collection/add`, `/collection/edit/:id`, `/settings/nextcloud`, `/settings/backup`, `/settings/logs`.
+
+### Responsive Layouts
+
+- **Collection grid** — `SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 220)` so more columns appear on wider screens automatically.
+- **Detail screen** — `LayoutBuilder` switches at 600 px: narrow shows photo stacked above info; wide shows 50/50 `Row` with `VerticalDivider`.
+- **Dashboard Recent** — `LayoutBuilder` switches at 600 px: narrow uses horizontal `ListView`; wide uses `GridView` with `MaxCrossAxisExtent: 160`.
+- **AdaptiveShell** — below 600 px → `NavigationBar` (bottom); above → `NavigationRail`; above 1200 px → extended rail.
+
+### Photo Picking (Platform-Aware)
+
+`AddEditScreen._pickImage()` branches on platform:
+- **macOS / Linux / Windows** → `FilePicker.platform.pickFiles(type: FileType.image)` then copies the file into the app documents dir.
+- **iOS / Android** → sheet to choose camera or gallery → `ImagePicker().pickImage(imageQuality: 85)`.
+
+macOS entitlement `com.apple.security.files.user-selected.read-write` is already set — no plist changes needed when adding file picking.
+
+### Fullscreen Photo Viewer
+
+Tapping any photo in `DetailScreen` opens `_FullscreenViewer` — a `Dialog.fullscreen` with black background, `PageView.builder` (each page wrapped in `InteractiveViewer` for pinch-to-zoom), a close button, and dot indicators. The viewer receives a combined list of main photo + additional photos.
 
 ### Background Sync (Android only)
 
@@ -161,9 +183,24 @@ The core logic lives in the top-level `runSyncTask({db, backupService, nextcloud
 ### Nextcloud / Security
 
 - Password stored in `flutter_secure_storage` via `SecureCredentialsService` — never in the DB
-- Certificate pinning via SHA-256 fingerprint in `NextcloudService._buildDio()`
-- `NcResult<T>` sealed class: `NcSuccess(value)`, `NcFailure(message)`, `NcTransient()` (retry)
+- Certificate pinning via SHA-256 fingerprint stored in `Settings.nextcloudCertFingerprint` (nullable); `NextcloudService._buildDio()` rejects any cert whose fingerprint doesn't match when the field is set
+- `NcResult<T>` sealed class: `NcSuccess(value)`, `NcFailure(message)`, `NcTransient()` (network retry)
 - `_mapDioError` handles 401 and 507 explicitly; `connectionError` and `SocketException`-wrapped `unknown` → `NcTransient`; all other errors → `NcFailure(e.message)`
+- `CertificateInfo` — fingerprint, subject, issuer, validUntil; returned by `fetchCertificateInfo()`; null means OS-trusted
+- `BackupInfo` — remotePath, backupDate; returned by `findLatestBackup()` which matches `awoma_backup_YYYYMMDD_HHmmss.zip`
+
+### Nextcloud Screen Flow
+
+1. On open, `_prefill` restores saved settings; `_connectionVerified = true` if URL + username are non-empty (credentials can only be saved after a successful test, so no re-test needed).
+2. Editing URL / username / password calls `_invalidateVerification()` — requires a new test before saving.
+3. **Test connection** → `fetchCertificateInfo()` → cert dialog if untrusted (Trust & pin / Reject) → `verifyCredentials()`.
+4. **Confirm & connect** (enabled only when verified) → saves settings → `findLatestBackup()` → if network error: closes screen silently; if success: shows sync-choice dialog ("Restore from server" / "Upload current" / "Later") → executes choice → closes screen.
+5. **Backup now** / **Restore from cloud** — immediate actions available while the screen is open; both update `lastSyncAt` on success.
+6. `_applyRestore` records `lastSyncAt` after a successful restore so the startup check doesn't immediately re-prompt.
+
+### Startup Backup Check
+
+`AdaptiveShell` (now a `ConsumerStatefulWidget`) calls `checkForNewBackup(ref)` once in `initState` via `addPostFrameCallback`. `checkForNewBackup` reads Nextcloud credentials, calls `findLatestBackup`, and if the remote backup is newer than `lastSyncAt`, sets `pendingRestoreProvider`. `ref.listen` in `build()` detects the non-null value, clears the provider, and shows an `AlertDialog` offering **Later** or **Open Nextcloud settings**.
 
 ### Logging
 
