@@ -49,7 +49,7 @@ class NextcloudService {
           assert(() {
             if (actual != pinnedFingerprint) {
               // ignore: avoid_print
-              print('[ArtworksManager] cert-pin mismatch on $host: '
+              print('[AWoMa] cert-pin mismatch on $host: '
                   'expected $pinnedFingerprint, got $actual');
             }
             return true;

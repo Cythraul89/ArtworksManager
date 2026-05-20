@@ -1169,7 +1169,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
       'nextcloud_path', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant('ArtworksManager'));
+      defaultValue: const Constant('AWoMa'));
   static const VerificationMeta _nextcloudCertFingerprintMeta =
       const VerificationMeta('nextcloudCertFingerprint');
   @override

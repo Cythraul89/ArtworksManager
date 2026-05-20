@@ -46,7 +46,7 @@ class Settings extends Table {
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   TextColumn get nextcloudUrl => text().withDefault(const Constant(''))();
   TextColumn get nextcloudUsername => text().withDefault(const Constant(''))();
-  TextColumn get nextcloudPath => text().withDefault(const Constant('ArtworksManager'))();
+  TextColumn get nextcloudPath => text().withDefault(const Constant('AWoMa'))();
   TextColumn get nextcloudCertFingerprint => text().withDefault(const Constant(''))();
   IntColumn get nextcloudKeepExports => integer().withDefault(const Constant(5))();
   IntColumn get lastSyncAt => integer().nullable()(); // Unix ms

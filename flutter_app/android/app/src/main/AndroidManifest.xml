@@ -15,7 +15,7 @@
         android:minSdkVersion="34"/>
 
     <application
-        android:label="artworks_manager"
+        android:label="AWoMa"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

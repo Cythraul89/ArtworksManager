@@ -247,11 +247,11 @@ class _AboutTile extends ConsumerWidget {
     );
     return ListTile(
       leading: const Icon(Icons.info_outline),
-      title: const Text('Artworks Manager'),
+      title: const Text('AWoMa'),
       subtitle: Text(version ?? 'Loading…'),
       onTap: () => showLicensePage(
         context: context,
-        applicationName: 'Artworks Manager',
+        applicationName: 'AWoMa',
         applicationVersion: version,
       ),
     );

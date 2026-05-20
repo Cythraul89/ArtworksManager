@@ -115,7 +115,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           _field(_urlCtrl, 'Server URL', hint: 'https://cloud.example.com'),
           _field(_usernameCtrl, 'Username'),
           _pwField(),
-          _field(_pathCtrl, 'Remote path', hint: 'ArtworksManager'),
+          _field(_pathCtrl, 'Remote path', hint: 'AWoMa'),
           _field(_fingerprintCtrl, 'Certificate fingerprint (SHA-256, optional)'),
           const SizedBox(height: 4),
           _keepRow(),
