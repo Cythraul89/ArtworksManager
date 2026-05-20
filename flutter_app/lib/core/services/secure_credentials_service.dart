@@ -5,6 +5,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class SecureCredentialsService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    // useDataProtectionKeyChain=true (the v9 default) requires a real Apple
+    // Developer signing identity and fails with -34018 on ad-hoc/unsigned
+    // builds. The traditional macOS Keychain works fine for sandboxed apps.
+    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
   );
   static const _keyPassword = 'nc_password';
 
