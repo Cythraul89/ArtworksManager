@@ -68,10 +68,10 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     setState(() {
       _keepExports = s.nextcloudKeepExports;
       _autoSync = s.autoSyncEnabled;
-      // Treat previously synced credentials as already verified
-      _connectionVerified = s.nextcloudUrl.isNotEmpty &&
-          s.nextcloudUsername.isNotEmpty &&
-          s.lastSyncAt != null;
+      // Credentials were saved only after a successful test, so treat stored
+      // credentials as already verified when reopening the screen.
+      _connectionVerified =
+          s.nextcloudUrl.isNotEmpty && s.nextcloudUsername.isNotEmpty;
     });
   }
 
