@@ -102,7 +102,7 @@ class BackupService {
         final filename = p.basename(file.name);
         final dest = File(p.join(artworksDir.path, filename));
         // ZIP slip protection
-        if (dest.canonicalPath.startsWith(canonicalBase)) {
+        if ((await dest.canonicalPath).startsWith(canonicalBase)) {
           await dest.writeAsBytes(file.content as List<int>);
           extractedFiles[filename] = dest.path;
         }
@@ -110,9 +110,8 @@ class BackupService {
     }
 
     // Parse artworks.json
-    final jsonEntry = archive.files
-        .cast<ArchiveFile?>()
-        .firstWhere((f) => f?.name == 'artworks.json', orElse: () => null);
+    final jsonEntry =
+        archive.files.where((f) => f.name == 'artworks.json').firstOrNull;
     if (jsonEntry == null) {
       await AppLogger.error('BackupService: artworks.json not found in ZIP');
       throw Exception('Invalid backup: artworks.json not found');
@@ -223,5 +222,5 @@ class BackupData {
 }
 
 extension on File {
-  String get canonicalPath => resolveSymbolicLinksSync();
+  Future<String> get canonicalPath => resolveSymbolicLinks();
 }

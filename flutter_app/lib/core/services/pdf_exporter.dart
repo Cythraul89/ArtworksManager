@@ -165,9 +165,12 @@ class PdfExporter {
     );
   }
 
+  static final _trailingZeros = RegExp(r'0+$');
+  static final _trailingDot = RegExp(r'\.$');
+
   // Formats a dimension value: integers without decimals, others with 1dp.
   static String fmtDim(double v) {
     if (v == v.truncateToDouble()) return v.toInt().toString();
-    return v.toStringAsFixed(1).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return v.toStringAsFixed(1).replaceAll(_trailingZeros, '').replaceAll(_trailingDot, '');
   }
 }

@@ -84,7 +84,7 @@ flutter_app/lib/
 │   │   ├── database_provider.dart databaseProvider (Riverpod Provider<AppDatabase>)
 │   │   └── daos/                  ArtworksDao, PhotosDao, SettingsDao + their *.g.dart
 │   ├── models/
-│   │   ├── artwork_constants.dart SortBy enum + kDefaultRemotePath constant
+│   │   ├── artwork_constants.dart SortBy enum + artworkTypes (incl. Book) + kDefaultRemotePath = 'AWoMa'
 │   │   └── currency.dart          Currency enum (EUR/USD/NOK/ZAR)
 │   ├── services/
 │   │   ├── app_logger.dart        File logger: AppLogger.info/warn/error(); fire-and-forget
@@ -103,7 +103,8 @@ flutter_app/lib/
 │   ├── addedit/                   AddEditScreen (add + edit combined)
 │   ├── detail/                    DetailScreen, detail_providers.dart
 │   ├── settings/                  SettingsScreen, LogsScreen, settings_providers.dart
-│   └── nextcloud/                 NextcloudScreen (credentials + auto-sync config)
+│   ├── backup/                    LocalBackupScreen (ZIP export + restore from file)
+│   └── nextcloud/                 NextcloudScreen (credentials + cloud backup/restore + auto-sync config)
 └── shell/
     └── adaptive_shell.dart        Bottom nav / NavigationRail adaptive wrapper
 ```
@@ -147,7 +148,7 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 
 Three shell branches (bottom nav): `/dashboard`, `/collection`, `/settings`.
 
-Sub-routes: `/collection/artwork/:id`, `/collection/add`, `/collection/edit/:id`, `/settings/nextcloud`, `/settings/logs`.
+Sub-routes: `/collection/artwork/:id`, `/collection/add`, `/collection/edit/:id`, `/settings/nextcloud`, `/settings/backup`, `/settings/logs`.
 
 ### Background Sync (Android only)
 
@@ -162,7 +163,7 @@ The core logic lives in the top-level `runSyncTask({db, backupService, nextcloud
 - Password stored in `flutter_secure_storage` via `SecureCredentialsService` — never in the DB
 - Certificate pinning via SHA-256 fingerprint in `NextcloudService._buildDio()`
 - `NcResult<T>` sealed class: `NcSuccess(value)`, `NcFailure(message)`, `NcTransient()` (retry)
-- `_mapDioError` handles 401 and 507 explicitly; all other errors → `NcFailure(e.message)`
+- `_mapDioError` handles 401 and 507 explicitly; `connectionError` and `SocketException`-wrapped `unknown` → `NcTransient`; all other errors → `NcFailure(e.message)`
 
 ### Logging
 
@@ -201,13 +202,26 @@ When adding a column to any table:
 
 ---
 
-## CI Pipeline
+## CI / Release Pipeline
 
-`.github/workflows/flutter_ci.yml` runs on pushes to `main`, `develop`, and `feature/**`:
+### CI (`.github/workflows/flutter_ci.yml`)
+Runs on pushes to `main`, `develop`, and `feature/**`:
 
 1. **analyze** — `flutter analyze --fatal-infos` + `flutter test`
 2. **build-android** (needs analyze) — debug APK
 3. **build-linux** (needs analyze) — requires `libsecret-1-dev libjsoncpp-dev` apt packages
 4. **build-macos** (needs analyze) — macOS runner, sandbox disabled for CI
+5. **build-ios** (needs analyze) — `--no-codesign`
+6. **build-windows** (needs analyze)
+
+Both workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into Node.js 24 runners.
+
+### Release (`.github/workflows/flutter_release.yml`)
+Triggered by a `v{major}.{minor}.{patch}` tag on any branch:
+
+1. Builds Android APK (release, debug-signed), Linux tar.gz, Windows zip, macOS zip in parallel
+2. Creates a GitHub Release with auto-generated notes and all artifacts attached
+
+To publish a release: `git tag v1.0.0 && git push origin v1.0.0`
 
 Working directory for all steps is `flutter_app/`. Code generation runs before analyze and build.
