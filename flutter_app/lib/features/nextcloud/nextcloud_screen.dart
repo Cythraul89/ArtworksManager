@@ -447,7 +447,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         await _doBackup(url, _usernameCtrl.text.trim(), path);
       }
 
-      if (mounted) _setMsg('Settings saved', isError: false);
+      if (mounted) Navigator.of(context).pop();
     } catch (e, st) {
       await AppLogger.error('NextcloudScreen: save failed', e, st);
       if (mounted) _setMsg('Failed to save: $e', isError: true);
@@ -644,10 +644,12 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   Future<void> _applyRestore(Uint8List bytes) async {
     try {
       final data = await BackupService().importFromBytes(bytes);
-      await ref
-          .read(databaseProvider)
-          .artworksDao
-          .replaceAll(data.artworks, data.photos);
+      final db = ref.read(databaseProvider);
+      await db.artworksDao.replaceAll(data.artworks, data.photos);
+      await db.settingsDao.save(SettingsCompanion(
+        lastSyncAt: Value(DateTime.now().millisecondsSinceEpoch),
+        lastSyncError: const Value(null),
+      ));
       if (mounted) {
         setState(() => _op = _Op.idle);
         _setMsg('Restore complete – ${data.artworks.length} artworks imported',
