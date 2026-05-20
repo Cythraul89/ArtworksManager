@@ -127,18 +127,18 @@ class _LocalBackupScreenState extends ConsumerState<LocalBackupScreen> {
 
   Future<bool?> _confirmReplace() => showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogCtx) => AlertDialog(
           title: const Text('Replace all artworks?'),
           content: const Text(
               'All current artworks will be permanently deleted and replaced by the backup.'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(dialogCtx, false),
                 child: const Text('Cancel')),
             FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error),
-              onPressed: () => Navigator.pop(context, true),
+                  backgroundColor: Theme.of(dialogCtx).colorScheme.error),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: const Text('Replace'),
             ),
           ],

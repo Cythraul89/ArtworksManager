@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:open_filex/open_filex.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/currency.dart';
+import '../../core/services/sync_worker.dart';
 import '../../core/widgets/photo_strip.dart';
 import 'detail_providers.dart';
 
@@ -215,22 +217,23 @@ class _DetailBody extends StatelessWidget {
   void _confirmDelete(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete artwork'),
         content: Text('Delete "${artwork.title}"? This cannot be undone.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogCtx),
               child: const Text('Cancel')),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error),
+                backgroundColor: Theme.of(dialogCtx).colorScheme.error),
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogCtx);
               await ref
                   .read(databaseProvider)
                   .artworksDao
                   .deleteArtwork(artwork.id);
+              unawaited(triggerAutoBackup(ref.read(databaseProvider)));
               if (context.mounted) context.go('/collection');
             },
             child: const Text('Delete'),

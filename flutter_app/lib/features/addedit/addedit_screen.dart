@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:file_picker/file_picker.dart';
@@ -16,6 +17,7 @@ import '../../core/database/database_provider.dart';
 import '../../core/models/artwork_constants.dart';
 import '../../core/models/currency.dart';
 import '../../core/services/app_logger.dart';
+import '../../core/services/sync_worker.dart';
 import '../../core/widgets/photo_strip.dart';
 
 const _uuid = Uuid();
@@ -473,6 +475,8 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
       });
 
       _newlyCopiedFiles.clear();
+      // fire-and-forget auto-backup
+      unawaited(triggerAutoBackup(db));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Artwork saved')),
@@ -501,14 +505,14 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
     if (!hasContent) return true;
     final result = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Discard changes?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogCtx, false),
               child: const Text('Keep editing')),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: const Text('Discard')),
         ],
       ),

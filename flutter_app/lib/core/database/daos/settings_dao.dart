@@ -21,6 +21,8 @@ class SettingsDao extends DatabaseAccessor<AppDatabase> with _$SettingsDaoMixin 
         .map((s) => s ?? const Setting(id: 1, currency: 'EUR', nextcloudUrl: '', nextcloudUsername: '', nextcloudPath: kDefaultRemotePath, nextcloudTrustSelfSigned: false, nextcloudKeepExports: 5, lastSyncAt: null, lastSyncError: null, autoSyncEnabled: false, autoSyncIntervalHours: 24, themeMode: 'system'));
   }
 
-  Future<void> save(SettingsCompanion companion) =>
-      (update(settings)..where((t) => t.id.equals(1))).write(companion);
+  Future<void> save(SettingsCompanion companion) async {
+    await get(); // ensure row exists before update
+    await (update(settings)..where((t) => t.id.equals(1))).write(companion);
+  }
 }

@@ -1,11 +1,8 @@
-import 'dart:io';
 import 'dart:typed_data';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:workmanager/workmanager.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/artwork_constants.dart';
@@ -13,7 +10,6 @@ import '../../core/services/app_logger.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/nextcloud_service.dart';
 import '../../core/services/secure_credentials_service.dart';
-import '../../core/services/sync_worker.dart';
 import '../settings/settings_providers.dart';
 
 enum _Op { idle, testing, backing, restoring }
@@ -32,11 +28,10 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   final _pathCtrl = TextEditingController();
   int _keepExports = 5;
   bool _autoSync = false;
-  int _syncIntervalHours = 24;
-  int _androidSdkInt = 0;
   bool _obscurePassword = true;
   bool _trustSelf = false;
   bool _loaded = false;
+  bool _connectionOk = false;
   _Op _op = _Op.idle;
   String? _message;
   bool _messageIsError = false;
@@ -49,13 +44,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     }).catchError((Object e, StackTrace st) {
       AppLogger.error('NextcloudScreen: failed to load password', e, st);
     });
-    if (Platform.isAndroid) {
-      DeviceInfoPlugin().androidInfo.then((info) {
-        if (mounted) setState(() => _androidSdkInt = info.version.sdkInt);
-      }).catchError((Object e, StackTrace st) {
-        AppLogger.error('NextcloudScreen: failed to get device info', e, st);
-      });
-    }
   }
 
   @override
@@ -75,8 +63,8 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     setState(() {
       _keepExports = s.nextcloudKeepExports;
       _autoSync = s.autoSyncEnabled;
-      _syncIntervalHours = s.autoSyncIntervalHours;
       _trustSelf = s.nextcloudTrustSelfSigned;
+      _connectionOk = false;
     });
   }
 
@@ -95,17 +83,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nextcloud'),
-        actions: [
-          TextButton(
-            onPressed: busy ? null : () async {
-              final urlErr = _urlError(_urlCtrl.text.trim());
-              if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
-              await _save();
-              _setMsg('Settings saved', isError: false);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -123,13 +100,20 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           ),
           const SizedBox(height: 4),
           _keepRow(),
-          if (Platform.isAndroid) ...[
-            const SizedBox(height: 8),
-            _autoSyncSection(),
-          ],
-          const SizedBox(height: 16),
-          const Divider(),
           const SizedBox(height: 8),
+          _autoSyncSection(),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('Save settings'),
+            onPressed: busy ? null : () async {
+              final urlErr = _urlError(_urlCtrl.text.trim());
+              if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
+              await _save();
+              _setMsg('Settings saved', isError: false);
+            },
+          ),
+          const Divider(height: 32),
           OutlinedButton.icon(
             icon: _op == _Op.testing
                 ? const _Spinner()
@@ -143,7 +127,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
                 ? const _Spinner(bright: true)
                 : const Icon(Icons.cloud_upload_outlined),
             label: const Text('Backup now'),
-            onPressed: busy ? null : _backupNow,
+            onPressed: (busy || !_connectionOk) ? null : _backupNow,
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -151,7 +135,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
                 ? const _Spinner()
                 : const Icon(Icons.cloud_download_outlined),
             label: const Text('Restore from cloud'),
-            onPressed: busy ? null : _restoreFromCloud,
+            onPressed: (busy || !_connectionOk) ? null : _restoreFromCloud,
           ),
           if (_message != null) ...[
             const SizedBox(height: 16),
@@ -224,41 +208,12 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       );
 
   Widget _autoSyncSection() {
-    final supported = _androidSdkInt >= 33;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Auto-backup'),
-          subtitle: Text(supported
-              ? 'Periodic Nextcloud backup in the background'
-              : Platform.isAndroid
-                  ? 'Requires Android 13 or later (not supported on this device)'
-                  : 'Available on Android 13+ only'),
-          value: supported && _autoSync,
-          onChanged: supported ? (v) => setState(() => _autoSync = v) : null,
-        ),
-        if (supported && _autoSync)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4),
-            child: Row(
-              children: [
-                const Text('Interval'),
-                const SizedBox(width: 16),
-                DropdownButton<int>(
-                  value: _syncIntervalHours,
-                  items: const [
-                    DropdownMenuItem(value: 24, child: Text('Daily')),
-                    DropdownMenuItem(value: 48, child: Text('Every 2 days')),
-                    DropdownMenuItem(value: 168, child: Text('Weekly')),
-                  ],
-                  onChanged: (v) => setState(() => _syncIntervalHours = v ?? 24),
-                ),
-              ],
-            ),
-          ),
-      ],
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('Auto-backup'),
+      subtitle: const Text('Backup when artworks are added, edited or deleted'),
+      value: _autoSync,
+      onChanged: (v) => setState(() => _autoSync = v),
     );
   }
 
@@ -277,31 +232,10 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
             nextcloudTrustSelfSigned: Value(_trustSelf),
             nextcloudKeepExports: Value(_keepExports),
             autoSyncEnabled: Value(_autoSync),
-            autoSyncIntervalHours: Value(_syncIntervalHours),
           ));
-      await _scheduleOrCancelSync(path);
     } catch (e, st) {
       await AppLogger.error('NextcloudScreen: failed to save settings', e, st);
       if (mounted) _setMsg('Failed to save settings: $e', isError: true);
-    }
-  }
-
-  Future<void> _scheduleOrCancelSync(String remotePath) async {
-    if (_androidSdkInt < 33) return;
-    try {
-      if (_autoSync && _urlCtrl.text.trim().isNotEmpty) {
-        await Workmanager().registerPeriodicTask(
-          SyncWorker.taskName,
-          SyncWorker.taskName,
-          frequency: Duration(hours: _syncIntervalHours),
-          constraints: Constraints(networkType: NetworkType.connected),
-          existingWorkPolicy: ExistingWorkPolicy.replace,
-        );
-      } else {
-        await Workmanager().cancelByUniqueName(SyncWorker.taskName);
-      }
-    } catch (e, st) {
-      await AppLogger.error('NextcloudScreen: WorkManager scheduling failed', e, st);
     }
   }
 
@@ -317,41 +251,41 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   }
 
   Future<void> _testConnection() async {
-    final urlErr = _urlError(_urlCtrl.text.trim());
+    final url = _urlCtrl.text.trim();
+    final urlErr = _urlError(url);
     if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
     await _save();
-    final s = await ref.read(databaseProvider).settingsDao.get();
-    if (s.nextcloudUrl.isEmpty) {
-      _setMsg('Enter server URL first', isError: true);
-      return;
-    }
     setState(() { _op = _Op.testing; _message = null; });
     final result = await NextcloudService().verifyCredentials(
-      s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-      trustSelfSigned: s.nextcloudTrustSelfSigned,
+      url, _usernameCtrl.text.trim(), _passwordCtrl.text,
+      trustSelfSigned: _trustSelf,
     );
     if (!mounted) return;
     setState(() => _op = _Op.idle);
     switch (result) {
       case NcSuccess():
-        await AppLogger.info('NextcloudScreen: test connection succeeded for ${s.nextcloudUrl}');
+        await AppLogger.info('NextcloudScreen: test connection succeeded for $url');
+        setState(() => _connectionOk = true);
         _setMsg('Connected successfully', isError: false);
       case NcFailure(:final message):
         await AppLogger.warn('NextcloudScreen: test connection failed — $message');
+        setState(() => _connectionOk = false);
         _setMsg('Failed: $message', isError: true);
       case NcTransient():
-        await AppLogger.warn('NextcloudScreen: test connection transient error (${s.nextcloudUrl})');
+        await AppLogger.warn('NextcloudScreen: test connection transient error ($url)');
+        setState(() => _connectionOk = false);
         _setMsg('Network error – check URL and connection', isError: true);
     }
   }
 
   Future<void> _backupNow() async {
     await _save();
-    final s = await ref.read(databaseProvider).settingsDao.get();
-    if (s.nextcloudUrl.isEmpty) {
+    final url = _urlCtrl.text.trim();
+    if (url.isEmpty) {
       _setMsg('Configure Nextcloud connection first', isError: true);
       return;
     }
+    final path = _pathCtrl.text.trim().isEmpty ? kDefaultRemotePath : _pathCtrl.text.trim();
     setState(() { _op = _Op.backing; _message = null; });
     try {
       await AppLogger.info('NextcloudScreen: manual backup started');
@@ -364,18 +298,18 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       }
       final bytes =
           await BackupService().exportToZip(artworks, photosByArtwork);
-      final filename = '${s.nextcloudPath}/${BackupService.generateFilename()}';
+      final filename = '$path/${BackupService.generateFilename()}';
       final nc = NextcloudService();
       final result = await nc.uploadBackup(
-        s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
+        url, _usernameCtrl.text.trim(), _passwordCtrl.text,
         filename, bytes,
-        trustSelfSigned: s.nextcloudTrustSelfSigned,
+        trustSelfSigned: _trustSelf,
       );
       if (!mounted) return;
       switch (result) {
         case NcSuccess():
           await AppLogger.info('NextcloudScreen: manual backup succeeded — $filename');
-          await _pruneOldBackups(nc, s);
+          await _pruneOldBackups(nc, url, _usernameCtrl.text.trim(), path, _trustSelf, _keepExports);
           await db.settingsDao.save(SettingsCompanion(
             lastSyncAt: Value(DateTime.now().millisecondsSinceEpoch),
             lastSyncError: const Value(null),
@@ -396,19 +330,26 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     }
   }
 
-  Future<void> _pruneOldBackups(NextcloudService nc, Setting s) async {
+  Future<void> _pruneOldBackups(
+    NextcloudService nc,
+    String url,
+    String username,
+    String remotePath,
+    bool trustSelfSigned,
+    int keepExports,
+  ) async {
     final result = await nc.listFiles(
-      s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-      s.nextcloudPath, trustSelfSigned: s.nextcloudTrustSelfSigned,
+      url, username, _passwordCtrl.text,
+      remotePath, trustSelfSigned: trustSelfSigned,
     );
     if (result is! NcSuccess<List<String>>) return;
     final files = [...result.value]..sort();
-    if (files.length <= s.nextcloudKeepExports) return;
-    for (final href in files.sublist(0, files.length - s.nextcloudKeepExports)) {
+    if (files.length <= keepExports) return;
+    for (final href in files.sublist(0, files.length - keepExports)) {
       final del = await nc.deleteFile(
-        s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-        '${s.nextcloudPath}/${p.basename(href)}',
-        trustSelfSigned: s.nextcloudTrustSelfSigned,
+        url, username, _passwordCtrl.text,
+        '$remotePath/${p.basename(href)}',
+        trustSelfSigned: trustSelfSigned,
       );
       if (del is! NcSuccess) {
         await AppLogger.warn('NextcloudScreen: could not prune $href');
@@ -418,16 +359,17 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
 
   Future<void> _restoreFromCloud() async {
     await _save();
-    final s = await ref.read(databaseProvider).settingsDao.get();
-    if (s.nextcloudUrl.isEmpty) {
+    final url = _urlCtrl.text.trim();
+    if (url.isEmpty) {
       _setMsg('Configure Nextcloud connection first', isError: true);
       return;
     }
+    final path = _pathCtrl.text.trim().isEmpty ? kDefaultRemotePath : _pathCtrl.text.trim();
     setState(() { _op = _Op.restoring; _message = null; });
     final nc = NextcloudService();
     final listResult = await nc.listFiles(
-      s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-      s.nextcloudPath, trustSelfSigned: s.nextcloudTrustSelfSigned,
+      url, _usernameCtrl.text.trim(), _passwordCtrl.text,
+      path, trustSelfSigned: _trustSelf,
     );
     if (!mounted) return;
     setState(() => _op = _Op.idle);
@@ -454,9 +396,9 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         if (confirmed != true || !mounted) return;
         setState(() { _op = _Op.restoring; _message = null; });
         final dlResult = await nc.downloadFile(
-          s.nextcloudUrl, s.nextcloudUsername, _passwordCtrl.text,
-          '${s.nextcloudPath}/${p.basename(selected)}',
-          trustSelfSigned: s.nextcloudTrustSelfSigned,
+          url, _usernameCtrl.text.trim(), _passwordCtrl.text,
+          '$path/${p.basename(selected)}',
+          trustSelfSigned: _trustSelf,
         );
         if (!mounted) return;
         switch (dlResult) {
@@ -474,18 +416,18 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
 
   Future<bool?> _confirmReplace() => showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogCtx) => AlertDialog(
           title: const Text('Replace all artworks?'),
           content: const Text(
               'All current artworks will be permanently deleted and replaced by the backup.'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(dialogCtx, false),
                 child: const Text('Cancel')),
             FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error),
-              onPressed: () => Navigator.pop(context, true),
+                  backgroundColor: Theme.of(dialogCtx).colorScheme.error),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: const Text('Replace'),
             ),
           ],

@@ -93,6 +93,26 @@ Future<void> _pruneOldBackups(
   }
 }
 
+/// Call after any artwork mutation to trigger a Nextcloud backup if enabled.
+/// Fire-and-forget: caller should use unawaited().
+Future<void> triggerAutoBackup(AppDatabase db) async {
+  try {
+    final s = await db.settingsDao.get();
+    if (!s.autoSyncEnabled || s.nextcloudUrl.isEmpty || s.nextcloudUsername.isEmpty) return;
+    final password = await SecureCredentialsService.readPassword();
+    if (password.isEmpty) return;
+    await runSyncTask(
+      db: db,
+      backupService: BackupService(),
+      nextcloudService: NextcloudService(),
+      settings: s,
+      password: password,
+    );
+  } catch (e, st) {
+    await AppLogger.error('AutoBackup: failed', e, st);
+  }
+}
+
 class SyncWorker {
   static const taskName = 'nc_auto_backup';
 

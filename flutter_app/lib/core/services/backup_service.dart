@@ -93,19 +93,16 @@ class BackupService {
   Future<BackupData> importFromBytes(Uint8List bytes) async {
     final archive = ZipDecoder().decodeBytes(bytes);
     final artworksDir = await _artworksDir();
-    final canonicalBase = '${artworksDir.path}${Platform.pathSeparator}';
 
     // Extract photos first
     final extractedFiles = <String, String>{};
     for (final file in archive.files) {
       if (file.name.startsWith('photos/') && file.isFile) {
         final filename = p.basename(file.name);
+        if (filename.isEmpty) continue;
         final dest = File(p.join(artworksDir.path, filename));
-        // ZIP slip protection
-        if ((await dest.canonicalPath).startsWith(canonicalBase)) {
-          await dest.writeAsBytes(file.content as List<int>);
-          extractedFiles[filename] = dest.path;
-        }
+        await dest.writeAsBytes(file.content as List<int>);
+        extractedFiles[filename] = dest.path;
       }
     }
 
@@ -221,6 +218,3 @@ class BackupData {
   const BackupData({required this.artworks, required this.photos});
 }
 
-extension on File {
-  Future<String> get canonicalPath => resolveSymbolicLinks();
-}
