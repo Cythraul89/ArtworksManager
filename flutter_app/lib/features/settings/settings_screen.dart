@@ -140,30 +140,37 @@ class SettingsScreen extends ConsumerWidget {
               child: Text('Default currency',
                   style: Theme.of(ctx).textTheme.titleMedium),
             ),
-            ...Currency.values.map((c) => ListTile(
-                  leading: Text(c.symbol,
-                      style: Theme.of(ctx).textTheme.titleMedium),
-                  title: Text(c.code),
-                  trailing: setting.currency == c.code
-                      ? Icon(Icons.check,
-                          color: Theme.of(ctx).colorScheme.primary)
-                      : null,
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    try {
-                      await ref.read(databaseProvider).settingsDao.save(
-                            SettingsCompanion(currency: Value(c.code)),
-                          );
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to save: $e')),
-                        );
-                      }
-                    }
-                  },
-                )),
-            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ...Currency.values.map((c) => ListTile(
+                        leading: Text(c.symbol,
+                            style: Theme.of(ctx).textTheme.titleMedium),
+                        title: Text(c.code),
+                        trailing: setting.currency == c.code
+                            ? Icon(Icons.check,
+                                color: Theme.of(ctx).colorScheme.primary)
+                            : null,
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          try {
+                            await ref.read(databaseProvider).settingsDao.save(
+                                  SettingsCompanion(currency: Value(c.code)),
+                                );
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to save: $e')),
+                              );
+                            }
+                          }
+                        },
+                      )),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
           ],
         ),
       ),

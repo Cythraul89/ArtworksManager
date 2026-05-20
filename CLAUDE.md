@@ -85,7 +85,7 @@ flutter_app/lib/
 │   │   └── daos/                  ArtworksDao, PhotosDao, SettingsDao + their *.g.dart
 │   ├── models/
 │   │   ├── artwork_constants.dart SortBy enum + artworkTypes (incl. Book) + kDefaultRemotePath = 'AWoMa'
-│   │   └── currency.dart          Currency enum (EUR/USD/NOK/ZAR)
+│   │   └── currency.dart          Currency enum (21 currencies: EUR/USD/GBP/JPY/CHF/CAD/AUD/BRL/CZK/DKK/HKD/HUF/INR/KRW/MXN/NOK/NZD/PLN/SEK/SGD/ZAR)
 │   ├── services/
 │   │   ├── app_logger.dart        File logger: AppLogger.info/warn/error(); fire-and-forget
 │   │   ├── backup_service.dart    ZIP export/import; BackupService.generateFilename()

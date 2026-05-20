@@ -10,19 +10,25 @@ void main() {
       expect(Currency.fromCode('USD'), Currency.usd);
       expect(Currency.fromCode('NOK'), Currency.nok);
       expect(Currency.fromCode('ZAR'), Currency.zar);
+      expect(Currency.fromCode('GBP'), Currency.gbp);
+      expect(Currency.fromCode('CHF'), Currency.chf);
+      expect(Currency.fromCode('SEK'), Currency.sek);
     });
 
     test('fromCode falls back to EUR for unknown codes', () {
-      expect(Currency.fromCode('GBP'), Currency.eur);
       expect(Currency.fromCode(''), Currency.eur);
-      expect(Currency.fromCode('JPY'), Currency.eur);
+      expect(Currency.fromCode('XYZ'), Currency.eur);
     });
 
     test('symbols are correct', () {
       expect(Currency.eur.symbol, '€');
       expect(Currency.usd.symbol, '\$');
-      expect(Currency.nok.symbol, 'kr');
-      expect(Currency.zar.symbol, 'R');
+      expect(Currency.gbp.symbol, '£');
+      expect(Currency.jpy.symbol, '¥');
+      expect(Currency.chf.symbol, 'CHF');
+      expect(Currency.nok.symbol, 'NOK');
+      expect(Currency.sek.symbol, 'SEK');
+      expect(Currency.zar.symbol, 'ZAR');
     });
 
     test('codes are correct', () {

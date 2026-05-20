@@ -74,7 +74,7 @@ A single private individual who owns a personal art collection of up to 1000 art
 
 ## Settings / Preferences
 
-- **Global currency** — the default currency used to display purchase prices throughout the app (form prefix, detail view, PDF export, collection value total); supported values: EUR (€), USD ($), NOK (kr), ZAR (R); selection is persisted across app restarts
+- **Global currency** — the default currency used to display purchase prices throughout the app (form prefix, detail view, PDF export, collection value total); supported values: EUR, USD, GBP, JPY, CHF, CAD, AUD, BRL, CZK, DKK, HKD, HUF, INR, KRW, MXN, NOK, NZD, PLN, SEK, SGD, ZAR; selection is persisted across app restarts
 - **Per-artwork currency** — each artwork can store its own currency code; when set it overrides the global preference for that artwork's price display
 
 ## Non-Functional Requirements

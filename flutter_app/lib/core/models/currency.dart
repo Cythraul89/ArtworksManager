@@ -1,8 +1,25 @@
 enum Currency {
   eur('EUR', '€'),
   usd('USD', '\$'),
-  nok('NOK', 'kr'),
-  zar('ZAR', 'R');
+  gbp('GBP', '£'),
+  jpy('JPY', '¥'),
+  chf('CHF', 'CHF'),
+  cad('CAD', 'CA\$'),
+  aud('AUD', 'A\$'),
+  brl('BRL', 'BRL'),
+  czk('CZK', 'CZK'),
+  dkk('DKK', 'DKK'),
+  hkd('HKD', 'HKD'),
+  huf('HUF', 'HUF'),
+  inr('INR', 'INR'),
+  krw('KRW', 'KRW'),
+  mxn('MXN', 'MXN'),
+  nok('NOK', 'NOK'),
+  nzd('NZD', 'NZD'),
+  pln('PLN', 'PLN'),
+  sek('SEK', 'SEK'),
+  sgd('SGD', 'SGD'),
+  zar('ZAR', 'ZAR');
 
   const Currency(this.code, this.symbol);
   final String code;
