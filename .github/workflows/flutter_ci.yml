@@ -145,7 +145,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: flutter_app/build/macos/Build/Products/Release/artworks_manager.app
+          path: flutter_app/build/macos/Build/Products/Release/AWoMa.app
           retention-days: 14
 
   build-ios:

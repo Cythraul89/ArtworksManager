@@ -1,0 +1,171 @@
+name: Flutter Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+defaults:
+  run:
+    working-directory: flutter_app
+
+jobs:
+  build-android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      # Builds a release APK signed with the debug key (see android/app/build.gradle.kts).
+      # Replace signingConfig with a release keystore to produce a Play-Store-ready APK.
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+
+  build-linux:
+    name: Linux bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        working-directory: .
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev libjsoncpp-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Linux release
+        run: flutter build linux --release
+
+      - name: Archive bundle
+        run: tar -czf awoma-linux-x64.tar.gz -C build/linux/x64/release bundle
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundle
+          path: flutter_app/awoma-linux-x64.tar.gz
+
+  build-windows:
+    name: Windows bundle
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Archive bundle
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath awoma-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: flutter_app/awoma-windows-x64.zip
+
+  build-macos:
+    name: macOS app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Disable macOS sandbox (CI only)
+        working-directory: flutter_app/macos
+        run: |
+          /usr/libexec/PlistBuddy -c \
+            "Delete :com.apple.security.app-sandbox" \
+            Runner/DebugProfile.entitlements || true
+          /usr/libexec/PlistBuddy -c \
+            "Delete :com.apple.security.app-sandbox" \
+            Runner/Release.entitlements || true
+
+      - name: Build macOS release
+        run: flutter build macos --release
+
+      - name: Archive app bundle
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/macos/Build/Products/Release/AWoMa.app \
+            awoma-macos.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: flutter_app/awoma-macos.zip
+
+  release:
+    name: GitHub Release
+    needs: [build-android, build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
