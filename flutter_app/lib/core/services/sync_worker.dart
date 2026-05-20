@@ -44,7 +44,7 @@ Future<bool> runSyncTask({
   final result = await nextcloudService.uploadBackup(
     settings.nextcloudUrl, settings.nextcloudUsername, password,
     remotePath, bytes,
-    trustSelfSigned: settings.nextcloudTrustSelfSigned,
+    pinnedFingerprint: settings.nextcloudCertFingerprint,
   );
 
   if (result is! NcSuccess) {
@@ -76,7 +76,7 @@ Future<void> _pruneOldBackups(
   final result = await nc.listFiles(
     s.nextcloudUrl, s.nextcloudUsername, password,
     s.nextcloudPath,
-    trustSelfSigned: s.nextcloudTrustSelfSigned,
+    pinnedFingerprint: s.nextcloudCertFingerprint,
   );
   if (result is! NcSuccess<List<String>>) return;
   final files = [...result.value]..sort();
@@ -85,7 +85,7 @@ Future<void> _pruneOldBackups(
     final del = await nc.deleteFile(
       s.nextcloudUrl, s.nextcloudUsername, password,
       '${s.nextcloudPath}/${p.basename(href)}',
-      trustSelfSigned: s.nextcloudTrustSelfSigned,
+      pinnedFingerprint: s.nextcloudCertFingerprint,
     );
     if (del is! NcSuccess) {
       await AppLogger.warn('SyncWorker: could not prune $href');

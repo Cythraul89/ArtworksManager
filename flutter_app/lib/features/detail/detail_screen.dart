@@ -72,21 +72,39 @@ class _DetailBody extends StatelessWidget {
     );
   }
 
+  List<String> _allPhotos(List<String> additional) => [
+        if (artwork.photoPath.isNotEmpty) artwork.photoPath,
+        ...additional,
+      ];
+
+  void _showFullscreen(BuildContext context, List<String> paths, int index) {
+    if (paths.isEmpty) return;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => _FullscreenViewer(paths: paths, initialIndex: index),
+    );
+  }
+
   Widget _buildNarrow(BuildContext context, List<String> additionalPhotos) {
+    final allPhotos = _allPhotos(additionalPhotos);
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (artwork.photoPath.isNotEmpty)
-            AspectRatio(
-              aspectRatio: 4 / 3,
-              child: Image.file(
-                File(artwork.photoPath),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                errorBuilder: (_, __, ___) =>
-                    const Center(child: Icon(Icons.broken_image_outlined, size: 64)),
+            GestureDetector(
+              onTap: () => _showFullscreen(context, allPhotos, 0),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: Image.file(
+                  File(artwork.photoPath),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (_, __, ___) =>
+                      const Center(child: Icon(Icons.broken_image_outlined, size: 64)),
+                ),
               ),
             ),
           Padding(
@@ -113,7 +131,14 @@ class _DetailBody extends StatelessWidget {
               padding: const EdgeInsets.only(left: 16, bottom: 8),
               child: Text('Photos', style: Theme.of(context).textTheme.labelLarge),
             ),
-            PhotoStrip(paths: additionalPhotos),
+            PhotoStrip(
+              paths: additionalPhotos,
+              onTap: (i) => _showFullscreen(
+                context,
+                allPhotos,
+                artwork.photoPath.isNotEmpty ? i + 1 : i,
+              ),
+            ),
           ],
         ],
       ),
@@ -121,25 +146,31 @@ class _DetailBody extends StatelessWidget {
   }
 
   Widget _buildWide(BuildContext context, List<String> additionalPhotos) {
+    final allPhotos = _allPhotos(additionalPhotos);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: artwork.photoPath.isNotEmpty
-              ? Image.file(
-                  File(artwork.photoPath),
-                  fit: BoxFit.cover,
-                  height: double.infinity,
-                  width: double.infinity,
-                  errorBuilder: (_, __, ___) => Center(
-                    child: Icon(Icons.broken_image_outlined,
+          child: GestureDetector(
+            onTap: artwork.photoPath.isNotEmpty
+                ? () => _showFullscreen(context, allPhotos, 0)
+                : null,
+            child: artwork.photoPath.isNotEmpty
+                ? Image.file(
+                    File(artwork.photoPath),
+                    fit: BoxFit.cover,
+                    height: double.infinity,
+                    width: double.infinity,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Icon(Icons.broken_image_outlined,
+                          size: 64, color: Theme.of(context).colorScheme.outline),
+                    ),
+                  )
+                : Center(
+                    child: Icon(Icons.image_outlined,
                         size: 64, color: Theme.of(context).colorScheme.outline),
                   ),
-                )
-              : Center(
-                  child: Icon(Icons.image_outlined,
-                      size: 64, color: Theme.of(context).colorScheme.outline),
-                ),
+          ),
         ),
         const VerticalDivider(width: 1),
         Expanded(
@@ -161,7 +192,14 @@ class _DetailBody extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text('Photos', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 8),
-                  PhotoStrip(paths: additionalPhotos),
+                  PhotoStrip(
+                    paths: additionalPhotos,
+                    onTap: (i) => _showFullscreen(
+                      context,
+                      allPhotos,
+                      artwork.photoPath.isNotEmpty ? i + 1 : i,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -290,6 +328,90 @@ class _DetailBody extends StatelessWidget {
             },
             child: const Text('Delete'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Fullscreen photo viewer ───────────────────────────────────────────────────
+
+class _FullscreenViewer extends StatefulWidget {
+  const _FullscreenViewer({required this.paths, required this.initialIndex});
+  final List<String> paths;
+  final int initialIndex;
+
+  @override
+  State<_FullscreenViewer> createState() => _FullscreenViewerState();
+}
+
+class _FullscreenViewerState extends State<_FullscreenViewer> {
+  late final PageController _ctrl;
+  late int _current;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialIndex;
+    _ctrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.black87,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _ctrl,
+            itemCount: widget.paths.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (_, i) => InteractiveViewer(
+              child: Center(
+                child: Image.file(
+                  File(widget.paths[i]),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.broken_image_outlined,
+                      color: Colors.white,
+                      size: 64),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              tooltip: 'Close',
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          if (widget.paths.length > 1)
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(widget.paths.length, (i) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: _current == i ? 12 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _current == i ? Colors.white : Colors.white54,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                )),
+              ),
+            ),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
@@ -14,6 +15,8 @@ import '../settings/settings_providers.dart';
 
 enum _Op { idle, testing, backing, restoring }
 
+enum _SyncChoice { restore, upload }
+
 class NextcloudScreen extends ConsumerStatefulWidget {
   const NextcloudScreen({super.key});
 
@@ -22,6 +25,7 @@ class NextcloudScreen extends ConsumerStatefulWidget {
 }
 
 class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _urlCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -29,9 +33,9 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   int _keepExports = 5;
   bool _autoSync = false;
   bool _obscurePassword = true;
-  bool _trustSelf = false;
   bool _loaded = false;
-  bool _connectionOk = false;
+  bool _connectionVerified = false;
+  String? _certFingerprint;
   _Op _op = _Op.idle;
   String? _message;
   bool _messageIsError = false;
@@ -60,12 +64,19 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     _urlCtrl.text = s.nextcloudUrl;
     _usernameCtrl.text = s.nextcloudUsername;
     _pathCtrl.text = s.nextcloudPath;
+    _certFingerprint = s.nextcloudCertFingerprint;
     setState(() {
       _keepExports = s.nextcloudKeepExports;
       _autoSync = s.autoSyncEnabled;
-      _trustSelf = s.nextcloudTrustSelfSigned;
-      _connectionOk = false;
+      // Treat previously synced credentials as already verified
+      _connectionVerified = s.nextcloudUrl.isNotEmpty &&
+          s.nextcloudUsername.isNotEmpty &&
+          s.lastSyncAt != null;
     });
+  }
+
+  void _invalidateVerification() {
+    if (_connectionVerified) setState(() => _connectionVerified = false);
   }
 
   void _setMsg(String msg, {required bool isError}) {
@@ -81,93 +92,109 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     final busy = _op != _Op.idle;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nextcloud'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
-          _field(_urlCtrl, 'Server URL', hint: 'https://cloud.example.com'),
-          _field(_usernameCtrl, 'Username'),
-          _pwField(),
-          _field(_pathCtrl, 'Remote path', hint: 'AWoMa'),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Trust self-signed certificates'),
-            subtitle: const Text('Allow connections to servers with untrusted certificates'),
-            value: _trustSelf,
-            onChanged: (v) => setState(() => _trustSelf = v),
-          ),
-          const SizedBox(height: 4),
-          _keepRow(),
-          const SizedBox(height: 8),
-          _autoSyncSection(),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Save settings'),
-            onPressed: busy ? null : () async {
-              final urlErr = _urlError(_urlCtrl.text.trim());
-              if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
-              await _save();
-              _setMsg('Settings saved', isError: false);
-            },
-          ),
-          const Divider(height: 32),
-          OutlinedButton.icon(
-            icon: _op == _Op.testing
-                ? const _Spinner()
-                : const Icon(Icons.wifi_tethering),
-            label: const Text('Test connection'),
-            onPressed: busy ? null : _testConnection,
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            icon: _op == _Op.backing
-                ? const _Spinner(bright: true)
-                : const Icon(Icons.cloud_upload_outlined),
-            label: const Text('Backup now'),
-            onPressed: (busy || !_connectionOk) ? null : _backupNow,
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: _op == _Op.restoring
-                ? const _Spinner()
-                : const Icon(Icons.cloud_download_outlined),
-            label: const Text('Restore from cloud'),
-            onPressed: (busy || !_connectionOk) ? null : _restoreFromCloud,
-          ),
-          if (_message != null) ...[
+      appBar: AppBar(title: const Text('Nextcloud')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            _formField(_urlCtrl, 'Server URL',
+                hint: 'https://cloud.example.com',
+                keyboardType: TextInputType.url,
+                onChanged: (_) => _invalidateVerification(),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Required' : null),
+            _formField(_usernameCtrl, 'Username',
+                onChanged: (_) => _invalidateVerification(),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Required' : null),
+            _pwField(),
+            _formField(_pathCtrl, 'Remote path', hint: kDefaultRemotePath),
+            _keepRow(),
+            const SizedBox(height: 8),
+            _autoSyncSection(),
             const SizedBox(height: 16),
-            _Banner(message: _message!, isError: _messageIsError),
+            FilledButton.icon(
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Save settings'),
+              onPressed: (busy || !_connectionVerified) ? null : _saveAndSync,
+            ),
+            if (!_connectionVerified) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Test the connection before saving',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
+            ],
+            const Divider(height: 32),
+            OutlinedButton.icon(
+              icon: _op == _Op.testing
+                  ? const _Spinner()
+                  : const Icon(Icons.wifi_tethering),
+              label: const Text('Test connection'),
+              onPressed: busy ? null : _testConnection,
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              icon: _op == _Op.backing
+                  ? const _Spinner(bright: true)
+                  : const Icon(Icons.cloud_upload_outlined),
+              label: const Text('Backup now'),
+              onPressed: (busy || !_connectionVerified) ? null : _backupNow,
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: _op == _Op.restoring
+                  ? const _Spinner()
+                  : const Icon(Icons.cloud_download_outlined),
+              label: const Text('Restore from cloud'),
+              onPressed: (busy || !_connectionVerified) ? null : _restoreFromCloud,
+            ),
+            if (_message != null) ...[
+              const SizedBox(height: 16),
+              _Banner(message: _message!, isError: _messageIsError),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
   // ── Widget helpers ─────────────────────────────────────────────────────────
 
-  Widget _field(TextEditingController ctrl, String label, {String? hint}) =>
+  Widget _formField(
+    TextEditingController ctrl,
+    String label, {
+    String? hint,
+    TextInputType? keyboardType,
+    void Function(String)? onChanged,
+    String? Function(String?)? validator,
+  }) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
+        child: TextFormField(
           controller: ctrl,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
             border: const OutlineInputBorder(),
           ),
+          keyboardType: keyboardType,
+          onChanged: onChanged,
+          validator: validator,
         ),
       );
 
   Widget _pwField() => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
+        child: TextFormField(
           controller: _passwordCtrl,
           obscureText: _obscurePassword,
+          onChanged: (_) => _invalidateVerification(),
           decoration: InputDecoration(
-            labelText: 'Password',
+            labelText: 'Password / app token',
             border: const OutlineInputBorder(),
             suffixIcon: IconButton(
               icon: Icon(_obscurePassword
@@ -177,6 +204,8 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
                   setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Required' : null,
         ),
       );
 
@@ -198,8 +227,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
                 _keepExports > 1 ? () => setState(() => _keepExports--) : null,
           ),
           Text('$_keepExports',
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => setState(() => _keepExports++),
@@ -207,88 +235,230 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         ],
       );
 
-  Widget _autoSyncSection() {
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      title: const Text('Auto-backup'),
-      subtitle: const Text('Backup when artworks are added, edited or deleted'),
-      value: _autoSync,
-      onChanged: (v) => setState(() => _autoSync = v),
-    );
-  }
+  Widget _autoSyncSection() => SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Auto-backup'),
+        subtitle:
+            const Text('Backup when artworks are added, edited or deleted'),
+        value: _autoSync,
+        onChanged: (v) => setState(() => _autoSync = v),
+      );
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  Future<void> _save() async {
-    try {
-      final path = _pathCtrl.text.trim().isEmpty
-          ? kDefaultRemotePath
-          : _pathCtrl.text.trim();
-      await SecureCredentialsService.writePassword(_passwordCtrl.text);
-      await ref.read(databaseProvider).settingsDao.save(SettingsCompanion(
-            nextcloudUrl: Value(_urlCtrl.text.trim()),
-            nextcloudUsername: Value(_usernameCtrl.text.trim()),
-            nextcloudPath: Value(path),
-            nextcloudTrustSelfSigned: Value(_trustSelf),
-            nextcloudKeepExports: Value(_keepExports),
-            autoSyncEnabled: Value(_autoSync),
-          ));
-    } catch (e, st) {
-      await AppLogger.error('NextcloudScreen: failed to save settings', e, st);
-      if (mounted) _setMsg('Failed to save settings: $e', isError: true);
-    }
-  }
-
-  /// Returns an error message if [url] is non-empty but malformed, else null.
-  String? _urlError(String url) {
-    if (url.isEmpty) return null;
-    final uri = Uri.tryParse(url);
-    if (uri == null || uri.host.isEmpty) return 'Enter a valid URL';
-    if (uri.scheme != 'http' && uri.scheme != 'https') {
-      return 'URL must start with https://';
-    }
-    return null;
-  }
-
   Future<void> _testConnection() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     final url = _urlCtrl.text.trim();
-    final urlErr = _urlError(url);
-    if (urlErr != null) { _setMsg(urlErr, isError: true); return; }
-    await _save();
     setState(() { _op = _Op.testing; _message = null; });
-    final result = await NextcloudService().verifyCredentials(
+
+    final nc = NextcloudService();
+
+    // 1. Probe certificate
+    final certResult = await nc.fetchCertificateInfo(url);
+    if (!mounted) return;
+
+    switch (certResult) {
+      case NcFailure(:final message):
+        setState(() => _op = _Op.idle);
+        _setMsg('Cannot reach server: $message', isError: true);
+        return;
+      case NcTransient():
+        setState(() => _op = _Op.idle);
+        _setMsg('Network error — check URL and connection', isError: true);
+        return;
+      case NcSuccess(:final value):
+        if (value != null) {
+          // Untrusted cert — show dialog
+          final approved = await _showCertDialog(value);
+          if (!mounted) return;
+          if (approved != true) {
+            setState(() => _op = _Op.idle);
+            _setMsg('Certificate not trusted — connection cancelled', isError: true);
+            return;
+          }
+          _certFingerprint = value.fingerprint;
+        }
+    }
+
+    // 2. Verify credentials
+    final result = await nc.verifyCredentials(
       url, _usernameCtrl.text.trim(), _passwordCtrl.text,
-      trustSelfSigned: _trustSelf,
+      pinnedFingerprint: _certFingerprint,
     );
     if (!mounted) return;
     setState(() => _op = _Op.idle);
+
     switch (result) {
       case NcSuccess():
         await AppLogger.info('NextcloudScreen: test connection succeeded for $url');
-        setState(() => _connectionOk = true);
+        setState(() => _connectionVerified = true);
         _setMsg('Connected successfully', isError: false);
       case NcFailure(:final message):
         await AppLogger.warn('NextcloudScreen: test connection failed — $message');
-        setState(() => _connectionOk = false);
+        setState(() => _connectionVerified = false);
         _setMsg('Failed: $message', isError: true);
       case NcTransient():
-        await AppLogger.warn('NextcloudScreen: test connection transient error ($url)');
-        setState(() => _connectionOk = false);
+        setState(() => _connectionVerified = false);
         _setMsg('Network error – check URL and connection', isError: true);
     }
   }
 
-  Future<void> _backupNow() async {
-    await _save();
-    final url = _urlCtrl.text.trim();
-    if (url.isEmpty) {
-      _setMsg('Configure Nextcloud connection first', isError: true);
-      return;
+  Future<bool?> _showCertDialog(CertificateInfo info) => showDialog<bool>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Untrusted certificate'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'This server uses a certificate not trusted by the system.'),
+                const SizedBox(height: 12),
+                _certRow('Subject', info.subject),
+                _certRow('Issuer', info.issuer),
+                _certRow('Valid until',
+                    info.validUntil.toIso8601String().substring(0, 10)),
+                _certRow('SHA-256', info.fingerprint),
+                const SizedBox(height: 12),
+                const Text(
+                    'Only trust this certificate if you have verified '
+                    'the fingerprint matches your server.',
+                    style: TextStyle(fontStyle: FontStyle.italic)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dialogCtx, false),
+                child: const Text('Reject')),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogCtx, true),
+                child: const Text('Trust & pin')),
+          ],
+        ),
+      );
+
+  Widget _certRow(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+                width: 80,
+                child: Text(label,
+                    style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+                child: Text(value,
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 11))),
+          ],
+        ),
+      );
+
+  Future<void> _save() async {
+    final path = _pathCtrl.text.trim().isEmpty
+        ? kDefaultRemotePath
+        : _pathCtrl.text.trim();
+    await SecureCredentialsService.writePassword(_passwordCtrl.text);
+    await ref.read(databaseProvider).settingsDao.save(SettingsCompanion(
+          nextcloudUrl: Value(_urlCtrl.text.trim()),
+          nextcloudUsername: Value(_usernameCtrl.text.trim()),
+          nextcloudPath: Value(path),
+          nextcloudCertFingerprint: Value(_certFingerprint),
+          nextcloudKeepExports: Value(_keepExports),
+          autoSyncEnabled: Value(_autoSync),
+        ));
+  }
+
+  /// Save credentials then check for an existing server backup and offer
+  /// to restore it or upload the current data.
+  Future<void> _saveAndSync() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    try {
+      await _save();
+      if (!mounted) return;
+
+      final url = _urlCtrl.text.trim();
+      final path = _pathCtrl.text.trim().isEmpty ? kDefaultRemotePath : _pathCtrl.text.trim();
+      final nc = NextcloudService();
+
+      final backupResult = await nc.findLatestBackup(
+        url, _usernameCtrl.text.trim(), _passwordCtrl.text, path,
+        pinnedFingerprint: _certFingerprint,
+      );
+      if (!mounted) return;
+
+      final remoteBackup = backupResult is NcSuccess<BackupInfo?> ? backupResult.value : null;
+      final choice = await _showSyncChoiceDialog(remoteBackup);
+      if (!mounted) return;
+
+      if (choice == _SyncChoice.restore && remoteBackup != null) {
+        await _doRestore(url, _usernameCtrl.text.trim(), path,
+            remoteBackup.remotePath);
+      } else if (choice == _SyncChoice.upload) {
+        await _doBackup(url, _usernameCtrl.text.trim(), path);
+      }
+
+      if (mounted) _setMsg('Settings saved', isError: false);
+    } catch (e, st) {
+      await AppLogger.error('NextcloudScreen: save failed', e, st);
+      if (mounted) _setMsg('Failed to save: $e', isError: true);
     }
+  }
+
+  Future<_SyncChoice?> _showSyncChoiceDialog(BackupInfo? remote) =>
+      showDialog<_SyncChoice>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(remote != null
+              ? 'Server backup found'
+              : 'Connected to Nextcloud'),
+          content: Text(remote != null
+              ? 'A backup from '
+                  '${DateFormat('dd MMM yyyy').format(remote.backupDate)} '
+                  'was found on your Nextcloud.\n\n'
+                  'Restore from server, or upload your current data?'
+              : 'No existing backup was found on the server.\n\n'
+                  'Upload a backup of your current data now?'),
+          actions: remote != null
+              ? [
+                  OutlinedButton(
+                    onPressed: () =>
+                        Navigator.pop(ctx, _SyncChoice.upload),
+                    child: const Text('Upload current'),
+                  ),
+                  FilledButton(
+                    onPressed: () =>
+                        Navigator.pop(ctx, _SyncChoice.restore),
+                    child: const Text('Restore from server'),
+                  ),
+                ]
+              : [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Later')),
+                  FilledButton(
+                    onPressed: () =>
+                        Navigator.pop(ctx, _SyncChoice.upload),
+                    child: const Text('Upload now'),
+                  ),
+                ],
+        ),
+      );
+
+  Future<void> _backupNow() async {
+    final url = _urlCtrl.text.trim();
+    if (url.isEmpty) return;
     final path = _pathCtrl.text.trim().isEmpty ? kDefaultRemotePath : _pathCtrl.text.trim();
     setState(() { _op = _Op.backing; _message = null; });
+    await _doBackup(url, _usernameCtrl.text.trim(), path);
+    if (mounted) setState(() => _op = _Op.idle);
+  }
+
+  Future<void> _doBackup(String url, String username, String path) async {
     try {
-      await AppLogger.info('NextcloudScreen: manual backup started');
+      await AppLogger.info('NextcloudScreen: backup started');
       final db = ref.read(databaseProvider);
       final artworks = await db.artworksDao.getAll();
       final allPhotos = await db.photosDao.getAll();
@@ -296,61 +466,47 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       for (final ph in allPhotos) {
         photosByArtwork.putIfAbsent(ph.artworkId, () => []).add(ph);
       }
-      final bytes =
-          await BackupService().exportToZip(artworks, photosByArtwork);
+      final bytes = await BackupService().exportToZip(artworks, photosByArtwork);
       final filename = '$path/${BackupService.generateFilename()}';
       final nc = NextcloudService();
       final result = await nc.uploadBackup(
-        url, _usernameCtrl.text.trim(), _passwordCtrl.text,
+        url, username, _passwordCtrl.text,
         filename, bytes,
-        trustSelfSigned: _trustSelf,
+        pinnedFingerprint: _certFingerprint,
       );
       if (!mounted) return;
       switch (result) {
         case NcSuccess():
-          await AppLogger.info('NextcloudScreen: manual backup succeeded — $filename');
-          await _pruneOldBackups(nc, url, _usernameCtrl.text.trim(), path, _trustSelf, _keepExports);
+          await AppLogger.info('NextcloudScreen: backup succeeded');
+          await _pruneOldBackups(nc, url, username, path);
           await db.settingsDao.save(SettingsCompanion(
             lastSyncAt: Value(DateTime.now().millisecondsSinceEpoch),
             lastSyncError: const Value(null),
           ));
           _setMsg('Backup complete', isError: false);
         case NcFailure(:final message):
-          await AppLogger.error('NextcloudScreen: manual backup failed — $message');
+          await AppLogger.error('NextcloudScreen: backup failed — $message');
           _setMsg('Upload failed: $message', isError: true);
         case NcTransient():
-          await AppLogger.warn('NextcloudScreen: manual backup transient error');
           _setMsg('Network error during upload', isError: true);
       }
     } catch (e, st) {
-      await AppLogger.error('NextcloudScreen: manual backup exception', e, st);
+      await AppLogger.error('NextcloudScreen: backup exception', e, st);
       if (mounted) _setMsg('Error: $e', isError: true);
-    } finally {
-      if (mounted) setState(() => _op = _Op.idle);
     }
   }
 
   Future<void> _pruneOldBackups(
-    NextcloudService nc,
-    String url,
-    String username,
-    String remotePath,
-    bool trustSelfSigned,
-    int keepExports,
-  ) async {
-    final result = await nc.listFiles(
-      url, username, _passwordCtrl.text,
-      remotePath, trustSelfSigned: trustSelfSigned,
-    );
+      NextcloudService nc, String url, String username, String remotePath) async {
+    final result = await nc.listFiles(url, username, _passwordCtrl.text,
+        remotePath, pinnedFingerprint: _certFingerprint);
     if (result is! NcSuccess<List<String>>) return;
     final files = [...result.value]..sort();
-    if (files.length <= keepExports) return;
-    for (final href in files.sublist(0, files.length - keepExports)) {
-      final del = await nc.deleteFile(
-        url, username, _passwordCtrl.text,
-        '$remotePath/${p.basename(href)}',
-        trustSelfSigned: trustSelfSigned,
-      );
+    if (files.length <= _keepExports) return;
+    for (final href in files.sublist(0, files.length - _keepExports)) {
+      final del = await nc.deleteFile(url, username, _passwordCtrl.text,
+          '$remotePath/${p.basename(href)}',
+          pinnedFingerprint: _certFingerprint);
       if (del is! NcSuccess) {
         await AppLogger.warn('NextcloudScreen: could not prune $href');
       }
@@ -358,21 +514,18 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   }
 
   Future<void> _restoreFromCloud() async {
-    await _save();
     final url = _urlCtrl.text.trim();
-    if (url.isEmpty) {
-      _setMsg('Configure Nextcloud connection first', isError: true);
-      return;
-    }
+    if (url.isEmpty) return;
     final path = _pathCtrl.text.trim().isEmpty ? kDefaultRemotePath : _pathCtrl.text.trim();
     setState(() { _op = _Op.restoring; _message = null; });
     final nc = NextcloudService();
     final listResult = await nc.listFiles(
-      url, _usernameCtrl.text.trim(), _passwordCtrl.text,
-      path, trustSelfSigned: _trustSelf,
+      url, _usernameCtrl.text.trim(), _passwordCtrl.text, path,
+      pinnedFingerprint: _certFingerprint,
     );
-    if (!mounted) return;
+    if (!mounted) { setState(() => _op = _Op.idle); return; }
     setState(() => _op = _Op.idle);
+
     switch (listResult) {
       case NcFailure(:final message):
         _setMsg('Could not list backups: $message', isError: true);
@@ -395,22 +548,29 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         final confirmed = await _confirmReplace();
         if (confirmed != true || !mounted) return;
         setState(() { _op = _Op.restoring; _message = null; });
-        final dlResult = await nc.downloadFile(
-          url, _usernameCtrl.text.trim(), _passwordCtrl.text,
-          '$path/${p.basename(selected)}',
-          trustSelfSigned: _trustSelf,
-        );
-        if (!mounted) return;
-        switch (dlResult) {
-          case NcSuccess(:final value):
-            await _applyRestore(value);
-          case NcFailure(:final message):
-            setState(() => _op = _Op.idle);
-            _setMsg('Download failed: $message', isError: true);
-          case NcTransient():
-            setState(() => _op = _Op.idle);
-            _setMsg('Network error during download', isError: true);
-        }
+        await _doRestore(url, _usernameCtrl.text.trim(), path, selected);
+        if (mounted) setState(() => _op = _Op.idle);
+    }
+  }
+
+  Future<void> _doRestore(
+      String url, String username, String remoteDir, String selectedHref) async {
+    final nc = NextcloudService();
+    final dlResult = await nc.downloadFile(
+      url, username, _passwordCtrl.text,
+      '$remoteDir/${p.basename(selectedHref)}',
+      pinnedFingerprint: _certFingerprint,
+    );
+    if (!mounted) return;
+    switch (dlResult) {
+      case NcSuccess(:final value):
+        await _applyRestore(value);
+      case NcFailure(:final message):
+        setState(() => _op = _Op.idle);
+        _setMsg('Download failed: $message', isError: true);
+      case NcTransient():
+        setState(() => _op = _Op.idle);
+        _setMsg('Network error during download', isError: true);
     }
   }
 
@@ -443,8 +603,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
           .replaceAll(data.artworks, data.photos);
       if (mounted) {
         setState(() => _op = _Op.idle);
-        _setMsg(
-            'Restore complete – ${data.artworks.length} artworks imported',
+        _setMsg('Restore complete – ${data.artworks.length} artworks imported',
             isError: false);
       }
     } catch (e, st) {
@@ -489,14 +648,12 @@ class _Banner extends StatelessWidget {
         : Theme.of(context).colorScheme.onPrimaryContainer;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: color, borderRadius: BorderRadius.circular(8)),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
           Icon(
-              isError
-                  ? Icons.error_outline
-                  : Icons.check_circle_outline,
+              isError ? Icons.error_outline : Icons.check_circle_outline,
               color: textColor,
               size: 20),
           const SizedBox(width: 12),
@@ -522,7 +679,6 @@ class _PickerDialog extends StatelessWidget {
           shrinkWrap: true,
           itemCount: files.length,
           itemBuilder: (_, i) {
-            // Show newest first
             final href = files[files.length - 1 - i];
             return ListTile(
               leading: const Icon(Icons.archive_outlined),

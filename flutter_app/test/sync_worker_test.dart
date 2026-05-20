@@ -44,7 +44,7 @@ class _FakeNextcloudService extends NextcloudService {
     String password,
     String remotePath,
     Uint8List bytes, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async =>
       uploadResult;
 
@@ -54,7 +54,7 @@ class _FakeNextcloudService extends NextcloudService {
     String username,
     String password,
     String remoteDir, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async =>
       listResult;
 
@@ -64,7 +64,7 @@ class _FakeNextcloudService extends NextcloudService {
     String username,
     String password,
     String remotePath, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async {
     deletedPaths.add(remotePath);
     return deleteResult;

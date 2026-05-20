@@ -49,6 +49,7 @@ class Settings extends Table {
   TextColumn get nextcloudPath => text().withDefault(const Constant('AWoMa'))();
   BoolColumn get nextcloudTrustSelfSigned => boolean().withDefault(const Constant(false))();
   IntColumn get nextcloudKeepExports => integer().withDefault(const Constant(5))();
+  TextColumn get nextcloudCertFingerprint => text().nullable()();
   IntColumn get lastSyncAt => integer().nullable()(); // Unix ms
   TextColumn get lastSyncError => text().nullable()();
   BoolColumn get autoSyncEnabled => boolean().withDefault(const Constant(false))();
@@ -70,7 +71,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -95,6 +96,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) {
         await m.addColumn(settings, settings.themeMode);
+      }
+      if (from < 8) {
+        await m.addColumn(settings, settings.nextcloudCertFingerprint);
       }
     },
   );

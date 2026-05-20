@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 
@@ -24,13 +25,32 @@ class NcTransient<T> extends NcResult<T> {
   const NcTransient();
 }
 
-/// Thin WebDAV client for Nextcloud, mirroring StockManager's NextcloudService.
-/// All methods must be called from a background isolate or async context.
+class CertificateInfo {
+  const CertificateInfo({
+    required this.fingerprint,
+    required this.subject,
+    required this.issuer,
+    required this.validUntil,
+  });
+  final String fingerprint;
+  final String subject;
+  final String issuer;
+  final DateTime validUntil;
+}
+
+class BackupInfo {
+  const BackupInfo({required this.remotePath, required this.backupDate});
+  final String remotePath;
+  final DateTime backupDate;
+}
+
+/// Thin WebDAV client for Nextcloud.
+/// All methods are stateless; callers supply and persist credentials/fingerprint.
 class NextcloudService {
   static const _timeoutConnect = Duration(seconds: 15);
   static const _timeoutReceive = Duration(seconds: 60);
 
-  Dio _buildDio(String username, String password, {bool trustSelfSigned = false}) {
+  Dio _buildDio(String username, String password, {String? pinnedFingerprint}) {
     final dio = Dio(BaseOptions(
       connectTimeout: _timeoutConnect,
       receiveTimeout: _timeoutReceive,
@@ -40,10 +60,11 @@ class NextcloudService {
       },
     ));
 
-    if (trustSelfSigned) {
+    if (pinnedFingerprint != null) {
       (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) => true;
+        client.badCertificateCallback = (cert, host, port) =>
+            _certFingerprint(cert.der) == pinnedFingerprint;
         return client;
       };
     }
@@ -53,15 +74,46 @@ class NextcloudService {
   String _davBase(String serverUrl, String username) =>
       '${serverUrl.trimRight()}/remote.php/dav/files/$username';
 
+  /// Probes the server certificate. Returns:
+  /// - `NcSuccess(null)` — cert is trusted by the OS (no action needed)
+  /// - `NcSuccess(info)` — cert is untrusted; show [info] to the user for approval
+  /// - `NcTransient` / `NcFailure` on network/parse errors
+  Future<NcResult<CertificateInfo?>> fetchCertificateInfo(String serverUrl) async {
+    CertificateInfo? untrustedInfo;
+    final uri = Uri.parse(serverUrl);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10)
+      ..badCertificateCallback = (cert, host, port) {
+        untrustedInfo = CertificateInfo(
+          fingerprint: _certFingerprint(cert.der),
+          subject: cert.subject,
+          issuer: cert.issuer,
+          validUntil: cert.endValidity,
+        );
+        return false;
+      };
+    try {
+      final req = await client.getUrl(uri);
+      await req.close();
+      return const NcSuccess(null); // trusted by OS
+    } catch (e) {
+      if (untrustedInfo != null) return NcSuccess(untrustedInfo); // untrusted, needs review
+      if (e is SocketException) return const NcTransient();
+      return NcFailure(e.toString());
+    } finally {
+      client.close();
+    }
+  }
+
   /// Verifies credentials by calling the OCS user endpoint.
   Future<NcResult<void>> verifyCredentials(
     String serverUrl,
     String username,
     String password, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async {
     try {
-      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
+      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
       final resp = await dio.get('${serverUrl.trimRight()}/ocs/v2.php/cloud/user');
       if (resp.statusCode == 200) return const NcSuccess(null);
       return NcFailure('HTTP ${resp.statusCode}');
@@ -78,17 +130,16 @@ class NextcloudService {
     String password,
     String remotePath,
     Uint8List bytes, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async {
     try {
-      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
+      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
       final base = _davBase(serverUrl, username);
       final dir = remotePath.contains('/')
           ? remotePath.substring(0, remotePath.lastIndexOf('/'))
           : null;
 
       if (dir != null) {
-        // Ensure parent directory exists (ignore errors — may already exist)
         await dio.request('$base/$dir',
             options: Options(method: 'MKCOL', validateStatus: (_) => true));
       }
@@ -121,10 +172,10 @@ class NextcloudService {
     String username,
     String password,
     String remotePath, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async {
     try {
-      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
+      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
       final resp = await dio.get<List<int>>(
         '${_davBase(serverUrl, username)}/$remotePath',
         options: Options(responseType: ResponseType.bytes),
@@ -144,10 +195,10 @@ class NextcloudService {
     String username,
     String password,
     String remoteDir, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async {
     try {
-      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
+      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
       final resp = await dio.request(
         '${_davBase(serverUrl, username)}/$remoteDir',
         options: Options(
@@ -158,7 +209,6 @@ class NextcloudService {
       );
       if (resp.statusCode == 207) {
         final body = resp.data?.toString() ?? '';
-        // Extract hrefs from WebDAV XML response
         final matches = RegExp(r'<d:href>([^<]+)</d:href>').allMatches(body);
         final files = matches
             .map((m) => Uri.decodeFull(m.group(1) ?? ''))
@@ -178,15 +228,50 @@ class NextcloudService {
     String username,
     String password,
     String remotePath, {
-    bool trustSelfSigned = false,
+    String? pinnedFingerprint,
   }) async {
     try {
-      final dio = _buildDio(username, password, trustSelfSigned: trustSelfSigned);
+      final dio = _buildDio(username, password, pinnedFingerprint: pinnedFingerprint);
       await dio.delete('${_davBase(serverUrl, username)}/$remotePath');
       return const NcSuccess(null);
     } on DioException catch (e) {
       return _mapDioError(e);
     }
+  }
+
+  /// Finds the most recent AWoMa backup in [remoteDir].
+  /// Returns `NcSuccess(null)` if the directory is empty or has no matching files.
+  Future<NcResult<BackupInfo?>> findLatestBackup(
+    String serverUrl,
+    String username,
+    String password,
+    String remoteDir, {
+    String? pinnedFingerprint,
+  }) async {
+    final result = await listFiles(serverUrl, username, password, remoteDir,
+        pinnedFingerprint: pinnedFingerprint);
+    if (result is! NcSuccess<List<String>>) return const NcSuccess(null);
+
+    // AWoMa backup filename pattern: awoma_backup_YYYYMMDD_HHmmss.zip
+    final pattern = RegExp(r'awoma_backup_(\d{8})_(\d{6})\.zip$');
+    DateTime? latestDate;
+    String? latestHref;
+
+    for (final href in result.value) {
+      final match = pattern.firstMatch(href);
+      if (match == null) continue;
+      final date = DateTime.tryParse(
+          '${match.group(1)!.substring(0, 4)}-${match.group(1)!.substring(4, 6)}-${match.group(1)!.substring(6, 8)}'
+          'T${match.group(2)!.substring(0, 2)}:${match.group(2)!.substring(2, 4)}:${match.group(2)!.substring(4, 6)}');
+      if (date == null) continue;
+      if (latestDate == null || date.isAfter(latestDate)) {
+        latestDate = date;
+        latestHref = href;
+      }
+    }
+
+    if (latestDate == null || latestHref == null) return const NcSuccess(null);
+    return NcSuccess(BackupInfo(remotePath: latestHref, backupDate: latestDate));
   }
 
   NcResult<T> _mapDioError<T>(DioException e) {
@@ -195,28 +280,29 @@ class NextcloudService {
         e.type == DioExceptionType.sendTimeout) {
       return const NcTransient();
     }
-    // connectionError covers most unreachable-host cases; the SocketException
-    // check catches DioExceptionType.unknown wrapping a SocketException, which
-    // some Android versions raise instead of connectionError.
     if (e.type == DioExceptionType.connectionError ||
         e.error is SocketException) {
       return const NcTransient();
     }
-    // In Dio 5, SSL handshake failures surface as badCertificate; older builds
-    // or edge cases wrap a HandshakeException inside unknown.
     if (e.type == DioExceptionType.badCertificate ||
         e.error is HandshakeException) {
       return const NcFailure(
-          'SSL certificate not trusted — enable "Trust self-signed certificates" in settings');
+          'SSL certificate not trusted — test the connection first to pin the certificate');
     }
     final code = e.response?.statusCode;
     if (code == 401) return NcFailure('Invalid credentials');
     if (code == 507) return NcFailure('Insufficient storage on server');
-    // Prefer e.message, fall back to the underlying error string so callers
-    // always see something actionable instead of a bare "null".
     final msg = (e.message?.isNotEmpty ?? false)
         ? e.message!
         : e.error?.toString() ?? 'Unknown error';
     return NcFailure(msg);
+  }
+
+  static String _certFingerprint(Uint8List derBytes) {
+    final digest = sha256.convert(derBytes);
+    return digest.bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join(':')
+        .toUpperCase();
   }
 }

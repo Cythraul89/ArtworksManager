@@ -325,15 +325,22 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   }
 
   Future<String?> _pickImage() async {
-    final source = await _askPhotoSource();
-    if (source == null) return null;
-    if (!await _requestPermission(source)) return null;
-
-    final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(source: source, imageQuality: 85);
-    if (picked == null) return null;
-
     try {
+      if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
+        final result = await FilePicker.platform.pickFiles(type: FileType.image);
+        if (result == null || result.files.isEmpty) return null;
+        final src = result.files.first.path;
+        if (src == null) return null;
+        final ext = p.extension(src).replaceFirst('.', '').toLowerCase();
+        return await _copyToArtworksDir(src, extension: ext.isEmpty ? 'jpg' : ext);
+      }
+
+      final source = await _askPhotoSource();
+      if (source == null) return null;
+      if (!await _requestPermission(source)) return null;
+      final XFile? picked =
+          await ImagePicker().pickImage(source: source, imageQuality: 85);
+      if (picked == null) return null;
       return await _copyToArtworksDir(picked.path, extension: 'jpg');
     } catch (e, st) {
       await AppLogger.error('AddEdit: failed to copy photo', e, st);

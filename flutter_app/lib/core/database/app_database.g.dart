@@ -1189,6 +1189,12 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(5));
+  static const VerificationMeta _nextcloudCertFingerprintMeta =
+      const VerificationMeta('nextcloudCertFingerprint');
+  @override
+  late final GeneratedColumn<String> nextcloudCertFingerprint =
+      GeneratedColumn<String>('nextcloud_cert_fingerprint', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _lastSyncAtMeta =
       const VerificationMeta('lastSyncAt');
   @override
@@ -1236,6 +1242,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         nextcloudPath,
         nextcloudTrustSelfSigned,
         nextcloudKeepExports,
+        nextcloudCertFingerprint,
         lastSyncAt,
         lastSyncError,
         autoSyncEnabled,
@@ -1290,6 +1297,13 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           nextcloudKeepExports.isAcceptableOrUnknown(
               data['nextcloud_keep_exports']!, _nextcloudKeepExportsMeta));
     }
+    if (data.containsKey('nextcloud_cert_fingerprint')) {
+      context.handle(
+          _nextcloudCertFingerprintMeta,
+          nextcloudCertFingerprint.isAcceptableOrUnknown(
+              data['nextcloud_cert_fingerprint']!,
+              _nextcloudCertFingerprintMeta));
+    }
     if (data.containsKey('last_sync_at')) {
       context.handle(
           _lastSyncAtMeta,
@@ -1342,6 +1356,9 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           data['${effectivePrefix}nextcloud_trust_self_signed'])!,
       nextcloudKeepExports: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}nextcloud_keep_exports'])!,
+      nextcloudCertFingerprint: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}nextcloud_cert_fingerprint']),
       lastSyncAt: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}last_sync_at']),
       lastSyncError: attachedDatabase.typeMapping
@@ -1369,6 +1386,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String nextcloudPath;
   final bool nextcloudTrustSelfSigned;
   final int nextcloudKeepExports;
+  final String? nextcloudCertFingerprint;
   final int? lastSyncAt;
   final String? lastSyncError;
   final bool autoSyncEnabled;
@@ -1382,6 +1400,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       required this.nextcloudPath,
       required this.nextcloudTrustSelfSigned,
       required this.nextcloudKeepExports,
+      this.nextcloudCertFingerprint,
       this.lastSyncAt,
       this.lastSyncError,
       required this.autoSyncEnabled,
@@ -1398,6 +1417,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['nextcloud_trust_self_signed'] =
         Variable<bool>(nextcloudTrustSelfSigned);
     map['nextcloud_keep_exports'] = Variable<int>(nextcloudKeepExports);
+    if (!nullToAbsent || nextcloudCertFingerprint != null) {
+      map['nextcloud_cert_fingerprint'] =
+          Variable<String>(nextcloudCertFingerprint);
+    }
     if (!nullToAbsent || lastSyncAt != null) {
       map['last_sync_at'] = Variable<int>(lastSyncAt);
     }
@@ -1419,6 +1442,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudPath: Value(nextcloudPath),
       nextcloudTrustSelfSigned: Value(nextcloudTrustSelfSigned),
       nextcloudKeepExports: Value(nextcloudKeepExports),
+      nextcloudCertFingerprint: nextcloudCertFingerprint == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextcloudCertFingerprint),
       lastSyncAt: lastSyncAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncAt),
@@ -1444,6 +1470,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           serializer.fromJson<bool>(json['nextcloudTrustSelfSigned']),
       nextcloudKeepExports:
           serializer.fromJson<int>(json['nextcloudKeepExports']),
+      nextcloudCertFingerprint:
+          serializer.fromJson<String?>(json['nextcloudCertFingerprint']),
       lastSyncAt: serializer.fromJson<int?>(json['lastSyncAt']),
       lastSyncError: serializer.fromJson<String?>(json['lastSyncError']),
       autoSyncEnabled: serializer.fromJson<bool>(json['autoSyncEnabled']),
@@ -1464,6 +1492,8 @@ class Setting extends DataClass implements Insertable<Setting> {
       'nextcloudTrustSelfSigned':
           serializer.toJson<bool>(nextcloudTrustSelfSigned),
       'nextcloudKeepExports': serializer.toJson<int>(nextcloudKeepExports),
+      'nextcloudCertFingerprint':
+          serializer.toJson<String?>(nextcloudCertFingerprint),
       'lastSyncAt': serializer.toJson<int?>(lastSyncAt),
       'lastSyncError': serializer.toJson<String?>(lastSyncError),
       'autoSyncEnabled': serializer.toJson<bool>(autoSyncEnabled),
@@ -1480,6 +1510,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           String? nextcloudPath,
           bool? nextcloudTrustSelfSigned,
           int? nextcloudKeepExports,
+          Value<String?> nextcloudCertFingerprint = const Value.absent(),
           Value<int?> lastSyncAt = const Value.absent(),
           Value<String?> lastSyncError = const Value.absent(),
           bool? autoSyncEnabled,
@@ -1494,6 +1525,9 @@ class Setting extends DataClass implements Insertable<Setting> {
         nextcloudTrustSelfSigned:
             nextcloudTrustSelfSigned ?? this.nextcloudTrustSelfSigned,
         nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
+        nextcloudCertFingerprint: nextcloudCertFingerprint.present
+            ? nextcloudCertFingerprint.value
+            : this.nextcloudCertFingerprint,
         lastSyncAt: lastSyncAt.present ? lastSyncAt.value : this.lastSyncAt,
         lastSyncError:
             lastSyncError.present ? lastSyncError.value : this.lastSyncError,
@@ -1521,6 +1555,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudKeepExports: data.nextcloudKeepExports.present
           ? data.nextcloudKeepExports.value
           : this.nextcloudKeepExports,
+      nextcloudCertFingerprint: data.nextcloudCertFingerprint.present
+          ? data.nextcloudCertFingerprint.value
+          : this.nextcloudCertFingerprint,
       lastSyncAt:
           data.lastSyncAt.present ? data.lastSyncAt.value : this.lastSyncAt,
       lastSyncError: data.lastSyncError.present
@@ -1546,6 +1583,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('nextcloudPath: $nextcloudPath, ')
           ..write('nextcloudTrustSelfSigned: $nextcloudTrustSelfSigned, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
+          ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('lastSyncAt: $lastSyncAt, ')
           ..write('lastSyncError: $lastSyncError, ')
           ..write('autoSyncEnabled: $autoSyncEnabled, ')
@@ -1564,6 +1602,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       nextcloudPath,
       nextcloudTrustSelfSigned,
       nextcloudKeepExports,
+      nextcloudCertFingerprint,
       lastSyncAt,
       lastSyncError,
       autoSyncEnabled,
@@ -1580,6 +1619,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.nextcloudPath == this.nextcloudPath &&
           other.nextcloudTrustSelfSigned == this.nextcloudTrustSelfSigned &&
           other.nextcloudKeepExports == this.nextcloudKeepExports &&
+          other.nextcloudCertFingerprint == this.nextcloudCertFingerprint &&
           other.lastSyncAt == this.lastSyncAt &&
           other.lastSyncError == this.lastSyncError &&
           other.autoSyncEnabled == this.autoSyncEnabled &&
@@ -1595,6 +1635,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String> nextcloudPath;
   final Value<bool> nextcloudTrustSelfSigned;
   final Value<int> nextcloudKeepExports;
+  final Value<String?> nextcloudCertFingerprint;
   final Value<int?> lastSyncAt;
   final Value<String?> lastSyncError;
   final Value<bool> autoSyncEnabled;
@@ -1608,6 +1649,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudPath = const Value.absent(),
     this.nextcloudTrustSelfSigned = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
+    this.nextcloudCertFingerprint = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
     this.lastSyncError = const Value.absent(),
     this.autoSyncEnabled = const Value.absent(),
@@ -1622,6 +1664,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.nextcloudPath = const Value.absent(),
     this.nextcloudTrustSelfSigned = const Value.absent(),
     this.nextcloudKeepExports = const Value.absent(),
+    this.nextcloudCertFingerprint = const Value.absent(),
     this.lastSyncAt = const Value.absent(),
     this.lastSyncError = const Value.absent(),
     this.autoSyncEnabled = const Value.absent(),
@@ -1636,6 +1679,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? nextcloudPath,
     Expression<bool>? nextcloudTrustSelfSigned,
     Expression<int>? nextcloudKeepExports,
+    Expression<String>? nextcloudCertFingerprint,
     Expression<int>? lastSyncAt,
     Expression<String>? lastSyncError,
     Expression<bool>? autoSyncEnabled,
@@ -1652,6 +1696,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         'nextcloud_trust_self_signed': nextcloudTrustSelfSigned,
       if (nextcloudKeepExports != null)
         'nextcloud_keep_exports': nextcloudKeepExports,
+      if (nextcloudCertFingerprint != null)
+        'nextcloud_cert_fingerprint': nextcloudCertFingerprint,
       if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
       if (lastSyncError != null) 'last_sync_error': lastSyncError,
       if (autoSyncEnabled != null) 'auto_sync_enabled': autoSyncEnabled,
@@ -1669,6 +1715,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       Value<String>? nextcloudPath,
       Value<bool>? nextcloudTrustSelfSigned,
       Value<int>? nextcloudKeepExports,
+      Value<String?>? nextcloudCertFingerprint,
       Value<int?>? lastSyncAt,
       Value<String?>? lastSyncError,
       Value<bool>? autoSyncEnabled,
@@ -1683,6 +1730,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       nextcloudTrustSelfSigned:
           nextcloudTrustSelfSigned ?? this.nextcloudTrustSelfSigned,
       nextcloudKeepExports: nextcloudKeepExports ?? this.nextcloudKeepExports,
+      nextcloudCertFingerprint:
+          nextcloudCertFingerprint ?? this.nextcloudCertFingerprint,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
       lastSyncError: lastSyncError ?? this.lastSyncError,
       autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
@@ -1717,6 +1766,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (nextcloudKeepExports.present) {
       map['nextcloud_keep_exports'] = Variable<int>(nextcloudKeepExports.value);
     }
+    if (nextcloudCertFingerprint.present) {
+      map['nextcloud_cert_fingerprint'] =
+          Variable<String>(nextcloudCertFingerprint.value);
+    }
     if (lastSyncAt.present) {
       map['last_sync_at'] = Variable<int>(lastSyncAt.value);
     }
@@ -1746,6 +1799,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('nextcloudPath: $nextcloudPath, ')
           ..write('nextcloudTrustSelfSigned: $nextcloudTrustSelfSigned, ')
           ..write('nextcloudKeepExports: $nextcloudKeepExports, ')
+          ..write('nextcloudCertFingerprint: $nextcloudCertFingerprint, ')
           ..write('lastSyncAt: $lastSyncAt, ')
           ..write('lastSyncError: $lastSyncError, ')
           ..write('autoSyncEnabled: $autoSyncEnabled, ')
@@ -2510,6 +2564,7 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudPath,
   Value<bool> nextcloudTrustSelfSigned,
   Value<int> nextcloudKeepExports,
+  Value<String?> nextcloudCertFingerprint,
   Value<int?> lastSyncAt,
   Value<String?> lastSyncError,
   Value<bool> autoSyncEnabled,
@@ -2524,6 +2579,7 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<String> nextcloudPath,
   Value<bool> nextcloudTrustSelfSigned,
   Value<int> nextcloudKeepExports,
+  Value<String?> nextcloudCertFingerprint,
   Value<int?> lastSyncAt,
   Value<String?> lastSyncError,
   Value<bool> autoSyncEnabled,
@@ -2562,6 +2618,10 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<int> get nextcloudKeepExports => $composableBuilder(
       column: $table.nextcloudKeepExports,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get nextcloudCertFingerprint => $composableBuilder(
+      column: $table.nextcloudCertFingerprint,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get lastSyncAt => $composableBuilder(
@@ -2617,6 +2677,10 @@ class $$SettingsTableOrderingComposer
       column: $table.nextcloudKeepExports,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get nextcloudCertFingerprint => $composableBuilder(
+      column: $table.nextcloudCertFingerprint,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => ColumnOrderings(column));
 
@@ -2666,6 +2730,9 @@ class $$SettingsTableAnnotationComposer
   GeneratedColumn<int> get nextcloudKeepExports => $composableBuilder(
       column: $table.nextcloudKeepExports, builder: (column) => column);
 
+  GeneratedColumn<String> get nextcloudCertFingerprint => $composableBuilder(
+      column: $table.nextcloudCertFingerprint, builder: (column) => column);
+
   GeneratedColumn<int> get lastSyncAt => $composableBuilder(
       column: $table.lastSyncAt, builder: (column) => column);
 
@@ -2712,6 +2779,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudPath = const Value.absent(),
             Value<bool> nextcloudTrustSelfSigned = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
+            Value<String?> nextcloudCertFingerprint = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
             Value<String?> lastSyncError = const Value.absent(),
             Value<bool> autoSyncEnabled = const Value.absent(),
@@ -2726,6 +2794,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudPath: nextcloudPath,
             nextcloudTrustSelfSigned: nextcloudTrustSelfSigned,
             nextcloudKeepExports: nextcloudKeepExports,
+            nextcloudCertFingerprint: nextcloudCertFingerprint,
             lastSyncAt: lastSyncAt,
             lastSyncError: lastSyncError,
             autoSyncEnabled: autoSyncEnabled,
@@ -2740,6 +2809,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String> nextcloudPath = const Value.absent(),
             Value<bool> nextcloudTrustSelfSigned = const Value.absent(),
             Value<int> nextcloudKeepExports = const Value.absent(),
+            Value<String?> nextcloudCertFingerprint = const Value.absent(),
             Value<int?> lastSyncAt = const Value.absent(),
             Value<String?> lastSyncError = const Value.absent(),
             Value<bool> autoSyncEnabled = const Value.absent(),
@@ -2754,6 +2824,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             nextcloudPath: nextcloudPath,
             nextcloudTrustSelfSigned: nextcloudTrustSelfSigned,
             nextcloudKeepExports: nextcloudKeepExports,
+            nextcloudCertFingerprint: nextcloudCertFingerprint,
             lastSyncAt: lastSyncAt,
             lastSyncError: lastSyncError,
             autoSyncEnabled: autoSyncEnabled,
