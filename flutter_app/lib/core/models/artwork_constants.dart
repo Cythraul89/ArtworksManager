@@ -4,6 +4,7 @@ const List<String> artworkTypes = [
   'Print',
   'Photography',
   'Sculpture',
+  'Ceramics',
   'Textile',
   'Digital',
   'Book',
