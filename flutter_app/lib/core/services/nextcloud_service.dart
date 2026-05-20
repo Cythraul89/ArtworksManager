@@ -207,12 +207,16 @@ class NextcloudService {
         e.type == DioExceptionType.sendTimeout) {
       return const NcTransient();
     }
-    if (e.type == DioExceptionType.connectionError) {
+    // connectionError covers most unreachable-host cases; the SocketException
+    // check catches DioExceptionType.unknown wrapping a SocketException, which
+    // some Android versions raise instead of connectionError.
+    if (e.type == DioExceptionType.connectionError ||
+        e.error is SocketException) {
       return const NcTransient();
     }
     final code = e.response?.statusCode;
     if (code == 401) return NcFailure('Invalid credentials');
     if (code == 507) return NcFailure('Insufficient storage on server');
-    return NcFailure(e.message ?? 'Network error');
+    return NcFailure(e.message ?? 'Unknown error');
   }
 }

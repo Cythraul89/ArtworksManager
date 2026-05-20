@@ -142,25 +142,13 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
             onPressed: busy ? null : _backupNow,
           ),
           const SizedBox(height: 8),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: _op == _Op.restoring
-                    ? const _Spinner()
-                    : const Icon(Icons.cloud_download_outlined),
-                label: const Text('From cloud'),
-                onPressed: busy ? null : _restoreFromCloud,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.folder_open_outlined),
-                label: const Text('From file'),
-                onPressed: busy ? null : _restoreFromFile,
-              ),
-            ),
-          ]),
+          OutlinedButton.icon(
+            icon: _op == _Op.restoring
+                ? const _Spinner()
+                : const Icon(Icons.cloud_download_outlined),
+            label: const Text('Restore from cloud'),
+            onPressed: busy ? null : _restoreFromCloud,
+          ),
           if (_message != null) ...[
             const SizedBox(height: 16),
             _Banner(message: _message!, isError: _messageIsError),
@@ -413,7 +401,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       s.nextcloudPath, pinnedFingerprint: _pin(s),
     );
     if (result is! NcSuccess<List<String>>) return;
-    final files = result.value..sort();
+    final files = [...result.value]..sort();
     if (files.length <= s.nextcloudKeepExports) return;
     for (final href in files.sublist(0, files.length - s.nextcloudKeepExports)) {
       final del = await nc.deleteFile(
@@ -450,7 +438,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
         _setMsg('Network error – check connection', isError: true);
         return;
       case NcSuccess(:final value):
-        final files = value..sort();
+        final files = [...value]..sort();
         if (files.isEmpty) {
           _setMsg('No backups found on Nextcloud', isError: false);
           return;
@@ -481,21 +469,6 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
             _setMsg('Network error during download', isError: true);
         }
     }
-  }
-
-  Future<void> _restoreFromFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
-    );
-    if (result == null || result.files.isEmpty) return;
-    final path = result.files.first.path;
-    if (path == null || !mounted) return;
-    final confirmed = await _confirmReplace();
-    if (confirmed != true || !mounted) return;
-    setState(() { _op = _Op.restoring; _message = null; });
-    final bytes = await File(path).readAsBytes();
-    await _applyRestore(bytes);
   }
 
   Future<bool?> _confirmReplace() => showDialog<bool>(

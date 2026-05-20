@@ -8,6 +8,7 @@ import 'features/addedit/addedit_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/settings/logs_screen.dart';
 import 'features/nextcloud/nextcloud_screen.dart';
+import 'features/backup/local_backup_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/dashboard',
@@ -51,6 +52,10 @@ final _router = GoRouter(
               GoRoute(
                 path: 'nextcloud',
                 builder: (_, __) => const NextcloudScreen(),
+              ),
+              GoRoute(
+                path: 'backup',
+                builder: (_, __) => const LocalBackupScreen(),
               ),
               GoRoute(
                 path: 'logs',

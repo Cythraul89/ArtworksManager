@@ -40,6 +40,13 @@ class SettingsScreen extends ConsumerWidget {
             const Divider(indent: 16, endIndent: 16),
             _SectionLabel('Backup & Sync'),
             ListTile(
+              leading: const Icon(Icons.folder_zip_outlined),
+              title: const Text('Local backup'),
+              subtitle: const Text('Save or restore a local ZIP backup'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/settings/backup'),
+            ),
+            ListTile(
               leading: const Icon(Icons.cloud_outlined),
               title: const Text('Nextcloud'),
               subtitle: Text(

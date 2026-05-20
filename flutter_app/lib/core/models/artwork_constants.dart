@@ -6,6 +6,7 @@ const List<String> artworkTypes = [
   'Sculpture',
   'Textile',
   'Digital',
+  'Book',
   'Other',
 ];
 
