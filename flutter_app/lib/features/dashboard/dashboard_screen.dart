@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../core/database/app_database.dart';
 import '../../core/models/currency.dart';
 import '../../core/widgets/error_view.dart';
 import 'dashboard_providers.dart';
@@ -357,7 +358,7 @@ class _RecentSection extends ConsumerWidget {
 class _RecentTile extends StatelessWidget {
   const _RecentTile({required this.artwork, required this.onTap, this.width});
 
-  final dynamic artwork;
+  final Artwork artwork;
   final VoidCallback onTap;
   final double? width;
 
