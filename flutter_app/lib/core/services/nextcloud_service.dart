@@ -252,8 +252,8 @@ class NextcloudService {
         pinnedFingerprint: pinnedFingerprint);
     if (result is! NcSuccess<List<String>>) return const NcSuccess(null);
 
-    // AWoMa backup filename pattern: awoma_backup_YYYYMMDD_HHmmss.zip
-    final pattern = RegExp(r'awoma_backup_(\d{8})_(\d{6})\.zip$');
+    // backup filename pattern: artworks_YYYYMMDD_HHmmss.zip
+    final pattern = RegExp(r'artworks_(\d{8})_(\d{6})\.zip$');
     DateTime? latestDate;
     String? latestHref;
 

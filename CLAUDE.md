@@ -187,7 +187,7 @@ The core logic lives in the top-level `runSyncTask({db, backupService, nextcloud
 - `NcResult<T>` sealed class: `NcSuccess(value)`, `NcFailure(message)`, `NcTransient()` (network retry)
 - `_mapDioError` handles 401 and 507 explicitly; `connectionError` and `SocketException`-wrapped `unknown` → `NcTransient`; all other errors → `NcFailure(e.message)`
 - `CertificateInfo` — fingerprint, subject, issuer, validUntil; returned by `fetchCertificateInfo()`; null means OS-trusted
-- `BackupInfo` — remotePath, backupDate; returned by `findLatestBackup()` which matches `awoma_backup_YYYYMMDD_HHmmss.zip`
+- `BackupInfo` — remotePath, backupDate; returned by `findLatestBackup()` which matches `artworks_YYYYMMDD_HHmmss.zip`
 
 ### Nextcloud Screen Flow
 
