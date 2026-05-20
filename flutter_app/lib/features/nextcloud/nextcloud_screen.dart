@@ -85,19 +85,20 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(settingsProvider).whenData((s) {
-      if (!_loaded) _prefill(s);
-    });
+    final settings = ref.watch(settingsProvider);
+    settings.whenData((s) { if (!_loaded) _prefill(s); });
+    final lastSyncMs = settings.valueOrNull?.lastSyncAt;
 
     final busy = _op != _Op.idle;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nextcloud')),
+      appBar: AppBar(title: const Text('Nextcloud Sync')),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            // ── Credentials ──────────────────────────────────────────────────
             _formField(_urlCtrl, 'Server URL',
                 hint: 'https://cloud.example.com',
                 keyboardType: TextInputType.url,
@@ -109,39 +110,61 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Required' : null),
             _pwField(),
-            _formField(_pathCtrl, 'Remote path', hint: kDefaultRemotePath),
-            _keepRow(),
-            const SizedBox(height: 8),
-            _autoSyncSection(),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Save settings'),
-              onPressed: (busy || !_connectionVerified) ? null : _saveAndSync,
-            ),
-            if (!_connectionVerified) ...[
+            _formField(_pathCtrl, 'Upload path', hint: kDefaultRemotePath),
+
+            // ── Inline status ─────────────────────────────────────────────────
+            if (_message != null) ...[
               const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    _messageIsError
+                        ? Icons.error_outline
+                        : Icons.check_circle_outline,
+                    size: 16,
+                    color: _messageIsError
+                        ? Theme.of(context).colorScheme.error
+                        : Colors.green,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _message!,
+                      style: TextStyle(
+                        color: _messageIsError
+                            ? Theme.of(context).colorScheme.error
+                            : Colors.green,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (lastSyncMs != null) ...[
+              const SizedBox(height: 2),
               Text(
-                'Test the connection before saving',
+                'Last auto-sync: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.fromMillisecondsSinceEpoch(lastSyncMs))}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.outline,
                     ),
               ),
             ],
+
             const Divider(height: 32),
-            OutlinedButton.icon(
-              icon: _op == _Op.testing
-                  ? const _Spinner()
-                  : const Icon(Icons.wifi_tethering),
-              label: const Text('Test connection'),
+
+            // ── Actions ───────────────────────────────────────────────────────
+            OutlinedButton(
               onPressed: busy ? null : _testConnection,
+              child: _op == _Op.testing
+                  ? const _Spinner()
+                  : const Text('Test connection'),
             ),
             const SizedBox(height: 8),
-            FilledButton.icon(
+            OutlinedButton.icon(
               icon: _op == _Op.backing
-                  ? const _Spinner(bright: true)
+                  ? const _Spinner()
                   : const Icon(Icons.cloud_upload_outlined),
-              label: const Text('Backup now'),
+              label: const Text('Backup to Nextcloud now'),
               onPressed: (busy || !_connectionVerified) ? null : _backupNow,
             ),
             const SizedBox(height: 8),
@@ -152,10 +175,34 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
               label: const Text('Restore from cloud'),
               onPressed: (busy || !_connectionVerified) ? null : _restoreFromCloud,
             ),
-            if (_message != null) ...[
-              const SizedBox(height: 16),
-              _Banner(message: _message!, isError: _messageIsError),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: (busy || !_connectionVerified) ? null : _saveAndSync,
+              child: _op == _Op.idle
+                  ? const Text('Confirm & connect')
+                  : const _Spinner(bright: true),
+            ),
+            if (!_connectionVerified) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Test the connection before saving',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
             ],
+
+            const Divider(height: 32),
+
+            // ── Advanced ──────────────────────────────────────────────────────
+            Text('Advanced',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    )),
+            const SizedBox(height: 8),
+            _keepRow(),
+            const SizedBox(height: 4),
+            _autoSyncSection(),
           ],
         ),
       ),
@@ -631,37 +678,6 @@ class _Spinner extends StatelessWidget {
           color: bright ? Theme.of(context).colorScheme.onPrimary : null,
         ),
       );
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner({required this.message, required this.isError});
-  final String message;
-  final bool isError;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isError
-        ? Theme.of(context).colorScheme.errorContainer
-        : Theme.of(context).colorScheme.primaryContainer;
-    final textColor = isError
-        ? Theme.of(context).colorScheme.onErrorContainer
-        : Theme.of(context).colorScheme.onPrimaryContainer;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration:
-          BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          Icon(
-              isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: textColor,
-              size: 20),
-          const SizedBox(width: 12),
-          Expanded(child: Text(message, style: TextStyle(color: textColor))),
-        ],
-      ),
-    );
-  }
 }
 
 class _PickerDialog extends StatelessWidget {
