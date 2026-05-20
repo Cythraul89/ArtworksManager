@@ -75,13 +75,14 @@ class _LocalBackupScreenState extends ConsumerState<LocalBackupScreen> {
       final bytes = await BackupService().exportToZip(artworks, photosByArtwork);
       final filename = BackupService.generateFilename();
       await AppLogger.info('LocalBackupScreen: exporting $filename');
+      // bytes param is web-only in file_picker; write to the returned path.
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Save backup',
         fileName: filename,
-        bytes: bytes,
       );
       if (!mounted) return;
       if (path != null) {
+        await File(path).writeAsBytes(bytes);
         _setMsg('Backup saved', isError: false);
       }
     } catch (e, st) {
