@@ -53,6 +53,7 @@ class Settings extends Table {
   TextColumn get lastSyncError => text().nullable()();
   BoolColumn get autoSyncEnabled => boolean().withDefault(const Constant(false))();
   IntColumn get autoSyncIntervalHours => integer().withDefault(const Constant(24))();
+  TextColumn get themeMode => text().withDefault(const Constant('system'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -69,7 +70,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -91,6 +92,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.addColumn(settings, settings.nextcloudTrustSelfSigned);
+      }
+      if (from < 7) {
+        await m.addColumn(settings, settings.themeMode);
       }
     },
   );

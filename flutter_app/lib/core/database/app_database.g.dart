@@ -1219,6 +1219,14 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(24));
+  static const VerificationMeta _themeModeMeta =
+      const VerificationMeta('themeMode');
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+      'theme_mode', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('system'));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1231,7 +1239,8 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         lastSyncAt,
         lastSyncError,
         autoSyncEnabled,
-        autoSyncIntervalHours
+        autoSyncIntervalHours,
+        themeMode
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1305,6 +1314,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           autoSyncIntervalHours.isAcceptableOrUnknown(
               data['auto_sync_interval_hours']!, _autoSyncIntervalHoursMeta));
     }
+    if (data.containsKey('theme_mode')) {
+      context.handle(_themeModeMeta,
+          themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta));
+    }
     return context;
   }
 
@@ -1337,6 +1350,8 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
           DriftSqlType.bool, data['${effectivePrefix}auto_sync_enabled'])!,
       autoSyncIntervalHours: attachedDatabase.typeMapping.read(DriftSqlType.int,
           data['${effectivePrefix}auto_sync_interval_hours'])!,
+      themeMode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}theme_mode'])!,
     );
   }
 
@@ -1358,6 +1373,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String? lastSyncError;
   final bool autoSyncEnabled;
   final int autoSyncIntervalHours;
+  final String themeMode;
   const Setting(
       {required this.id,
       required this.currency,
@@ -1369,7 +1385,8 @@ class Setting extends DataClass implements Insertable<Setting> {
       this.lastSyncAt,
       this.lastSyncError,
       required this.autoSyncEnabled,
-      required this.autoSyncIntervalHours});
+      required this.autoSyncIntervalHours,
+      required this.themeMode});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1389,6 +1406,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     }
     map['auto_sync_enabled'] = Variable<bool>(autoSyncEnabled);
     map['auto_sync_interval_hours'] = Variable<int>(autoSyncIntervalHours);
+    map['theme_mode'] = Variable<String>(themeMode);
     return map;
   }
 
@@ -1409,6 +1427,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           : Value(lastSyncError),
       autoSyncEnabled: Value(autoSyncEnabled),
       autoSyncIntervalHours: Value(autoSyncIntervalHours),
+      themeMode: Value(themeMode),
     );
   }
 
@@ -1430,6 +1449,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       autoSyncEnabled: serializer.fromJson<bool>(json['autoSyncEnabled']),
       autoSyncIntervalHours:
           serializer.fromJson<int>(json['autoSyncIntervalHours']),
+      themeMode: serializer.fromJson<String>(json['themeMode']),
     );
   }
   @override
@@ -1448,6 +1468,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       'lastSyncError': serializer.toJson<String?>(lastSyncError),
       'autoSyncEnabled': serializer.toJson<bool>(autoSyncEnabled),
       'autoSyncIntervalHours': serializer.toJson<int>(autoSyncIntervalHours),
+      'themeMode': serializer.toJson<String>(themeMode),
     };
   }
 
@@ -1462,7 +1483,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           Value<int?> lastSyncAt = const Value.absent(),
           Value<String?> lastSyncError = const Value.absent(),
           bool? autoSyncEnabled,
-          int? autoSyncIntervalHours}) =>
+          int? autoSyncIntervalHours,
+          String? themeMode}) =>
       Setting(
         id: id ?? this.id,
         currency: currency ?? this.currency,
@@ -1478,6 +1500,7 @@ class Setting extends DataClass implements Insertable<Setting> {
         autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
         autoSyncIntervalHours:
             autoSyncIntervalHours ?? this.autoSyncIntervalHours,
+        themeMode: themeMode ?? this.themeMode,
       );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -1509,6 +1532,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       autoSyncIntervalHours: data.autoSyncIntervalHours.present
           ? data.autoSyncIntervalHours.value
           : this.autoSyncIntervalHours,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
     );
   }
 
@@ -1525,7 +1549,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('lastSyncAt: $lastSyncAt, ')
           ..write('lastSyncError: $lastSyncError, ')
           ..write('autoSyncEnabled: $autoSyncEnabled, ')
-          ..write('autoSyncIntervalHours: $autoSyncIntervalHours')
+          ..write('autoSyncIntervalHours: $autoSyncIntervalHours, ')
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -1542,7 +1567,8 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastSyncAt,
       lastSyncError,
       autoSyncEnabled,
-      autoSyncIntervalHours);
+      autoSyncIntervalHours,
+      themeMode);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1557,7 +1583,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.lastSyncAt == this.lastSyncAt &&
           other.lastSyncError == this.lastSyncError &&
           other.autoSyncEnabled == this.autoSyncEnabled &&
-          other.autoSyncIntervalHours == this.autoSyncIntervalHours);
+          other.autoSyncIntervalHours == this.autoSyncIntervalHours &&
+          other.themeMode == this.themeMode);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -1572,6 +1599,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String?> lastSyncError;
   final Value<bool> autoSyncEnabled;
   final Value<int> autoSyncIntervalHours;
+  final Value<String> themeMode;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.currency = const Value.absent(),
@@ -1584,6 +1612,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.lastSyncError = const Value.absent(),
     this.autoSyncEnabled = const Value.absent(),
     this.autoSyncIntervalHours = const Value.absent(),
+    this.themeMode = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1597,6 +1626,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.lastSyncError = const Value.absent(),
     this.autoSyncEnabled = const Value.absent(),
     this.autoSyncIntervalHours = const Value.absent(),
+    this.themeMode = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -1610,6 +1640,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? lastSyncError,
     Expression<bool>? autoSyncEnabled,
     Expression<int>? autoSyncIntervalHours,
+    Expression<String>? themeMode,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1626,6 +1657,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (autoSyncEnabled != null) 'auto_sync_enabled': autoSyncEnabled,
       if (autoSyncIntervalHours != null)
         'auto_sync_interval_hours': autoSyncIntervalHours,
+      if (themeMode != null) 'theme_mode': themeMode,
     });
   }
 
@@ -1640,7 +1672,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       Value<int?>? lastSyncAt,
       Value<String?>? lastSyncError,
       Value<bool>? autoSyncEnabled,
-      Value<int>? autoSyncIntervalHours}) {
+      Value<int>? autoSyncIntervalHours,
+      Value<String>? themeMode}) {
     return SettingsCompanion(
       id: id ?? this.id,
       currency: currency ?? this.currency,
@@ -1655,6 +1688,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
       autoSyncIntervalHours:
           autoSyncIntervalHours ?? this.autoSyncIntervalHours,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 
@@ -1696,6 +1730,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       map['auto_sync_interval_hours'] =
           Variable<int>(autoSyncIntervalHours.value);
     }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     return map;
   }
 
@@ -1712,7 +1749,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('lastSyncAt: $lastSyncAt, ')
           ..write('lastSyncError: $lastSyncError, ')
           ..write('autoSyncEnabled: $autoSyncEnabled, ')
-          ..write('autoSyncIntervalHours: $autoSyncIntervalHours')
+          ..write('autoSyncIntervalHours: $autoSyncIntervalHours, ')
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -2476,6 +2514,7 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String?> lastSyncError,
   Value<bool> autoSyncEnabled,
   Value<int> autoSyncIntervalHours,
+  Value<String> themeMode,
 });
 typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<int> id,
@@ -2489,6 +2528,7 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<String?> lastSyncError,
   Value<bool> autoSyncEnabled,
   Value<int> autoSyncIntervalHours,
+  Value<String> themeMode,
 });
 
 class $$SettingsTableFilterComposer
@@ -2537,6 +2577,9 @@ class $$SettingsTableFilterComposer
   ColumnFilters<int> get autoSyncIntervalHours => $composableBuilder(
       column: $table.autoSyncIntervalHours,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnFilters(column));
 }
 
 class $$SettingsTableOrderingComposer
@@ -2588,6 +2631,9 @@ class $$SettingsTableOrderingComposer
   ColumnOrderings<int> get autoSyncIntervalHours => $composableBuilder(
       column: $table.autoSyncIntervalHours,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnOrderings(column));
 }
 
 class $$SettingsTableAnnotationComposer
@@ -2631,6 +2677,9 @@ class $$SettingsTableAnnotationComposer
 
   GeneratedColumn<int> get autoSyncIntervalHours => $composableBuilder(
       column: $table.autoSyncIntervalHours, builder: (column) => column);
+
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
 }
 
 class $$SettingsTableTableManager extends RootTableManager<
@@ -2667,6 +2716,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String?> lastSyncError = const Value.absent(),
             Value<bool> autoSyncEnabled = const Value.absent(),
             Value<int> autoSyncIntervalHours = const Value.absent(),
+            Value<String> themeMode = const Value.absent(),
           }) =>
               SettingsCompanion(
             id: id,
@@ -2680,6 +2730,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             lastSyncError: lastSyncError,
             autoSyncEnabled: autoSyncEnabled,
             autoSyncIntervalHours: autoSyncIntervalHours,
+            themeMode: themeMode,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -2693,6 +2744,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String?> lastSyncError = const Value.absent(),
             Value<bool> autoSyncEnabled = const Value.absent(),
             Value<int> autoSyncIntervalHours = const Value.absent(),
+            Value<String> themeMode = const Value.absent(),
           }) =>
               SettingsCompanion.insert(
             id: id,
@@ -2706,6 +2758,7 @@ class $$SettingsTableTableManager extends RootTableManager<
             lastSyncError: lastSyncError,
             autoSyncEnabled: autoSyncEnabled,
             autoSyncIntervalHours: autoSyncIntervalHours,
+            themeMode: themeMode,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

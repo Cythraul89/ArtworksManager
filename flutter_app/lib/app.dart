@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'features/settings/exchange_rates_screen.dart';
+import 'features/settings/settings_providers.dart';
 import 'shell/adaptive_shell.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/collection/collection_screen.dart';
@@ -61,6 +64,10 @@ final _router = GoRouter(
                 path: 'logs',
                 builder: (_, __) => const LogsScreen(),
               ),
+              GoRoute(
+                path: 'rates',
+                builder: (_, __) => const ExchangeRatesScreen(),
+              ),
             ],
           ),
         ]),
@@ -69,13 +76,15 @@ final _router = GoRouter(
   ],
 );
 
-class ArtworksManagerApp extends StatelessWidget {
+class ArtworksManagerApp extends ConsumerWidget {
   const ArtworksManagerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'AWoMa',
+      themeMode: themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5C6BC0)),
         useMaterial3: true,

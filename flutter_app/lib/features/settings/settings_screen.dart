@@ -11,6 +11,12 @@ import '../../core/services/app_logger.dart';
 import '../../core/services/pdf_exporter.dart';
 import 'settings_providers.dart';
 
+const _themeModes = [
+  ('system', 'System', Icons.brightness_auto_outlined),
+  ('light', 'Light', Icons.light_mode_outlined),
+  ('dark', 'Dark', Icons.dark_mode_outlined),
+];
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -33,6 +39,23 @@ class SettingsScreen extends ConsumerWidget {
                   '${Currency.fromCode(setting.currency).symbol}  ${setting.currency}'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _pickCurrency(context, ref, setting),
+            ),
+            ListTile(
+              leading: const Icon(Icons.brightness_auto_outlined),
+              title: const Text('Theme'),
+              subtitle: Text(_themeModes
+                  .firstWhere((t) => t.$1 == setting.themeMode,
+                      orElse: () => _themeModes.first)
+                  .$2),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _pickTheme(context, ref, setting),
+            ),
+            ListTile(
+              leading: const Icon(Icons.currency_exchange_outlined),
+              title: const Text('Exchange rates'),
+              subtitle: const Text('Live ECB rates'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/settings/rates'),
             ),
             const Divider(indent: 16, endIndent: 16),
             _SectionLabel('Export'),
@@ -171,6 +194,39 @@ class SettingsScreen extends ConsumerWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _pickTheme(BuildContext context, WidgetRef ref, Setting setting) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Theme', style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            for (final (mode, label, icon) in _themeModes)
+              ListTile(
+                leading: Icon(icon),
+                title: Text(label),
+                trailing: setting.themeMode == mode
+                    ? Icon(Icons.check,
+                        color: Theme.of(ctx).colorScheme.primary)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await ref.read(databaseProvider).settingsDao.save(
+                        SettingsCompanion(themeMode: Value(mode)),
+                      );
+                },
+              ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
