@@ -25,13 +25,13 @@ final priceTotalsProvider =
 /// Live ECB exchange rates via Frankfurter API. Cached per base currency for the app session.
 final exchangeRatesProvider =
     FutureProvider.family<Map<String, double>?, String>(
-        (ref, base) => ExchangeRateService.fetchRates(base));
+        (ref, base) => ExchangeRateService().fetchRates(base));
 
 /// Last-modified time of the on-disk rate cache for [base], or null if none.
 /// Used to show a stale-rates hint on the dashboard.
 final ratesCacheTimeProvider =
     FutureProvider.family<DateTime?, String>(
-        (ref, base) => ExchangeRateService.cacheModifiedTime(base));
+        (ref, base) => ExchangeRateService().cacheModifiedTime(base));
 
 /// Unified portfolio value converted to the user's default currency.
 ///

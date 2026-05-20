@@ -56,6 +56,8 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   // Additional photos: (existingRecord?, localPath)
   final _photoItems = <({ArtworkPhoto? record, String path})>[];
   final _photosToDelete = <ArtworkPhoto>[];
+  // Files copied to artworks dir during this session; deleted on discard.
+  final _newlyCopiedFiles = <String>[];
 
   bool get _isEdit => widget.artworkId != null;
 
@@ -85,6 +87,13 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   void dispose() {
     for (final c in [_title, _artist, _year, _height, _width, _depth, _location, _price, _description, _provenance]) {
       c.dispose();
+    }
+    // Delete any files copied during this session that were never committed.
+    for (final path in _newlyCopiedFiles) {
+      try {
+        final f = File(path);
+        if (f.existsSync()) f.deleteSync();
+      } catch (_) {}
     }
     super.dispose();
   }
@@ -408,6 +417,7 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
     final dest = File(p.join(dir.path,
         '$prefix${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4()}.$extension'));
     await File(src).copy(dest.path);
+    _newlyCopiedFiles.add(dest.path);
     return dest.path;
   }
 
@@ -462,6 +472,7 @@ class _AddEditScreenState extends ConsumerState<AddEditScreen> {
         }
       });
 
+      _newlyCopiedFiles.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Artwork saved')),

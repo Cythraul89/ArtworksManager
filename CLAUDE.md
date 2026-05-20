@@ -140,7 +140,7 @@ Mutations: widgets call `ref.read(databaseProvider).someDao.method()` directly, 
 - `filteredArtworksProvider` — `StreamProvider` combining DB stream + `CollectionFilter` state
 - `collectionFilterProvider` — `StateProvider<CollectionFilter>` with fields: `search`, `medium`, `condition`, `sortBy`, `isGrid`
 - `portfolioValueProvider` — synchronous `Provider` that composes `priceTotalsProvider` + `exchangeRatesProvider`
-- `exchangeRatesProvider` — `FutureProvider.family<Map<String,double>?, String>` keyed by base currency; cache in temp dir
+- `exchangeRatesProvider` — `FutureProvider.family<Map<String,double>?, String>` keyed by base currency; calls `ExchangeRateService().fetchRates(base)` (instance class with injectable `Dio`/`apiBase`)
 - `ratesCacheTimeProvider` — `FutureProvider.family<DateTime?, String>` for stale-rates hint
 
 ### Navigation (GoRouter)
@@ -152,6 +152,10 @@ Sub-routes: `/collection/artwork/:id`, `/collection/add`, `/collection/edit/:id`
 ### Background Sync (Android only)
 
 `callbackDispatcher` (marked `@pragma('vm:entry-point')`) is the WorkManager entry point registered in `main()`. `SyncWorker.taskName = 'nc_auto_backup'` is the task identifier. Auto-sync is only scheduled on Android API ≥ 33 (checked at runtime via `device_info_plus`).
+
+`Workmanager().initialize()` is guarded by `Platform.isAndroid` in `main.dart` — calling it on Windows/Linux/macOS throws `MissingPluginException` because the package has no implementation for those platforms.
+
+The core logic lives in the top-level `runSyncTask({db, backupService, nextcloudService, settings, password})` function in `sync_worker.dart`; `SyncWorker.run()` is a thin wrapper that opens the DB and reads credentials before delegating. This makes the sync logic unit-testable without WorkManager.
 
 ### Nextcloud / Security
 
@@ -175,12 +179,14 @@ Test files live in `flutter_app/test/`:
 | `backup_service_test.dart` | ZIP export/import, generateFilename, condition/provenance round-trip |
 | `collection_filter_test.dart` | CollectionFilter (search, medium, condition, sortBy, isGrid), SortBy enum |
 | `database_migration_test.dart` | Schema defaults, settings save/clear, artworks CRUD |
-| `exchange_rate_service_test.dart` | cacheModifiedTime (null/DateTime/per-base isolation) via fake path_provider |
+| `app_logger_test.dart` | info/warn/error writes; readRecent order + limit; getFile null/non-null; clear |
+| `exchange_rate_service_test.dart` | cacheModifiedTime (null/DateTime/per-base); fetchRates success, cache write, network fallback, null-when-no-cache, non-200 fallback — via real loopback HttpServer + fake path_provider |
 | `nextcloud_service_test.dart` | NcResult types; verifyCredentials (200/401/500/refused); listFiles PROPFIND parsing; uploadBackup (201/204/507) — all via real loopback HttpServer |
 | `pdf_exporter_test.dart` | Currency.fromCode, fallback, symbols, codes; PdfExporter.fmtDim (integer/fractional/rounding) |
+| `sync_worker_test.dart` | runSyncTask: skip conditions; success records lastSyncAt; failures record lastSyncError; pruning logic; error cleared on success — using fake services + in-memory DB |
 | `widget_test.dart` | Empty placeholder (widget/integration tests require a device) |
 
-When writing DB tests: import `drift/drift.dart` with `hide isNull` to avoid a matcher conflict with `package:matcher`.
+When writing DB tests: import `drift/drift.dart` with `hide isNull, isNotNull` to avoid matcher conflicts with `package:matcher`.
 
 ---
 

@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
@@ -14,6 +15,10 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Workmanager().initialize(callbackDispatcher);
+  // workmanager only supports Android; calling initialize() on other platforms
+  // throws MissingPluginException and crashes the app at startup.
+  if (Platform.isAndroid) {
+    await Workmanager().initialize(callbackDispatcher);
+  }
   runApp(const ProviderScope(child: ArtworksManagerApp()));
 }
