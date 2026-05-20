@@ -214,9 +214,21 @@ class NextcloudService {
         e.error is SocketException) {
       return const NcTransient();
     }
+    // In Dio 5, SSL handshake failures surface as badCertificate; older builds
+    // or edge cases wrap a HandshakeException inside unknown.
+    if (e.type == DioExceptionType.badCertificate ||
+        e.error is HandshakeException) {
+      return NcFailure(
+          'SSL certificate not trusted — enter the server\'s SHA-256 fingerprint in the Certificate fingerprint field');
+    }
     final code = e.response?.statusCode;
     if (code == 401) return NcFailure('Invalid credentials');
     if (code == 507) return NcFailure('Insufficient storage on server');
-    return NcFailure(e.message ?? 'Unknown error');
+    // Prefer e.message, fall back to the underlying error string so callers
+    // always see something actionable instead of a bare "null".
+    final msg = (e.message?.isNotEmpty ?? false)
+        ? e.message!
+        : e.error?.toString() ?? 'Unknown error';
+    return NcFailure(msg);
   }
 }
