@@ -37,6 +37,7 @@ classDiagram
         +purchasePrice : Double
         +description : String
         +photoPath : String
+        +certificatePath : String
         +createdAt : Long
     }
 
@@ -162,13 +163,14 @@ classDiagram
         +savedId : StateFlow~Long~
         +additionalPhotos : StateFlow~List~ArtworkPhoto~~
         +load(id : Long)
-        +save(id, title, artist, ..., photosToDelete, newPhotoPaths)
+        +save(id, title, artist, ..., certificatePath, photosToDelete, newPhotoPaths)
     }
 
     class AddEditFragment {
         <<Fragment>>
         -viewModel : AddEditViewModel
         -currentPhotoPath : String
+        -currentCertificatePath : String
         -selectedDateMs : Long
         -photoItems : List~Pair~ArtworkPhoto,String~~
         -photosToDelete : List~ArtworkPhoto~

@@ -47,6 +47,9 @@ Display all recorded information, the cover photo, and additional photos for a s
 │  series, depicting sunflowers   │
 │  in a vase...                   │
 │                                 │
+│  Certificate                    │  ← Label (hidden when no cert)
+│  [ View certificate ]           │  ← Outlined button (hidden when no cert)
+│                                 │
 │  ─────────────────────────────  │
 └─────────────────────────────────┘
 ```
@@ -71,4 +74,5 @@ Display all recorded information, the cover photo, and additional photos for a s
   On confirm: artwork and all its photos are deleted (cascade), navigate back to Collection List with snackbar "Artwork deleted"
 - **Back arrow** — returns to Collection List preserving scroll position
 - **Price currency** — uses the artwork's own `currency` field if set; falls back to the global preference
+- **View certificate** — shown only when `certificatePath` is non-empty; opens the PDF via `FileProvider` + `Intent.ACTION_VIEW` so any installed PDF viewer can handle it; shows a toast if no suitable app is found or the file is missing
 - Fields with no value entered are hidden (not shown as empty rows)
