@@ -12,6 +12,9 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  contents: write
+
 defaults:
   run:
     working-directory: flutter_app
@@ -39,9 +42,15 @@ jobs:
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      # Builds a release APK signed with the debug key (see android/app/build.gradle.kts).
-      # Replace signingConfig with a release keystore to produce a Play-Store-ready APK.
+      - name: Decode keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
       - name: Build release APK
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: flutter build apk --release
 
       - uses: actions/upload-artifact@v4
@@ -129,7 +138,27 @@ jobs:
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Disable macOS sandbox (CI only)
+      # When a Developer ID certificate is available, import it so Flutter's
+      # build picks it up and produces a properly signed .app.
+      - name: Import signing certificate
+        if: ${{ secrets.MACOS_CERTIFICATE != '' }}
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain \
+            -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      # Without a certificate, strip the sandbox so the unsigned app can be
+      # opened without Gatekeeper blocking it.
+      - name: Disable macOS sandbox (unsigned builds only)
+        if: ${{ secrets.MACOS_CERTIFICATE == '' }}
         working-directory: flutter_app/macos
         run: |
           /usr/libexec/PlistBuddy -c \
@@ -157,8 +186,6 @@ jobs:
     name: GitHub Release
     needs: [build-android, build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
