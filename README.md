@@ -7,6 +7,7 @@ A personal artwork catalogue app for Android. Record, browse, and manage a priva
 - **Add / Edit / Delete** artworks with title, artist, year, type, medium, dimensions, location, acquisition date, purchase price, photos, and notes
 - **Per-artwork currency** — each artwork stores its own currency (EUR, USD, NOK, ZAR); falls back to the global preference when not set
 - **Multiple photos** — attach a cover photo plus any number of additional photos; photos can be taken with the camera or picked from the gallery, local storage, or any cloud storage provider installed on the device (Google Drive, Dropbox, OneDrive, Nextcloud app, etc.) via the Android Storage Access Framework
+- **Certificate of authenticity** — optionally attach a PDF certificate to any artwork; the file is stored on-device and can be opened from the detail view in any installed PDF viewer; certificates are included in zip backups
 - **Browse** the collection in grid or list view with real-time search, filter by medium, and sort by title, artist, or date
 - **Dashboard** with total count, breakdown by medium and artist, recently-added strip, and a **Collection Value card** showing per-currency subtotals and a live grand total converted via the Frankfurter API (offline fallback: per-currency subtotals only)
 - **Export PDF** — one A4 page per artwork, photos orientation-corrected via EXIF

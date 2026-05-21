@@ -82,10 +82,12 @@ com.example.artworksmanager/
 │   │   ├── AddEditFragment.kt     Add / Edit form; camera + SAF document picker
 │   │   │                          (GetContent "image/*" — includes cloud providers);
 │   │   │                          photo-diff state (photoItems / photosToDelete);
+│   │   │                          SAF PDF picker for certificate attachment;
 │   │   │                          IME inset handling; discard-changes dialog
 │   │   ├── AddEditViewModel.kt    Validates input; saves artwork + photo diff
 │   │   │                          via repository; exposes savedId StateFlow
-│   │   │                          and additionalPhotos StateFlow
+│   │   │                          and additionalPhotos StateFlow;
+│   │   │                          forwards certificatePath to repository
 │   │   └── AdditionalPhotoAdapter.kt  RecyclerView adapter for the horizontal
 │   │                                  photo strip; optional onRemove callback
 │   │                                  shows/hides × badge (edit vs detail mode)
@@ -106,7 +108,8 @@ com.example.artworksmanager/
 │   │                               recently-added thumbnail strip
 │   ├── detail/
 │   │   ├── ArtworkDetailFragment.kt  Read-only detail view; horizontal photo strip;
-│   │   │                             edit / delete toolbar actions
+│   │   │                             "View certificate" button opens attached PDF via
+│   │   │                             FileProvider + ACTION_VIEW; edit / delete toolbar
 │   │   └── ArtworkDetailViewModel.kt  Loads artwork by ID; exposes additionalPhotos
 │   │                                  StateFlow; provides delete()
 │   ├── nextcloud/
@@ -129,12 +132,13 @@ com.example.artworksmanager/
 │
 └── util/
     ├── BackupExporter.kt          Serialises List<Artwork> + Map<Long,List<ArtworkPhoto>>
-    │                              to JSON (with additionalPhotos arrays) + copies all
-    │                              photo files; writeTo(Uri) for SAF export,
+    │                              to JSON (with additionalPhotos and certificate fields) +
+    │                              copies all files in filesDir/artworks/ (photos + PDFs);
+    │                              writeTo(Uri) for SAF export,
     │                              writeToFile(File) for Nextcloud worker temp file
-    ├── BackupImporter.kt          Reads a SAF Uri zip → extracts photos →
-    │                              parses artworks.json (including additionalPhotos) →
-    │                              returns BackupData(artworks, photos)
+    ├── BackupImporter.kt          Reads a SAF Uri zip → extracts all files (photos + PDFs) →
+    │                              parses artworks.json (including additionalPhotos and
+    │                              certificate fields) → returns BackupData(artworks, photos)
     ├── ExchangeRateService.kt     Fetches live rates from api.frankfurter.app;
     │                              returns Map<String,Double> or null on failure;
     │                              called on Dispatchers.IO
@@ -193,6 +197,7 @@ The database contains two Room entities:
 | 1 | Initial schema (`artworks` table) |
 | 2 | Added `type TEXT NOT NULL DEFAULT ''` and `currency TEXT NOT NULL DEFAULT ''` columns to `artworks` |
 | 3 | Added `artwork_photos` table with index on `artworkId` |
+| 4 | Added `certificatePath TEXT NOT NULL DEFAULT ''` column to `artworks` |
 
 ---
 
@@ -273,9 +278,9 @@ SettingsFragment
   ├─ loadArtworksNow()           → suspend, Dispatchers.IO
   ├─ loadAllPhotosNow()          → suspend, Dispatchers.IO; Map<Long, List<ArtworkPhoto>>
   └─ BackupExporter.writeTo(uri, artworks, photosByArtwork)
-       ├─ addJson()              serialises artworks to JSON; each artwork entry
-       │                         includes an "additionalPhotos" array when present
-       └─ addPhotoFiles()        streams every file from filesDir/artworks/ as a zip entry
+       ├─ addJson()              serialises artworks to JSON; each entry includes
+       │                         "additionalPhotos" array and optional "certificate" filename
+       └─ addPhotoFiles()        streams every file from filesDir/artworks/ (photos + PDFs)
 ```
 
 ### Import
@@ -371,6 +376,7 @@ The app uses `Theme.Material3.DayNight.NoActionBar` and calls `AppCompatDelegate
 | `ArtworkPhoto` separate entity + CASCADE | Keeps the `Artwork` table lean; orphan photos are cleaned up automatically on artwork deletion |
 | `BackupData` return type from importer | Keeps `BackupImporter` stateless and makes the photo list explicit at the call site |
 | Internal storage + FileProvider | Avoids dangerous external storage permissions; works on all supported API levels |
+| Certificate PDFs in `filesDir/artworks/` | Reuses the same directory and FileProvider config as photos; `addPhotoFiles()` in `BackupExporter` picks them up automatically with no extra code |
 | SAF for backup I/O | User controls the save location (local, SD card, cloud drive) without the app needing storage permissions |
 | `GetContent("image/*")` for photo picker | Opens the full SAF document picker instead of the system photo picker, giving access to all installed cloud document providers (Drive, Dropbox, Nextcloud app) with no extra code |
 | WorkManager for Nextcloud backup | Survives app restarts and device reboots; handles network constraints and retry back-off automatically |
