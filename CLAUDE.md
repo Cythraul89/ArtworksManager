@@ -6,14 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This repository contains **two separate apps**:
+This repository contains the **ArtworksManager** Flutter app — a cross-platform artwork collection manager with Nextcloud backup support (Android, iOS, macOS, Linux, Windows).
 
-| Directory | App | Status |
-|-----------|-----|--------|
-| `app/` + root `build.gradle` | Original Android (Kotlin/MVVM/Room) | Legacy — see `doc/` for its architecture |
-| `flutter_app/` | Flutter cross-platform rewrite | **Active development target** |
+The `doc/` directory contains legacy architecture notes from the original Kotlin prototype (reference only, not modified).
 
-All day-to-day work happens in `flutter_app/`. The Kotlin app is the reference for feature parity but is not modified.
+All development happens in `flutter_app/`.
 
 ---
 
