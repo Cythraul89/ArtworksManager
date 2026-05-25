@@ -318,9 +318,45 @@ class _PdfExportTileState extends ConsumerState<_PdfExportTile> {
 
 // ── About tile ────────────────────────────────────────────────────────────────
 
-class _AboutTile extends ConsumerWidget {
+class _AboutTile extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AboutTile> createState() => _AboutTileState();
+}
+
+class _AboutTileState extends ConsumerState<_AboutTile> {
+  int _taps = 0;
+
+  void _onTap(BuildContext context, String? version) {
+    _taps++;
+    if (_taps >= 5) {
+      _taps = 0;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: const Text(
+            'Created for Nkule Mabaso. Sthandwa sami',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('❤️'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showLicensePage(
+        context: context,
+        applicationName: 'AWoMa',
+        applicationVersion: version,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final info = ref.watch(packageInfoProvider);
     final String? version = info.maybeWhen(
       data: (p) => '${p.version}+${p.buildNumber}',
@@ -330,11 +366,7 @@ class _AboutTile extends ConsumerWidget {
       leading: const Icon(Icons.info_outline),
       title: const Text('AWoMa'),
       subtitle: Text(version ?? 'Loading…'),
-      onTap: () => showLicensePage(
-        context: context,
-        applicationName: 'AWoMa',
-        applicationVersion: version,
-      ),
+      onTap: () => _onTap(context, version),
     );
   }
 }
