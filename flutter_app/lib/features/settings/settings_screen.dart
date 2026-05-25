@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -318,15 +319,63 @@ class _PdfExportTileState extends ConsumerState<_PdfExportTile> {
 
 // ── About tile ────────────────────────────────────────────────────────────────
 
-class _AboutTile extends ConsumerStatefulWidget {
+class _AboutTile extends ConsumerWidget {
   @override
-  ConsumerState<_AboutTile> createState() => _AboutTileState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(packageInfoProvider);
+    final String? version = info.maybeWhen(
+      data: (p) => '${p.version}+${p.buildNumber}',
+      orElse: () => null,
+    );
+    return ListTile(
+      leading: const Icon(Icons.info_outline),
+      title: const Text('AWoMa'),
+      subtitle: Text(version ?? 'Loading…'),
+      onTap: () => Navigator.push<void>(
+        context,
+        MaterialPageRoute(builder: (_) => _AboutPage(version: version)),
+      ),
+    );
+  }
 }
 
-class _AboutTileState extends ConsumerState<_AboutTile> {
-  int _taps = 0;
+// ── Custom about / license page ───────────────────────────────────────────────
 
-  void _onTap(BuildContext context, String? version) {
+class _AboutPage extends StatefulWidget {
+  const _AboutPage({this.version});
+  final String? version;
+
+  @override
+  State<_AboutPage> createState() => _AboutPageState();
+}
+
+class _AboutPageState extends State<_AboutPage> {
+  int _taps = 0;
+  List<(String, int)>? _packages;
+  Map<String, List<LicenseEntry>>? _licenseMap;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLicenses();
+  }
+
+  Future<void> _loadLicenses() async {
+    final map = <String, List<LicenseEntry>>{};
+    await for (final entry in LicenseRegistry.licenses) {
+      for (final pkg in entry.packages) {
+        map.putIfAbsent(pkg, () => []).add(entry);
+      }
+    }
+    if (!mounted) return;
+    final sorted = map.keys.toList()..sort();
+    setState(() {
+      _licenseMap = map;
+      _packages = sorted.map((k) => (k, map[k]!.length)).toList();
+    });
+  }
+
+  void _onVersionTap() {
     _taps++;
     if (_taps >= 5) {
       _taps = 0;
@@ -346,28 +395,117 @@ class _AboutTileState extends ConsumerState<_AboutTile> {
           ],
         ),
       );
-    } else {
-      showLicensePage(
-        context: context,
-        applicationName: 'AWoMa',
-        applicationVersion: version,
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final info = ref.watch(packageInfoProvider);
-    final String? version = info.maybeWhen(
-      data: (p) => '${p.version}+${p.buildNumber}',
-      orElse: () => null,
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Licenses')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: Column(
+              children: [
+                Text('AWoMa', style: theme.textTheme.headlineMedium),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _onVersionTap,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      widget.version ?? '',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Powered by Flutter'),
+              ],
+            ),
+          ),
+          const Divider(),
+          if (_packages == null)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: _packages!.length,
+                itemBuilder: (context, i) {
+                  final (name, count) = _packages![i];
+                  return ListTile(
+                    title: Text(name),
+                    subtitle: Text(
+                        '$count license${count == 1 ? '' : 's'}.'),
+                    onTap: () => Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => _PackageLicensePage(
+                          packageName: name,
+                          licenses: _licenseMap![name]!,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
-    return ListTile(
-      leading: const Icon(Icons.info_outline),
-      title: const Text('AWoMa'),
-      subtitle: Text(version ?? 'Loading…'),
-      onTap: () => _onTap(context, version),
+  }
+}
+
+class _PackageLicensePage extends StatelessWidget {
+  const _PackageLicensePage({
+    required this.packageName,
+    required this.licenses,
+  });
+
+  final String packageName;
+  final List<LicenseEntry> licenses;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(packageName)),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: _buildChildren(),
+      ),
     );
+  }
+
+  List<Widget> _buildChildren() {
+    final widgets = <Widget>[];
+    for (int i = 0; i < licenses.length; i++) {
+      if (i > 0) widgets.add(const Divider(height: 32));
+      for (final paragraph in licenses[i].paragraphs) {
+        if (paragraph.indent == LicenseParagraph.centeredIndent) {
+          widgets.add(Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              paragraph.text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ));
+        } else {
+          widgets.add(Padding(
+            padding: EdgeInsets.only(
+              top: 4,
+              bottom: 4,
+              left: paragraph.indent * 16.0,
+            ),
+            child: Text(paragraph.text),
+          ));
+        }
+      }
+    }
+    return widgets;
   }
 }
 
