@@ -195,3 +195,18 @@ jobs:
           name: windows-bundle
           path: flutter_app/build/windows/x64/runner/Release/
           retention-days: 14
+
+  sbom:
+    name: SBOM (CycloneDX)
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: anchore/sbom-action@v0
+        with:
+          path: ./flutter_app
+          format: cyclonedx-json
+          artifact-name: awoma-sbom.cdx.json
+          output-file: awoma-sbom.cdx.json
+          upload-release-assets: false
