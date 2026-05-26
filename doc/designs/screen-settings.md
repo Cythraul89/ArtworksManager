@@ -25,8 +25,8 @@ Access app-level preferences (currency), export the collection as PDF, export an
 │                                 │
 │  BACKUP                         │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │ 💾  Export backup           │ │  ← Opens SAF "Create document" file picker
-│ │     Save database and       │ │    Default filename: artworks_backup_YYYYMMDD_HHmmss.zip
+│ │ 💾  Export backup           │ │  ← Opens native save dialog (FilePicker.saveFile)
+│ │     Save database and       │ │    Default filename: artworks_YYYYMMDD_HHmmss.zip
 │ │     photos as a zip file    │ │    Progress spinner while writing
 │ ├─────────────────────────────┤ │
 │ │ ⬇   Import backup           │ │  ← Opens SAF "Open document" file picker (zip only)
@@ -39,7 +39,7 @@ Access app-level preferences (currency), export the collection as PDF, export an
 │                                 │
 │  ABOUT                          │  ← Section header
 │ ┌─────────────────────────────┐ │
-│ │  Version              0.1.0 │ │
+│ │  Version            0.2.0+1 │ │
 │ ├─────────────────────────────┤ │
 │ │  License   GNU General      │ │
 │ │            Public License   │ │
@@ -57,17 +57,21 @@ Tapping **Currency** opens a single-choice dialog listing all supported currenci
 
 ```
 ┌──────────────────────────────────┐
-│  Select currency                 │
+│  Default currency                │
 │                                  │
-│  ● Euro (€)                      │
-│  ○ US Dollar ($)                 │
-│  ○ Norwegian Krone (kr)          │
-│  ○ South African Rand (R)        │
+│  ✓ Euro (€)                      │
+│    US Dollar ($)                 │
+│    Pound Sterling (£)            │
+│    Japanese Yen (¥)              │
+│    Swiss Franc (CHF)             │
+│    … (21 currencies total)       │
 │                                  │
 └──────────────────────────────────┘
 ```
 
-The selection is saved to SharedPreferences immediately and reflected in:
+All 21 currencies: EUR, USD, GBP, JPY, CHF, CAD, AUD, BRL, CZK, DKK, HKD, HUF, INR, KRW, MXN, NOK, NZD, PLN, SEK, SGD, ZAR.
+
+The selection is saved to the app database (Settings table) immediately and reflected in:
 - The currency row label in Settings
 - The default currency dropdown in Add / Edit Artwork (for new artworks)
 - The price display in Artwork Detail (when no per-artwork currency is set)
@@ -88,7 +92,7 @@ Tapping **Export collection** immediately starts generating the PDF (no options 
 
 ## Export Backup Behaviour
 
-Tapping **Export backup** opens the Android Storage Access Framework *Create Document* picker with the suggested filename `artworks_backup_YYYYMMDD_HHmmss.zip`. After the user selects a save location the zip is written containing:
+Tapping **Export backup** opens the native save dialog (`FilePicker.saveFile`) with the suggested filename `artworks_YYYYMMDD_HHmmss.zip`. After the user selects a save location the zip is written containing:
 
 ```
 artworks.json       ← all artwork records as pretty-printed JSON
@@ -132,7 +136,7 @@ A success toast is shown on completion; an error toast on failure.
 
 ## Import Backup Behaviour
 
-Tapping **Import backup** opens the SAF *Open Document* picker filtered to `application/zip`. After the user selects a file a confirmation dialog is shown:
+Tapping **Import backup** opens the native file picker filtered to ZIP files. After the user selects a file a confirmation dialog is shown:
 
 ```
 ┌──────────────────────────────────┐
@@ -150,7 +154,7 @@ Tapping **Import backup** opens the SAF *Open Document* picker filtered to `appl
 On **Replace**:
 1. Photos are extracted from `photos/` in the zip to the app's internal storage
 2. `artworks.json` is parsed; artworks and their additional photos are reconstructed with correct local photo paths
-3. The entire current collection (artworks + photos) is atomically replaced in one Room transaction
+3. The entire current collection (artworks + photos) is atomically replaced in one Drift transaction
 4. A toast shows `"Imported N artworks"` on success, or an error toast on failure
 
 ## Nextcloud Row Behaviour
@@ -169,9 +173,9 @@ Tapping the row always navigates to the Nextcloud settings sub-screen. The statu
 ├─────────────────────────────────┤
 │                                 │
 │  ☁  Nextcloud backup            │  ← Header
-│     Daily automatic backup to   │
-│     ArtworksManager/artworks_   │
-│     backup.zip                  │
+│     Automatic backup to         │
+│     AWoMa/ on your Nextcloud    │
+│     server via WebDAV           │
 │                                 │
 │  ┌─────────────────────────────┐│
 │  │ Server URL                  ││  ← e.g. https://cloud.example.com
@@ -191,8 +195,9 @@ Tapping the row always navigates to the Nextcloud settings sub-screen. The statu
 │  │    account password...       ││
 │  └─────────────────────────────┘│
 │                                 │
-│  ☐  Trust self-signed /         │  ← Checkbox; opt-in for servers with
-│     untrusted certificates      │    self-signed or privately-issued certs
+│  ┌─────────────────────────────┐│
+│  │ SHA-256 fingerprint (opt.)  ││  ← Leave empty for system-trusted CAs;
+│  └─────────────────────────────┘│    paste fingerprint to pin a specific cert
 │                                 │
 │  ┌─────────────────────────────┐│  ← Status card (hidden when Idle)
 │  │ ✓  Connected as alice       ││    Green icon + primary text when Connected
@@ -200,38 +205,43 @@ Tapping the row always navigates to the Nextcloud settings sub-screen. The statu
 │  └─────────────────────────────┘│
 │                                 │
 │  ┌─────────────────────────────┐│
-│  │         CONNECT             ││  ← Filled button (hidden when Connected)
-│  └─────────────────────────────┘│    Spinner overlay while Testing
+│  │     TEST CONNECTION         ││  ← Fetches cert info; shows trust dialog
+│  └─────────────────────────────┘│    if cert is untrusted; runs verifyCredentials()
 │                                 │
 │  ┌─────────────────────────────┐│
-│  │         DISCONNECT          ││  ← Outlined button (hidden when not Connected)
+│  │     CONFIRM & CONNECT       ││  ← Enabled only after successful test;
+│  └─────────────────────────────┘│    saves settings; checks for remote backup;
+│                                 │    shows sync-choice dialog; closes screen
+│  ┌─────────────────────────────┐│
+│  │    BACKUP TO NEXTCLOUD NOW  ││  ← Immediate upload; available when configured
 │  └─────────────────────────────┘│
-│                                 │
-│  ─────────────────────────────  │  ← Divider (hidden when not Connected)
 │                                 │
 │  ┌─────────────────────────────┐│
-│  │       BACK UP NOW           ││  ← Tonal button (hidden when not Connected)
+│  │    RESTORE FROM CLOUD       ││  ← Download latest backup from server
 │  └─────────────────────────────┘│
 │                                 │
-│  Last backup: 06 May 2026,      │  ← Caption (hidden when not Connected)
-│  14:32                          │    "Never backed up" before first upload
+│  Last backup: 06 May 2026,      │  ← Shown when lastSyncAt is set
+│  14:32                          │
 │                                 │
 └─────────────────────────────────┘
 ```
 
-### Connect behaviour
-1. User fills in server URL, username, app password, and optionally checks **Trust self-signed certificates**
-2. Tapping **Connect** calls `NextcloudClient.testConnection()` on a background thread (OCS API GET `/ocs/v2.php/cloud/user` with Basic auth); the `trustAllCerts` flag is forwarded
-3. A spinner is shown over the Connect button while testing
-4. On HTTP 200: credentials (including the trust flag) saved to `NextcloudPreferences`; a daily `PeriodicWorkRequest` is registered in WorkManager; screen transitions to Connected state
-5. On failure: error message shown in the status card (e.g. "Invalid username or app password", "SSL certificate error — enable Trust self-signed certificates if your server uses a self-signed cert", "Connection timed out")
+### Test connection behaviour
+1. User fills in server URL, username, app password, and optionally a SHA-256 fingerprint for cert pinning
+2. Tapping **Test connection** calls `NextcloudService.fetchCertificateInfo()` to inspect the server cert
+3. If the cert is not OS-trusted and no fingerprint is set, a dialog shows subject / issuer / valid-until / fingerprint with **Trust & pin** / **Reject** options
+4. After cert handling, `NextcloudService.verifyCredentials()` is called (WebDAV PROPFIND with Basic auth)
+5. On success: `_connectionVerified = true`; the **Confirm & connect** button becomes active
+6. On failure: error message shown beneath the button
 
-### Disconnect behaviour
-Credentials are cleared from `NextcloudPreferences` and the scheduled WorkManager job is cancelled.
+### Confirm & connect behaviour
+1. Saves server URL, username, remote path, cert fingerprint, and auto-sync settings to the Drift Settings table; password to `flutter_secure_storage`
+2. Calls `NextcloudService.findLatestBackup()` to check for an existing remote backup
+3. If a backup is found: shows a sync-choice dialog ("Restore from server" / "Upload current" / "Later")
+4. Executes the chosen action, then closes the screen
 
 ### Back up now behaviour
-Enqueues a `OneTimeWorkRequest` for `NextcloudBackupWorker`. The worker runs as soon as a network connection is available. A toast "Backup queued…" is shown immediately. The fragment observes the `WorkInfo` via `getWorkInfoByIdLiveData()` and shows:
-- A toast "Backup saved successfully" on `SUCCEEDED`
-- A toast with the specific error message (e.g. "Upload failed: HTTP 403") on `FAILED`
+Immediately exports a ZIP via `BackupService.exportToZip()`, uploads via `NextcloudService.uploadBackup()`, prunes old files via `listFiles()` / `deleteFile()`, and saves `lastSyncAt` on success or `lastSyncError` on failure to the Settings table. A progress indicator is shown while the operation runs.
 
-The "Last backup" label updates to the new timestamp on success (the worker stores it in `NextcloudPreferences.lastBackupTime`)..
+### Restore from cloud behaviour
+Downloads the latest backup via `NextcloudService.downloadFile()`, then calls `BackupService.importFromBytes()` and `ArtworksDao.replaceAll()` in a Drift transaction. Saves `lastSyncAt` on success.

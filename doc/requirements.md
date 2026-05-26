@@ -18,7 +18,7 @@ A single private individual who owns a personal art collection of up to 1000 art
   - Title
   - Artist name
   - Year of creation
-  - Type (Painting, Drawing, Print, Photography, Sculpture, Textile, Digital, Book, Other)
+  - Type (Painting, Drawing, Print, Photography, Sculpture, Ceramics, Textile, Digital, Book, Other)
   - Medium / technique (18 options: oil on canvas, acrylic, watercolor, etc.)
   - Condition (Excellent, Good, Fair, Poor)
   - Provenance / ownership history (free text)
@@ -109,7 +109,7 @@ The Flutter rewrite (`flutter_app/`) adds and changes the following relative to 
 - **Certificate fingerprint pinning** (replaces trust-all checkbox) — SHA-256 fingerprint field; empty = no pinning; avoids blanket MITM risk of the Kotlin trust-all approach
 - **Configurable Nextcloud remote path** — user-configurable remote directory (default `AWoMa`); previously hard-coded
 - **Sort by year** — collection can now be sorted by artwork year in addition to title, artist, and date added
-- **Book artwork type** — added alongside Painting, Drawing, Print, Photography, Sculpture, Textile, Digital, Other
+- **Ceramics and Book artwork types** — added alongside Painting, Drawing, Print, Photography, Sculpture, Textile, Digital, Other
 
 ### Changed Behaviours
 

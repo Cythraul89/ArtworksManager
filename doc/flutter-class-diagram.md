@@ -1,7 +1,6 @@
 # Flutter App — Class Diagram
 
 > This document covers `flutter_app/` — the active cross-platform rewrite.
-> For the original Kotlin/Android class diagram see `doc/class-diagram.md`.
 
 ```mermaid
 classDiagram
@@ -16,7 +15,7 @@ classDiagram
         +artworksDao : ArtworksDao
         +photosDao : PhotosDao
         +settingsDao : SettingsDao
-        +schemaVersion : int = 3
+        +schemaVersion : int = 8
         +openForIsolate()$ AppDatabase
         +forTesting(connection)$ AppDatabase
     }
@@ -59,7 +58,9 @@ classDiagram
         +nextcloudUrl : TextColumn
         +nextcloudUsername : TextColumn
         +nextcloudPath : TextColumn
-        +nextcloudCertFingerprint : TextColumn
+        +nextcloudTrustSelfSigned : BoolColumn
+        +themeMode : TextColumn
+        +nextcloudCertFingerprint : TextColumn?
         +nextcloudKeepExports : IntColumn
         +lastSyncAt : IntColumn?
         +lastSyncError : TextColumn?
@@ -190,10 +191,9 @@ classDiagram
 
     class Currency {
         <<enumeration>>
-        EUR
-        USD
-        NOK
-        ZAR
+        EUR USD GBP JPY CHF CAD AUD BRL
+        CZK DKK HKD HUF INR KRW MXN NOK
+        NZD PLN SEK SGD ZAR
         +code : String
         +symbol : String
         +displayName : String
@@ -286,7 +286,7 @@ classDiagram
     %% ─────────────────────────────────────────
 
     class AdaptiveShell {
-        <<ConsumerWidget>>
+        <<ConsumerStatefulWidget>>
     }
 
     %% ─────────────────────────────────────────
