@@ -383,7 +383,7 @@ class _AboutPageState extends State<_AboutPage> {
         context: context,
         builder: (ctx) => AlertDialog(
           content: const Text(
-            'Created for Nkule Mabaso. Sthandwa sami',
+            'Created for Nkule Mabaso.\nSthandwa sami',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16),
           ),
