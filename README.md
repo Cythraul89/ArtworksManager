@@ -1,127 +1,90 @@
-# ArtworksManager
+# ArtworksManager (AWoMa)
 
-A personal artwork catalogue app for Android. Record, browse, and manage a private art collection of up to 1,000 artworks — fully offline, no account required.
+A cross-platform personal artwork catalogue — Android, iOS, macOS, Linux, and Windows. Record, browse, and manage a private art collection fully offline; no account required.
 
 ## Features
 
 - **Add / Edit / Delete** artworks with title, artist, year, type, medium, dimensions, location, acquisition date, purchase price, photos, and notes
-- **Per-artwork currency** — each artwork stores its own currency (EUR, USD, NOK, ZAR); falls back to the global preference when not set
-- **Multiple photos** — attach a cover photo plus any number of additional photos; photos can be taken with the camera or picked from the gallery, local storage, or any cloud storage provider installed on the device (Google Drive, Dropbox, OneDrive, Nextcloud app, etc.) via the Android Storage Access Framework
-- **Certificate of authenticity** — optionally attach a PDF certificate to any artwork; the file is stored on-device and can be opened from the detail view in any installed PDF viewer; certificates are included in zip backups
-- **Browse** the collection in grid or list view with real-time search, filter by medium, and sort by title, artist, or date
-- **Dashboard** with total count, breakdown by medium and artist, recently-added strip, and a **Collection Value card** showing per-currency subtotals and a live grand total converted via the Frankfurter API (offline fallback: per-currency subtotals only)
-- **Export PDF** — one A4 page per artwork, photos orientation-corrected via EXIF
-- **Export backup** — saves a zip containing `artworks.json` (human-readable, including additional photos) and all artwork photos to any location via the Android Storage Access Framework
-- **Import backup** — restores a collection (artworks + additional photos) from a previously exported zip
-- **Nextcloud backup** — connect to a Nextcloud server using an app password; supports self-signed / untrusted certificates via an opt-in checkbox; the full collection is automatically backed up once a day via WebDAV to `ArtworksManager/artworks_backup.zip`; a "Back up now" button triggers an immediate upload with a success or error toast
-- **Dark mode** — follows the system light/dark setting
+- **Multiple photos** — cover photo plus any number of additional photos; tap any photo to open a full-screen viewer with pinch-to-zoom and swipe between photos
+- **Browse** the collection in grid or list view with real-time search, filter by medium / condition, and sort by title, artist, date, or price
+- **Dashboard** with total count, breakdown by medium and artist, recently-added strip, and a **Collection Value** card showing per-currency subtotals converted to a single total via the [Frankfurter API](https://www.frankfurter.app) (offline fallback: per-currency subtotals only)
+- **Default currency** — 21 supported currencies (EUR, USD, GBP, JPY, CHF, CAD, AUD, BRL, CZK, DKK, HKD, HUF, INR, KRW, MXN, NOK, NZD, PLN, SEK, SGD, ZAR)
+- **Export PDF** — one A4 page per artwork, photos EXIF-corrected, rendered with Noto Sans for cross-platform consistency
+- **Local backup** — saves a ZIP containing `artworks.json` and all photos; restore from any previously saved ZIP
+- **Nextcloud backup** — connect via app password; supports custom self-signed certificates via SHA-256 fingerprint pinning; configurable auto-sync interval; startup prompt when a newer remote backup is detected
+- **Theme** — system, light, or dark
+- **App logs** — viewable and exportable diagnostic log (Settings → App logs)
 
 ## Requirements
 
-| Tool | Version |
-|------|---------|
-| Android Studio | Ladybug or newer |
-| JDK | 11 (bundled with Android Studio) |
-| Android SDK (min) | API 33 (Android 13) |
-| Android SDK (target) | API 35 (Android 15) |
-| Gradle | 8.13 |
-| Android Gradle Plugin | 8.13.2 |
-| WorkManager | 2.10.1 |
+| Concern | Requirement |
+|---------|-------------|
+| Flutter SDK | stable channel (≥ 3.44) |
+| Dart SDK | ≥ 3.3 |
+| Android | JDK 17, Android SDK API 33+ |
+| iOS / macOS | Xcode (latest stable) |
+| Linux | `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev` |
+| Windows | Visual Studio 2022 with the *Desktop development with C++* workload |
 
 ## Getting Started
 
 ```bash
 git clone https://github.com/Cythraul89/ArtworksManager.git
-cd ArtworksManager
+cd ArtworksManager/flutter_app
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter run
 ```
-
-1. Open **Android Studio** → **File → Open** → select the cloned folder
-2. Wait for Gradle to sync
-3. Click **Run ▶** (or `Shift+F10`) to launch on a connected device or emulator
-
-### Physical device
-
-1. Enable **Developer Options** (tap *Build number* 7 times in **Settings → About phone**)
-2. Enable **USB Debugging**
-3. Connect via USB, accept the prompt, then select the device in Android Studio and click **Run ▶**
 
 ## Building
 
 ```bash
-# Debug APK
-./gradlew assembleDebug
-# Output: app/build/outputs/apk/debug/app-debug.apk
-
-# Release APK (requires a signing keystore configured in app/build.gradle)
-./gradlew assembleRelease
-
-# Install directly on a connected device
-./gradlew installDebug
+flutter build apk --release          # Android
+flutter build ios --no-codesign      # iOS (simulator / ad-hoc)
+flutter build macos --release        # macOS
+flutter build linux --release        # Linux
+flutter build windows --release      # Windows
 ```
 
-A signed release APK can also be generated from Android Studio via **Build → Generate Signed Bundle / APK**.
+## Testing
 
-## Project Structure
-
-```
-app/src/main/
-├── java/com/example/artworksmanager/
-│   ├── ArtworksManagerApp.kt          Application class (DB + repository + preferences singletons)
-│   ├── data/
-│   │   ├── Artwork.kt                 Main artwork entity
-│   │   ├── ArtworkPhoto.kt            Additional photos entity (one-to-many)
-│   │   ├── ArtworkDao.kt              Room DAO
-│   │   ├── ArtworkDatabase.kt         Room database (v3)
-│   │   ├── ArtworkRepository.kt       Single source of truth
-│   │   ├── AppPreferences.kt          SharedPreferences wrapper + reactive currencyFlow
-│   │   ├── Currency.kt                Enum: EUR / USD / NOK / ZAR
-│   │   └── NextcloudPreferences.kt    Nextcloud credentials + lastBackupTime (SharedPreferences)
-│   ├── ui/
-│   │   ├── MainActivity.kt            Single-activity host, Navigation Component
-│   │   ├── addedit/
-│   │   │   ├── AddEditFragment.kt     Add / Edit form + photo management (SAF cloud picker)
-│   │   │   ├── AddEditViewModel.kt    Save logic + additional-photo diff
-│   │   │   └── AdditionalPhotoAdapter.kt  Horizontal photo strip adapter
-│   │   ├── collection/                Collection list, search, filter/sort
-│   │   ├── dashboard/                 Stats overview + collection value card
-│   │   ├── detail/                    Artwork detail view + photo strip
-│   │   ├── nextcloud/
-│   │   │   ├── NextcloudFragment.kt   Nextcloud login form + backup controls
-│   │   │   └── NextcloudViewModel.kt  Credential testing, WorkManager scheduling
-│   │   └── settings/                  PDF export, backup export/import, Nextcloud nav, about
-│   └── util/
-│       ├── BackupExporter.kt          Zip backup creation (artworks + photos); SAF Uri + File overloads
-│       ├── BackupImporter.kt          Zip backup restoration → BackupData
-│       ├── ExchangeRateService.kt     Live currency rates via Frankfurter API
-│       ├── NextcloudBackupWorker.kt   WorkManager CoroutineWorker for daily Nextcloud upload
-│       ├── NextcloudClient.kt         Nextcloud OCS auth check + WebDAV upload
-│       └── PdfExporter.kt             PDF generation
-└── res/
-    ├── layout/                        XML layouts for all screens
-    ├── navigation/                    Nav graph (Safe Args)
-    ├── values/                        Strings, colours (light), themes
-    ├── values-night/                  Dark mode colour overrides
-    └── xml/
-        ├── file_paths.xml             FileProvider path configuration
-        └── network_security_config.xml  Trusts system + user-installed CA certificates
-doc/
-├── architecture.md                    Architecture overview and design decisions
-├── class-diagram.md                   Mermaid class diagram of all classes
-├── requirements.md                    Functional and non-functional requirements
-└── designs/                           Per-screen wireframes and design system
+```bash
+flutter test                         # unit & widget tests
+flutter analyze --no-fatal-infos     # static analysis (local SDK)
 ```
 
-See [`doc/architecture.md`](doc/architecture.md) for a detailed description of the MVVM architecture, data flow, and key design decisions.
+> **Note:** Five analyzer hints for `RadioGroup` and `DropdownButtonFormField.initialValue` appear with the local Flutter 3.32.x SDK but are valid on CI (Flutter 3.44+). Do not suppress them.
+
+## CI / Release
+
+GitHub Actions workflows live in `.github/workflows/`:
+
+| Workflow | Trigger | Jobs |
+|----------|---------|------|
+| `flutter_ci.yml` | Push to `main`, `develop`, `feature/**`; PR to `main` | Analyze & Test → build all platforms + SBOM |
+| `flutter_release.yml` | Push tag `v*.*.*` | Build all platforms + SBOM → GitHub Release with all artifacts attached |
+
+A **CycloneDX SBOM** (`awoma-sbom.cdx.json`) is generated on every CI run and attached to every release.
+
+To publish a release:
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [`doc/architecture.md`](doc/architecture.md) | Architecture, tech stack, data flow, design decisions |
-| [`doc/class-diagram.md`](doc/class-diagram.md) | Mermaid class diagram of all classes and relationships |
+| [`doc/flutter-architecture.md`](doc/flutter-architecture.md) | Tech stack, data flow, provider conventions, navigation |
+| [`doc/flutter-class-diagram.md`](doc/flutter-class-diagram.md) | Mermaid class diagram of database, DAOs, and services |
 | [`doc/requirements.md`](doc/requirements.md) | Functional and non-functional requirements |
-| [`doc/designs/design-system.md`](doc/designs/design-system.md) | Colour palette (light + dark), typography, components |
-| [`doc/designs/screen-settings.md`](doc/designs/screen-settings.md) | Settings screen wireframe and backup behaviour |
+| [`doc/designs/design-system.md`](doc/designs/design-system.md) | Colour palette (light + dark), typography |
+| [`doc/designs/navigation.md`](doc/designs/navigation.md) | Navigation structure and screen map |
+| [`doc/designs/screen-dashboard.md`](doc/designs/screen-dashboard.md) | Dashboard wireframe |
+| [`doc/designs/screen-collection-list.md`](doc/designs/screen-collection-list.md) | Collection list wireframe |
+| [`doc/designs/screen-add-edit.md`](doc/designs/screen-add-edit.md) | Add / Edit form wireframe |
+| [`doc/designs/screen-artwork-detail.md`](doc/designs/screen-artwork-detail.md) | Artwork detail wireframe |
+| [`doc/designs/screen-settings.md`](doc/designs/screen-settings.md) | Settings wireframe |
 
 ## License
 
