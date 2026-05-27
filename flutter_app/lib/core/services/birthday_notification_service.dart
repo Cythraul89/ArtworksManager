@@ -92,9 +92,10 @@ class BirthdayNotificationService {
         linux: LinuxNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.dayOfYearAndTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
 
-    AppLogger.info('BirthdayNotification: scheduled for $next (repeats yearly)');
+    AppLogger.info('BirthdayNotification: scheduled for $next');
   }
 }
