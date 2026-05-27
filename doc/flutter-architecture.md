@@ -1,7 +1,6 @@
 # Flutter App — Architecture
 
 > This document covers `flutter_app/` — the active cross-platform rewrite.
-> For the original Kotlin/Android app see `doc/architecture.md`.
 
 ---
 
@@ -68,7 +67,7 @@ flutter_app/lib/
 ├── core/
 │   ├── database/
 │   │   ├── app_database.dart      @DriftDatabase: Artworks, ArtworkPhotos, Settings tables
-│   │   │                          MigrationStrategy (v1→v2→v3), openForIsolate() for WorkManager
+│   │   │                          MigrationStrategy (v1→v8), openForIsolate() for WorkManager
 │   │   ├── app_database.g.dart    Generated — do not edit
 │   │   ├── database_provider.dart databaseProvider (Riverpod Provider<AppDatabase>; app-lifetime singleton)
 │   │   └── daos/
@@ -77,8 +76,8 @@ flutter_app/lib/
 │   │       └── settings_dao.dart  watch(), get() [creates row on first call], save(SettingsCompanion)
 │   │
 │   ├── models/
-│   │   ├── artwork_constants.dart artworkTypes (8), artworkMediums (18), artworkConditions (4), SortBy enum, kDefaultRemotePath
-│   │   └── currency.dart          Currency enum: EUR/USD/NOK/ZAR; fromCode() factory
+│   │   ├── artwork_constants.dart artworkTypes (10), artworkMediums (18), artworkConditions (4), SortBy enum, kDefaultRemotePath = 'AWoMa'
+│   │   └── currency.dart          Currency enum: 21 currencies (EUR/USD/GBP/JPY/CHF/CAD/AUD/BRL/CZK/DKK/HKD/HUF/INR/KRW/MXN/NOK/NZD/PLN/SEK/SGD/ZAR); fromCode() factory
 │   │
 │   ├── services/
 │   │   ├── app_logger.dart        File logger (app_logs.txt, 2000-line trim)
@@ -86,7 +85,7 @@ flutter_app/lib/
 │   │   │                          readRecent(lines), getFile(), clear()
 │   │   ├── backup_service.dart    ZIP export: artworks.json + photos/
 │   │   │                          ZIP import: parse JSON, extract files, ZIP-slip protection
-│   │   │                          BackupData return type; generateFilename()
+│   │   │                          BackupData return type; generateFilename() → artworks_YYYYMMDD_HHmmss.zip
 │   │   ├── exchange_rate_service.dart  Frankfurter API, 24h disk cache, stale fallback
 │   │   │                          fetchRates(base) → Map<String,double>?
 │   │   │                          cacheModifiedTime(base) → DateTime?
@@ -96,6 +95,9 @@ flutter_app/lib/
 │   │   │                          SHA-256 cert fingerprint validation (optional)
 │   │   ├── pdf_exporter.dart      A4 PDF; one page per artwork; EXIF-corrected photos via
 │   │   │                          flutterImageProvider(FileImage()); Noto Sans fonts
+│   │   ├── remote_backup_check.dart   pendingRestoreProvider (StateProvider<BackupInfo?>)
+│   │   │                          checkForNewBackup(WidgetRef) — called by AdaptiveShell on startup;
+│   │   │                          compares remote backup date to lastSyncAt; sets provider if newer
 │   │   ├── secure_credentials_service.dart  Nextcloud password via flutter_secure_storage
 │   │   │                          readPassword, writePassword, clearPassword
 │   │   └── sync_worker.dart       WorkManager entry point (Android only, API 33+)
@@ -131,10 +133,13 @@ flutter_app/lib/
 │   ├── settings/
 │   │   ├── settings_providers.dart  settingsProvider (StreamProvider<Setting>)
 │   │   │                           packageInfoProvider (FutureProvider<PackageInfo>)
-│   │   ├── settings_screen.dart     Currency picker, PDF export, Nextcloud status tiles,
+│   │   ├── settings_screen.dart     Currency picker, theme picker, exchange-rates link, PDF export,
+│   │   │                           local backup link, Nextcloud status tiles,
 │   │   │                           sync error / overdue warning tiles, logs link, About tile
 │   │   └── logs_screen.dart         Last 300 log lines; color-coded; export via open_filex
 │   │                               (path + copy-to-clipboard fallback on open failure)
+│   ├── backup/
+│   │   └── local_backup_screen.dart  ZIP export (FilePicker.saveFile) + restore from local ZIP file
 │   └── nextcloud/
 │       └── nextcloud_screen.dart  Credentials form (URL, username, password, remote path,
 │                                  cert fingerprint); keep-last-N; auto-sync config;
@@ -149,7 +154,7 @@ flutter_app/lib/
 
 ## Database Schema (Drift / SQLite)
 
-**Schema version: 5**
+**Schema version: 8**
 
 ### Artworks
 
@@ -169,8 +174,8 @@ flutter_app/lib/
 | `currency` | TEXT | — | `''` | empty = use global |
 | `purchasePrice` | REAL | ✓ | — |
 | `description` | TEXT | — | `''` |
-| `condition` | TEXT | — | `''` | One of artworkConditions (v5) |
-| `provenance` | TEXT | — | `''` | Ownership history (v5) |
+| `condition` | TEXT | — | `''` | One of artworkConditions; added v5 |
+| `provenance` | TEXT | — | `''` | Ownership history; added v5 |
 | `photoPath` | TEXT | — | `''` |
 | `certificatePath` | TEXT | — | `''` |
 | `createdAt` | INTEGER | — | `now()` client-side |
@@ -192,13 +197,15 @@ flutter_app/lib/
 | `currency` | TEXT | `'EUR'` | Global display currency |
 | `nextcloudUrl` | TEXT | `''` | |
 | `nextcloudUsername` | TEXT | `''` | |
-| `nextcloudPath` | TEXT | `'ArtworksManager'` | Remote directory |
-| `nextcloudCertFingerprint` | TEXT | `''` | SHA-256 hex; empty = no pinning |
+| `nextcloudPath` | TEXT | `'AWoMa'` | Remote directory |
+| `nextcloudTrustSelfSigned` | BOOLEAN | `false` | Legacy trust-all flag; added v6 |
+| `themeMode` | TEXT | `'system'` | `'system'` / `'light'` / `'dark'`; added v7 |
+| `nextcloudCertFingerprint` | TEXT? | `null` | SHA-256 hex; null = no pinning; added v8 |
 | `nextcloudKeepExports` | INTEGER | 5 | Max files to keep on server |
 | `lastSyncAt` | INTEGER? | — | Unix ms of last successful sync |
-| `lastSyncError` | TEXT? | — | Last sync failure message (v3) |
-| `autoSyncEnabled` | BOOLEAN | `false` | (v2) |
-| `autoSyncIntervalHours` | INTEGER | 24 | 24 / 48 / 168 (v2) |
+| `lastSyncError` | TEXT? | — | Last sync failure message; added v3 |
+| `autoSyncEnabled` | BOOLEAN | `false` | Added v2 |
+| `autoSyncIntervalHours` | INTEGER | 24 | 24 / 48 / 168; added v2 |
 
 ### Migration history
 
@@ -207,8 +214,11 @@ flutter_app/lib/
 | 1 | Initial schema (Artworks, ArtworkPhotos, Settings) |
 | 2 | Added `autoSyncEnabled`, `autoSyncIntervalHours` to Settings |
 | 3 | Added `lastSyncError` to Settings |
-| 4 | Dropped `nextcloudPassword` column — password moved to `flutter_secure_storage` |
-| 5 | Added `condition`, `provenance` columns to Artworks |
+| 4 | Dropped `nextcloudPassword` — password moved to `flutter_secure_storage` |
+| 5 | Added `condition`, `provenance` to Artworks |
+| 6 | Added `nextcloudTrustSelfSigned` to Settings |
+| 7 | Added `themeMode` to Settings |
+| 8 | Added `nextcloudCertFingerprint` to Settings (replaces trust-all with explicit pinning) |
 
 ---
 
@@ -224,6 +234,8 @@ Three shell branches sharing `AdaptiveShell` (bottom nav / rail):
   /collection/artwork/:id
 /settings
   /settings/nextcloud
+  /settings/backup
+  /settings/rates
   /settings/logs
 ```
 
