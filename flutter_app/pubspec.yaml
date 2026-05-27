@@ -51,6 +51,10 @@ dependencies:
   # App version / about screen
   package_info_plus: ^8.0.0
 
+  # Birthday notification
+  flutter_local_notifications: ^17.2.4
+  timezone: ^0.9.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

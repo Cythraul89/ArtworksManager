@@ -7,9 +7,14 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
-    <!-- Background sync notifications (Android 13+) -->
+    <!-- Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33"/>
+    <!-- Exact alarm for birthday notification (Android 12+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:minSdkVersion="31"/>
+    <!-- Reschedule notifications after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Partial photo library access (Android 14+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
         android:minSdkVersion="34"/>

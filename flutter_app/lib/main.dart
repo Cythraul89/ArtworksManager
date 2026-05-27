@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 import 'app.dart';
+import 'core/services/birthday_notification_service.dart';
 import 'core/services/sync_worker.dart';
 
 @pragma('vm:entry-point')
@@ -30,5 +31,6 @@ You should have received a copy of the GNU General Public License along with thi
   if (Platform.isAndroid) {
     await Workmanager().initialize(callbackDispatcher);
   }
+  await BirthdayNotificationService.initialize();
   runApp(const ProviderScope(child: ArtworksManagerApp()));
 }
