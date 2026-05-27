@@ -53,7 +53,11 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-        run: flutter build apk --release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build apk --release \
+            --build-name="$VERSION" \
+            --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -85,7 +89,11 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Linux release
-        run: flutter build linux --release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build linux --release \
+            --build-name="$VERSION" \
+            --build-number=${{ github.run_number }}
 
       - name: Archive bundle
         run: tar -czf awoma-linux-x64.tar.gz -C build/linux/x64/release bundle
@@ -113,7 +121,11 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Windows release
-        run: flutter build windows --release
+        run: |
+          $VERSION = $env:GITHUB_REF_NAME -replace '^v', ''
+          flutter build windows --release `
+            --build-name="$VERSION" `
+            --build-number=${{ github.run_number }}
 
       - name: Archive bundle
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath awoma-windows-x64.zip
@@ -173,7 +185,11 @@ jobs:
             Runner/Release.entitlements || true
 
       - name: Build macOS release
-        run: flutter build macos --release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build macos --release \
+            --build-name="$VERSION" \
+            --build-number=${{ github.run_number }}
 
       - name: Archive app bundle
         run: |

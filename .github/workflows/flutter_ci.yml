@@ -69,7 +69,11 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build debug APK
-        run: flutter build apk --debug
+        run: |
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
+          flutter build apk --debug \
+            --build-name="${BASE}-dev" \
+            --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -103,7 +107,11 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Linux release
-        run: flutter build linux --release
+        run: |
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
+          flutter build linux --release \
+            --build-name="${BASE}-dev" \
+            --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -140,7 +148,11 @@ jobs:
             Runner/Release.entitlements || true
 
       - name: Build macOS release
-        run: flutter build macos --release
+        run: |
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
+          flutter build macos --release \
+            --build-name="${BASE}-dev" \
+            --build-number=${{ github.run_number }}
 
       - name: Archive app bundle
         run: |
@@ -173,7 +185,11 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build iOS (simulator, no code signing)
-        run: flutter build ios --debug --no-codesign
+        run: |
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
+          flutter build ios --debug --no-codesign \
+            --build-name="${BASE}-dev" \
+            --build-number=${{ github.run_number }}
 
   build-windows:
     name: Build Windows
@@ -194,7 +210,12 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Windows release
-        run: flutter build windows --release
+        run: |
+          $BASE = (Select-String -Path pubspec.yaml -Pattern '^version:').Line `
+            -replace 'version:\s*', '' -replace '\+.*', ''
+          flutter build windows --release `
+            --build-name="$BASE-dev" `
+            --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
