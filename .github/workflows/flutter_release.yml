@@ -136,7 +136,7 @@ jobs:
           Version: ${VERSION}
           Architecture: amd64
           Maintainer: Cythraul89 <dominik.hilber@gmail.com>
-          Depends: libgtk-3-0, libglib2.0-0, libstdc++6, libsecret-1-0, libjsoncpp25 | libjsoncpp24
+          Depends: libgtk-3-0, libglib2.0-0, libstdc++6, libsecret-1-0
           Description: AWoMa — personal artwork catalogue
            Cross-platform artwork collection manager with Nextcloud backup support.
           EOF
