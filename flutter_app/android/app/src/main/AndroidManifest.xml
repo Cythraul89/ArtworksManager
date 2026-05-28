@@ -15,6 +15,8 @@
         android:minSdkVersion="31"/>
     <!-- Reschedule notifications after device reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Vibration for notifications -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <!-- Partial photo library access (Android 14+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
         android:minSdkVersion="34"/>

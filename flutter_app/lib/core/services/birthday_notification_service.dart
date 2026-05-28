@@ -9,7 +9,7 @@ import 'package:workmanager/workmanager.dart';
 import 'app_logger.dart';
 
 // Shared by both classes — top-level so BirthdayWorker can access them.
-const _notificationId = 528; // May 28
+const _notificationId = 528;
 const _channelId = 'birthday';
 const _channelName = 'Birthday';
 const _birthdayMonth = 6;
@@ -37,6 +37,9 @@ const _details = NotificationDetails(
 /// Windows is skipped (its notification setup requires registry/AUMID wiring
 /// outside the scope of this plugin alone).
 class BirthdayNotificationService {
+  /// Initialises the plugin and schedules the alarm.
+  /// Does NOT request runtime permissions — call [requestPermissions] instead
+  /// from addPostFrameCallback so the Activity is in RESUMED state first.
   static Future<void> initialize() async {
     if (kIsWeb || Platform.isWindows) return;
 
@@ -60,7 +63,6 @@ class BirthdayNotificationService {
         ),
       );
 
-      await _requestPermissions();
       await _schedule();
       if (Platform.isAndroid) BirthdayWorker.schedule();
     } catch (e, st) {
@@ -68,22 +70,32 @@ class BirthdayNotificationService {
     }
   }
 
-  static Future<void> _requestPermissions() async {
-    if (Platform.isIOS) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
-    } else if (Platform.isMacOS) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              MacOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
-    } else if (Platform.isAndroid) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.requestNotificationsPermission();
-      await android?.requestExactAlarmsPermission();
+  /// Request runtime notification permissions.
+  /// Must be called after the first frame (via addPostFrameCallback) so the
+  /// Activity is in RESUMED state — calling earlier throws SecurityException
+  /// on Android 13+ in release builds and silently kills the process.
+  static Future<void> requestPermissions() async {
+    if (kIsWeb || Platform.isWindows) return;
+
+    try {
+      if (Platform.isIOS) {
+        await _plugin
+            .resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(alert: true, badge: true, sound: true);
+      } else if (Platform.isMacOS) {
+        await _plugin
+            .resolvePlatformSpecificImplementation<
+                MacOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(alert: true, badge: true, sound: true);
+      } else if (Platform.isAndroid) {
+        final android = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        await android?.requestNotificationsPermission();
+        await android?.requestExactAlarmsPermission();
+      }
+    } catch (e, st) {
+      AppLogger.error('BirthdayNotification: requestPermissions failed', e, st);
     }
   }
 
@@ -92,7 +104,7 @@ class BirthdayNotificationService {
     var next = tz.TZDateTime(
         tz.local, now.year, _birthdayMonth, _birthdayDay, _notifyHour, _notifyMinute);
     if (!next.isAfter(now)) {
-      // Today is May 28 and 17:15 has already passed — fire immediately.
+      // Today is June 3 and 09:00 has already passed — fire immediately.
       if (now.month == _birthdayMonth && now.day == _birthdayDay) {
         await _plugin.show(
           _notificationId,
