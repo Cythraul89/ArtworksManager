@@ -68,6 +68,23 @@ jobs:
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
+      - name: Write release keystore and key.properties
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > android/app/release-keystore.jks
+            cat > android/key.properties <<EOF
+storePassword=${STORE_PASSWORD}
+keyPassword=${KEY_PASSWORD}
+keyAlias=${KEY_ALIAS}
+storeFile=release-keystore.jks
+EOF
+          fi
+
       - name: Build debug APK
         run: |
           BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
