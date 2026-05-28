@@ -68,10 +68,32 @@ class BirthdayNotificationService {
     }
   }
 
+  static const _details = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+    iOS: DarwinNotificationDetails(),
+    macOS: DarwinNotificationDetails(),
+    linux: LinuxNotificationDetails(),
+  );
+
   static Future<void> _schedule() async {
     final now = tz.TZDateTime.now(tz.local);
     var next = tz.TZDateTime(tz.local, now.year, 5, 28, 9, 0);
     if (!next.isAfter(now)) {
+      // Today is May 28 and 09:00 has already passed — fire immediately.
+      if (now.month == 5 && now.day == 28) {
+        await _plugin.show(
+          _id,
+          'Happy Birthday, Sthandwa sami! 🎂',
+          'Wishing you the most wonderful day! ❤️',
+          _details,
+        );
+        AppLogger.info('BirthdayNotification: shown immediately (missed scheduled time)');
+      }
       next = tz.TZDateTime(tz.local, now.year + 1, 5, 28, 9, 0);
     }
 
@@ -80,17 +102,7 @@ class BirthdayNotificationService {
       'Happy Birthday, Sthandwa sami! 🎂',
       'Wishing you the most wonderful day! ❤️',
       next,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-        macOS: DarwinNotificationDetails(),
-        linux: LinuxNotificationDetails(),
-      ),
+      _details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
