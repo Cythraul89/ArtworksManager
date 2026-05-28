@@ -77,12 +77,12 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 --decode > android/app/release-keystore.jks
-            cat > android/key.properties <<EOF
-storePassword=${STORE_PASSWORD}
-keyPassword=${KEY_PASSWORD}
-keyAlias=${KEY_ALIAS}
-storeFile=release-keystore.jks
-EOF
+            {
+              echo "storePassword=${STORE_PASSWORD}"
+              echo "keyPassword=${KEY_PASSWORD}"
+              echo "keyAlias=${KEY_ALIAS}"
+              echo "storeFile=release-keystore.jks"
+            } > android/key.properties
           fi
 
       - name: Build debug APK
