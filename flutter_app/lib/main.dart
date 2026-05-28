@@ -11,6 +11,7 @@ import 'core/services/sync_worker.dart';
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     if (task == SyncWorker.taskName) return SyncWorker.run();
+    if (task == BirthdayWorker.taskName) return BirthdayWorker.run();
     return true;
   });
 }
