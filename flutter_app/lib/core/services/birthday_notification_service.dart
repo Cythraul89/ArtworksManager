@@ -84,9 +84,9 @@ class BirthdayNotificationService {
 
   static Future<void> _schedule() async {
     final now = tz.TZDateTime.now(tz.local);
-    var next = tz.TZDateTime(tz.local, now.year, 5, 28, 9, 0);
+    var next = tz.TZDateTime(tz.local, now.year, 5, 28, 17, 15);
     if (!next.isAfter(now)) {
-      // Today is May 28 and 09:00 has already passed — fire immediately.
+      // Today is May 28 and 17:15 has already passed — fire immediately.
       if (now.month == 5 && now.day == 28) {
         await _plugin.show(
           _id,
@@ -123,7 +123,7 @@ class BirthdayWorker {
   /// Uses [ExistingWorkPolicy.keep] so repeated app opens don't reset the delay.
   static void schedule() {
     final now = DateTime.now();
-    var target = DateTime(now.year, 5, 28, 9, 0);
+    var target = DateTime(now.year, 5, 28, 17, 15);
     if (!target.isAfter(now)) {
       target = DateTime(now.year + 1, 5, 28, 9, 0);
     }
@@ -145,7 +145,8 @@ class BirthdayWorker {
         ),
       );
       final now = DateTime.now();
-      if (now.month == 5 && now.day == 28) {
+      if (now.month == 5 && now.day == 28 &&
+          (now.hour > 17 || (now.hour == 17 && now.minute >= 15))) {
         await _plugin.show(
           _id,
           'Happy Birthday, Sthandwa sami! 🎂',
