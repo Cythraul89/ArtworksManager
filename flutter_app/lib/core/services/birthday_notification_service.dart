@@ -12,10 +12,10 @@ import 'app_logger.dart';
 const _notificationId = 528; // May 28
 const _channelId = 'birthday';
 const _channelName = 'Birthday';
-const _birthdayMonth = 5;
-const _birthdayDay = 28;
-const _notifyHour = 17;
-const _notifyMinute = 15;
+const _birthdayMonth = 6;
+const _birthdayDay = 3;
+const _notifyHour = 9;
+const _notifyMinute = 0;
 
 final _plugin = FlutterLocalNotificationsPlugin();
 
@@ -31,7 +31,7 @@ const _details = NotificationDetails(
   linux: LinuxNotificationDetails(),
 );
 
-/// Schedules an annual birthday notification on May 28 at 17:15 local time.
+/// Schedules an annual birthday notification on June 3 at 09:00 local time.
 ///
 /// Supported platforms: Android, iOS, macOS, Linux.
 /// Windows is skipped (its notification setup requires registry/AUMID wiring
@@ -126,7 +126,7 @@ class BirthdayNotificationService {
 class BirthdayWorker {
   static const taskName = 'birthday_notify';
 
-  /// Registers a one-off WorkManager task to fire on the next May 28 at 17:15.
+  /// Registers a one-off WorkManager task to fire on the next June 3 at 09:00.
   /// Uses [ExistingWorkPolicy.keep] so repeated app opens don't reset the delay.
   static void schedule() {
     final now = DateTime.now();
