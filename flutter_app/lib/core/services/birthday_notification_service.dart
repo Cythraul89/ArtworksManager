@@ -8,18 +8,35 @@ import 'package:workmanager/workmanager.dart';
 
 import 'app_logger.dart';
 
-/// Schedules an annual birthday notification on May 28 at 09:00 local time.
+// Shared by both classes — top-level so BirthdayWorker can access them.
+const _notificationId = 528; // May 28
+const _channelId = 'birthday';
+const _channelName = 'Birthday';
+const _birthdayMonth = 5;
+const _birthdayDay = 28;
+const _notifyHour = 17;
+const _notifyMinute = 15;
+
+final _plugin = FlutterLocalNotificationsPlugin();
+
+const _details = NotificationDetails(
+  android: AndroidNotificationDetails(
+    _channelId,
+    _channelName,
+    importance: Importance.high,
+    priority: Priority.high,
+  ),
+  iOS: DarwinNotificationDetails(),
+  macOS: DarwinNotificationDetails(),
+  linux: LinuxNotificationDetails(),
+);
+
+/// Schedules an annual birthday notification on May 28 at 17:15 local time.
 ///
 /// Supported platforms: Android, iOS, macOS, Linux.
 /// Windows is skipped (its notification setup requires registry/AUMID wiring
 /// outside the scope of this plugin alone).
 class BirthdayNotificationService {
-  static const _id = 528; // May 28
-  static const _channelId = 'birthday';
-  static const _channelName = 'Birthday';
-
-  static final _plugin = FlutterLocalNotificationsPlugin();
-
   static Future<void> initialize() async {
     if (kIsWeb || Platform.isWindows) return;
 
@@ -70,37 +87,27 @@ class BirthdayNotificationService {
     }
   }
 
-  static const _details = NotificationDetails(
-    android: AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      importance: Importance.high,
-      priority: Priority.high,
-    ),
-    iOS: DarwinNotificationDetails(),
-    macOS: DarwinNotificationDetails(),
-    linux: LinuxNotificationDetails(),
-  );
-
   static Future<void> _schedule() async {
     final now = tz.TZDateTime.now(tz.local);
-    var next = tz.TZDateTime(tz.local, now.year, 5, 28, 17, 15);
+    var next = tz.TZDateTime(
+        tz.local, now.year, _birthdayMonth, _birthdayDay, _notifyHour, _notifyMinute);
     if (!next.isAfter(now)) {
       // Today is May 28 and 17:15 has already passed — fire immediately.
-      if (now.month == 5 && now.day == 28) {
+      if (now.month == _birthdayMonth && now.day == _birthdayDay) {
         await _plugin.show(
-          _id,
+          _notificationId,
           'Happy Birthday, Sthandwa sami! 🎂',
           'Wishing you the most wonderful day! ❤️',
           _details,
         );
         AppLogger.info('BirthdayNotification: shown immediately (missed scheduled time)');
       }
-      next = tz.TZDateTime(tz.local, now.year + 1, 5, 28, 9, 0);
+      next = tz.TZDateTime(tz.local, now.year + 1, _birthdayMonth, _birthdayDay,
+          _notifyHour, _notifyMinute);
     }
 
     await _plugin.zonedSchedule(
-      _id,
+      _notificationId,
       'Happy Birthday, Sthandwa sami! 🎂',
       'Wishing you the most wonderful day! ❤️',
       next,
@@ -119,13 +126,15 @@ class BirthdayNotificationService {
 class BirthdayWorker {
   static const taskName = 'birthday_notify';
 
-  /// Registers a one-off WorkManager task to fire on the next May 28 at 09:00.
+  /// Registers a one-off WorkManager task to fire on the next May 28 at 17:15.
   /// Uses [ExistingWorkPolicy.keep] so repeated app opens don't reset the delay.
   static void schedule() {
     final now = DateTime.now();
-    var target = DateTime(now.year, 5, 28, 17, 15);
+    var target = DateTime(
+        now.year, _birthdayMonth, _birthdayDay, _notifyHour, _notifyMinute);
     if (!target.isAfter(now)) {
-      target = DateTime(now.year + 1, 5, 28, 9, 0);
+      target = DateTime(now.year + 1, _birthdayMonth, _birthdayDay,
+          _notifyHour, _notifyMinute);
     }
     Workmanager().registerOneOffTask(
       taskName,
@@ -145,22 +154,17 @@ class BirthdayWorker {
         ),
       );
       final now = DateTime.now();
-      if (now.month == 5 && now.day == 28 &&
-          (now.hour > 17 || (now.hour == 17 && now.minute >= 15))) {
+      if (now.month == _birthdayMonth &&
+          now.day == _birthdayDay &&
+          (now.hour > _notifyHour ||
+              (now.hour == _notifyHour && now.minute >= _notifyMinute))) {
         await _plugin.show(
-          _id,
+          _notificationId,
           'Happy Birthday, Sthandwa sami! 🎂',
           'Wishing you the most wonderful day! ❤️',
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              _channelId,
-              _channelName,
-              importance: Importance.high,
-              priority: Priority.high,
-            ),
-          ),
+          _details,
         );
-        await AppLogger.info('BirthdayWorker: notification shown via background task');
+        AppLogger.info('BirthdayWorker: notification shown via background task');
       }
       // Schedule for the following year so the task is self-sustaining.
       schedule();
