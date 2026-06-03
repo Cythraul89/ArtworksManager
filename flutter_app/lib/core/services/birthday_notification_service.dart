@@ -92,10 +92,31 @@ class BirthdayNotificationService {
         final android = _plugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
         await android?.requestNotificationsPermission();
+        // Re-attempt the immediate show now that permission may have just been
+        // granted. initialize() calls _plugin.show() before the permission
+        // dialog appears, so it silently fails on first open. Same notification
+        // ID means no duplicate if it already succeeded.
+        await _showIfMissed();
         await android?.requestExactAlarmsPermission();
       }
     } catch (e, st) {
       AppLogger.error('BirthdayNotification: requestPermissions failed', e, st);
+    }
+  }
+
+  static Future<void> _showIfMissed() async {
+    final now = DateTime.now();
+    if (now.month == _birthdayMonth &&
+        now.day == _birthdayDay &&
+        (now.hour > _notifyHour ||
+            (now.hour == _notifyHour && now.minute >= _notifyMinute))) {
+      await _plugin.show(
+        _notificationId,
+        'Happy Birthday, Sthandwa sami! 🎂',
+        'Wishing you the most wonderful day! ❤️',
+        _details,
+      );
+      AppLogger.info('BirthdayNotification: shown after permission grant');
     }
   }
 
