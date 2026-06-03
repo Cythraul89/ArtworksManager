@@ -14,7 +14,7 @@ const _channelId = 'birthday';
 const _channelName = 'Birthday';
 const _birthdayMonth = 6;
 const _birthdayDay = 3;
-const _notifyHour = 9;
+const _notifyHour = 10;
 const _notifyMinute = 0;
 
 final _plugin = FlutterLocalNotificationsPlugin();
