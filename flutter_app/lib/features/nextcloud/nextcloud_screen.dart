@@ -13,7 +13,7 @@ import '../../core/services/nextcloud_service.dart';
 import '../../core/services/secure_credentials_service.dart';
 import '../settings/settings_providers.dart';
 
-enum _Op { idle, testing, backing, restoring }
+enum _Op { idle, testing, backing, restoring, saving }
 
 enum _SyncChoice { restore, upload }
 
@@ -338,10 +338,12 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     switch (result) {
       case NcSuccess():
         await AppLogger.info('NextcloudScreen: test connection succeeded for $url');
+        if (!mounted) return;
         setState(() => _connectionVerified = true);
         _setMsg('Connected successfully', isError: false);
       case NcFailure(:final message):
         await AppLogger.warn('NextcloudScreen: test connection failed — $message');
+        if (!mounted) return;
         setState(() => _connectionVerified = false);
         _setMsg('Failed: $message', isError: true);
       case NcTransient():
@@ -422,6 +424,7 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
   /// to restore it or upload the current data.
   Future<void> _saveAndSync() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() { _op = _Op.saving; _message = null; });
     try {
       await _save();
       if (!mounted) return;
@@ -436,26 +439,39 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
       );
       if (!mounted) return;
 
-      // If the backup check failed (network error) skip the dialog and just close.
-      if (backupResult is! NcSuccess<BackupInfo?>) {
-        if (mounted) Navigator.of(context).pop();
-        return;
-      }
-      final remoteBackup = backupResult.value;
-      final choice = await _showSyncChoiceDialog(remoteBackup);
-      if (!mounted) return;
+      switch (backupResult) {
+        case NcTransient():
+          // Network error after saving — settings are saved; skip sync and close.
+          Navigator.of(context).pop();
+          return;
+        case NcFailure(:final message):
+          setState(() => _op = _Op.idle);
+          _setMsg('Settings saved. Backup check failed: $message', isError: true);
+          return;
+        case NcSuccess(:final value):
+          final remoteBackup = value;
+          final choice = await _showSyncChoiceDialog(remoteBackup);
+          if (!mounted) return;
 
-      if (choice == _SyncChoice.restore && remoteBackup != null) {
-        await _doRestore(url, _usernameCtrl.text.trim(), path,
-            remoteBackup.remotePath);
-      } else if (choice == _SyncChoice.upload) {
-        await _doBackup(url, _usernameCtrl.text.trim(), path);
-      }
+          if (choice == _SyncChoice.restore && remoteBackup != null) {
+            await _doRestore(url, _usernameCtrl.text.trim(), path,
+                remoteBackup.remotePath);
+          } else if (choice == _SyncChoice.upload) {
+            await _doBackup(url, _usernameCtrl.text.trim(), path);
+          }
 
-      if (mounted) Navigator.of(context).pop();
+          // Close only when there is no error message (let users read failures).
+          if (mounted) {
+            setState(() => _op = _Op.idle);
+            if (!_messageIsError) Navigator.of(context).pop();
+          }
+      }
     } catch (e, st) {
       await AppLogger.error('NextcloudScreen: save failed', e, st);
-      if (mounted) _setMsg('Failed to save: $e', isError: true);
+      if (mounted) {
+        setState(() => _op = _Op.idle);
+        _setMsg('Failed to save: $e', isError: true);
+      }
     }
   }
 
@@ -553,7 +569,8 @@ class _NextcloudScreenState extends ConsumerState<NextcloudScreen> {
     final result = await nc.listFiles(url, username, _passwordCtrl.text,
         remotePath, pinnedFingerprint: _certFingerprint);
     if (result is! NcSuccess<List<String>>) return;
-    final files = [...result.value]..sort();
+    final backupRe = RegExp(r'artworks_\d{8}_\d{6}\.zip$');
+    final files = [...result.value.where((h) => backupRe.hasMatch(h))]..sort();
     if (files.length <= _keepExports) return;
     for (final href in files.sublist(0, files.length - _keepExports)) {
       final del = await nc.deleteFile(url, username, _passwordCtrl.text,
