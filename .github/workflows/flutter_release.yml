@@ -20,8 +20,32 @@ defaults:
     working-directory: flutter_app
 
 jobs:
+  analyze:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
+
   build-android:
     name: Android APK
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,6 +95,7 @@ jobs:
 
   build-linux:
     name: Linux .deb
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -141,7 +166,7 @@ jobs:
           Version: ${VERSION}
           Architecture: amd64
           Maintainer: Cythraul89 <dominik.hilber@gmail.com>
-          Depends: libgtk-3-0, libglib2.0-0, libstdc++6, libsecret-1-0
+          Depends: libgtk-3-0, libglib2.0-0, libstdc++6, libsecret-1-0, libjsoncpp25
           Description: AWoMa — personal artwork catalogue
            Cross-platform artwork collection manager with Nextcloud backup support.
           EOF
@@ -155,6 +180,7 @@ jobs:
 
   build-windows:
     name: Windows bundle
+    needs: analyze
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -187,6 +213,7 @@ jobs:
 
   build-macos:
     name: macOS app
+    needs: analyze
     runs-on: macos-latest
     env:
       HAVE_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
@@ -254,6 +281,7 @@ jobs:
 
   sbom:
     name: SBOM (CycloneDX)
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
