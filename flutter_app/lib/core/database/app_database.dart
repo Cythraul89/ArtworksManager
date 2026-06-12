@@ -75,6 +75,9 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.addColumn(settings, settings.autoSyncEnabled);
@@ -98,7 +101,16 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(settings, settings.themeMode);
       }
       if (from < 8) {
-        await m.addColumn(settings, settings.nextcloudCertFingerprint);
+        // Databases created at schema 1–5 still have this column physically
+        // (it predated v6 but was never dropped). Skip ADD COLUMN to avoid
+        // "duplicate column name" crashing the migration.
+        final cols = await customSelect(
+            'PRAGMA table_info(settings)').get();
+        final hasCol = cols.any(
+            (r) => r.read<String>('name') == 'nextcloud_cert_fingerprint');
+        if (!hasCol) {
+          await m.addColumn(settings, settings.nextcloudCertFingerprint);
+        }
       }
     },
   );

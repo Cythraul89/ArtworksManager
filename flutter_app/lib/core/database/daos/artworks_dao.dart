@@ -103,8 +103,8 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
   Future<int> insertArtwork(ArtworksCompanion artwork) =>
       into(artworks).insert(artwork);
 
-  Future<bool> updateArtwork(ArtworksCompanion artwork) =>
-      update(artworks).replace(artwork);
+  Future<void> updateArtwork(ArtworksCompanion artwork) =>
+      (update(artworks)..where((t) => t.id.equals(artwork.id.value))).write(artwork);
 
   Future<int> deleteArtwork(int id) =>
       (delete(artworks)..where((t) => t.id.equals(id))).go();
@@ -116,6 +116,7 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
     List<ArtworkPhotosCompanion> photos,
   ) async {
     await transaction(() async {
+      await delete(artworkPhotos).go(); // explicit clear (FK cascade is inert without the PRAGMA)
       await deleteAll();
       await batch((b) => b.insertAll(artworks, rows));
       if (photos.isNotEmpty) {
