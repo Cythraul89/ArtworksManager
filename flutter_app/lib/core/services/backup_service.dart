@@ -193,7 +193,7 @@ class BackupService {
   String _filename(String path) => p.basename(path);
 
   String _formatDate(int ms) {
-    final dt = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
+    final dt = DateTime.fromMillisecondsSinceEpoch(ms); // local time, consistent with _parseDate
     return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
