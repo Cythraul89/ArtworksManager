@@ -250,7 +250,10 @@ class NextcloudService {
   }) async {
     final result = await listFiles(serverUrl, username, password, remoteDir,
         pinnedFingerprint: pinnedFingerprint);
-    if (result is! NcSuccess<List<String>>) return const NcSuccess(null);
+    if (result is! NcSuccess<List<String>>) {
+      if (result is NcFailure) return NcFailure((result as NcFailure).message);
+      return const NcTransient();
+    }
 
     // backup filename pattern: artworks_YYYYMMDD_HHmmss.zip
     final pattern = RegExp(r'artworks_(\d{8})_(\d{6})\.zip$');

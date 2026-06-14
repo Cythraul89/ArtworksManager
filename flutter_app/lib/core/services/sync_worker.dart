@@ -79,7 +79,8 @@ Future<void> _pruneOldBackups(
     pinnedFingerprint: s.nextcloudCertFingerprint,
   );
   if (result is! NcSuccess<List<String>>) return;
-  final files = [...result.value]..sort();
+  final backupRe = RegExp(r'artworks_\d{8}_\d{6}\.zip$');
+  final files = [...result.value.where((h) => backupRe.hasMatch(h))]..sort();
   if (files.length <= s.nextcloudKeepExports) return;
   for (final href in files.sublist(0, files.length - s.nextcloudKeepExports)) {
     final del = await nc.deleteFile(

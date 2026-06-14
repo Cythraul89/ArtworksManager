@@ -51,6 +51,9 @@ dependencies:
   # App version / about screen
   package_info_plus: ^8.0.0
 
+  # Open URLs in browser (About page)
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

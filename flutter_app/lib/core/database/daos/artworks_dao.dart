@@ -103,19 +103,26 @@ class ArtworksDao extends DatabaseAccessor<AppDatabase> with _$ArtworksDaoMixin 
   Future<int> insertArtwork(ArtworksCompanion artwork) =>
       into(artworks).insert(artwork);
 
-  Future<bool> updateArtwork(ArtworksCompanion artwork) =>
-      update(artworks).replace(artwork);
+  Future<void> updateArtwork(ArtworksCompanion artwork) =>
+      (update(artworks)..where((t) => t.id.equals(artwork.id.value))).write(artwork);
 
   Future<int> deleteArtwork(int id) =>
       (delete(artworks)..where((t) => t.id.equals(id))).go();
 
   Future<void> deleteAll() => delete(artworks).go();
 
+  /// Replaces the entire collection with [rows] and their [photos] in a single
+  /// transaction. Used by the local and Nextcloud restore flows.
+  ///
+  /// ArtworkPhotos are deleted first explicitly because PRAGMA foreign_keys is
+  /// only enabled per-connection at runtime; the ON DELETE CASCADE declared in
+  /// the schema is inert until then, so we cannot rely on it here.
   Future<void> replaceAll(
     List<ArtworksCompanion> rows,
     List<ArtworkPhotosCompanion> photos,
   ) async {
     await transaction(() async {
+      await delete(artworkPhotos).go(); // explicit clear (FK cascade is inert without the PRAGMA)
       await deleteAll();
       await batch((b) => b.insertAll(artworks, rows));
       if (photos.isNotEmpty) {

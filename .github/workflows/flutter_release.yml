@@ -20,8 +20,32 @@ defaults:
     working-directory: flutter_app
 
 jobs:
+  analyze:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
+
   build-android:
     name: Android APK
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,14 +87,17 @@ jobs:
           flutter build apk --release \
             --build-name="$VERSION" \
             --build-number=${{ github.run_number }}
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "AWoMa-${VERSION}-android.apk"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          name: awoma-android-apk
+          path: flutter_app/AWoMa-*-android.apk
 
   build-linux:
     name: Linux .deb
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -141,21 +168,22 @@ jobs:
           Version: ${VERSION}
           Architecture: amd64
           Maintainer: Cythraul89 <dominik.hilber@gmail.com>
-          Depends: libgtk-3-0, libglib2.0-0, libstdc++6, libsecret-1-0
+          Depends: libgtk-3-0, libglib2.0-0, libstdc++6, libsecret-1-0, libjsoncpp25
           Description: AWoMa — personal artwork catalogue
            Cross-platform artwork collection manager with Nextcloud backup support.
           EOF
 
-          dpkg-deb --build --root-owner-group ${PKG} awoma-linux-amd64.deb
+          dpkg-deb --build --root-owner-group ${PKG} "AWoMa-${VERSION}-linux-amd64.deb"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-deb
-          path: flutter_app/awoma-linux-amd64.deb
+          name: awoma-linux-deb
+          path: flutter_app/AWoMa-*-linux-amd64.deb
 
   build-windows:
     name: Windows bundle
-    runs-on: windows-latest
+    needs: analyze
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -178,15 +206,19 @@ jobs:
             --build-number=${{ github.run_number }}
 
       - name: Archive bundle
-        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath awoma-windows-x64.zip
+        run: |
+          $VERSION = $env:GITHUB_REF_NAME -replace '^v', ''
+          Compress-Archive -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "AWoMa-$VERSION-windows-x64.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-bundle
-          path: flutter_app/awoma-windows-x64.zip
+          name: awoma-windows-zip
+          path: flutter_app/AWoMa-*-windows-x64.zip
 
   build-macos:
     name: macOS app
+    needs: analyze
     runs-on: macos-latest
     env:
       HAVE_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
@@ -243,17 +275,19 @@ jobs:
 
       - name: Archive app bundle
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           ditto -c -k --sequesterRsrc --keepParent \
             build/macos/Build/Products/Release/AWoMa.app \
-            awoma-macos.zip
+            "AWoMa-${VERSION}-macos.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-app
-          path: flutter_app/awoma-macos.zip
+          name: awoma-macos-zip
+          path: flutter_app/AWoMa-*-macos.zip
 
   sbom:
     name: SBOM (CycloneDX)
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
