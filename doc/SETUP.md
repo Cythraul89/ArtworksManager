@@ -147,3 +147,80 @@ flutter run
 ```
 
 `build_runner` must be re-run whenever `app_database.dart` or any DAO file changes.
+
+---
+
+## Replacing the app icon
+
+### 1. Prepare your source image
+
+A **1024×1024 px PNG** with a transparent background. Square, no rounded corners — each platform applies its own shape mask.
+
+### 2. Add `flutter_launcher_icons` to `pubspec.yaml`
+
+```yaml
+# flutter_app/pubspec.yaml
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.2
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  macos: true
+  windows: true
+  image_path: "assets/icon/icon.png"
+```
+
+Place your image at `flutter_app/assets/icon/icon.png` (create the folder).
+
+### 3. Run the generator
+
+```bash
+cd flutter_app
+dart run flutter_launcher_icons
+```
+
+This overwrites all platform icon files automatically:
+
+| Platform | Files updated |
+|----------|--------------|
+| Android | `android/app/src/main/res/mipmap-{m,h,xh,xxh,xxxh}dpi/ic_launcher.png` |
+| iOS | All 16 sizes in `ios/Runner/Assets.xcassets/AppIcon.appiconset/` |
+| macOS | 7 sizes in `macos/Runner/Assets.xcassets/AppIcon.appiconset/` |
+| Windows | `windows/runner/resources/app_icon.ico` |
+
+### 4. Update the Linux `.deb` icon (CI)
+
+The CI packaging step currently copies the macOS 256×256 asset for the Linux `.deb`. After replacing the icon, update both workflow files so they use your source image instead:
+
+```yaml
+# .github/workflows/flutter_ci.yml  and  flutter_release.yml
+# inside the "Package as .deb" step — replace:
+cp macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png \
+  ${PKG}/usr/share/icons/hicolor/256x256/apps/awoma.png
+# with:
+cp assets/icon/icon.png \
+  ${PKG}/usr/share/icons/hicolor/256x256/apps/awoma.png
+```
+
+### 5. Commit
+
+```bash
+git add android/app/src/main/res/ \
+        ios/Runner/Assets.xcassets/ \
+        macos/Runner/Assets.xcassets/ \
+        windows/runner/resources/ \
+        assets/icon/icon.png \
+        pubspec.yaml
+git commit -m "Replace app icon with custom logo"
+```
+
+### Manual alternative (no package)
+
+Overwrite each PNG at the exact pixel sizes already in the repository. For the Windows `.ico`, use ImageMagick to embed all required resolutions:
+
+```bash
+magick icon.png -define icon:auto-resize=256,48,32,16 \
+  windows/runner/resources/app_icon.ico
+```
