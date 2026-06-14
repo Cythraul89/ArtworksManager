@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/models/currency.dart';
@@ -354,6 +355,27 @@ class _AboutPageState extends State<_AboutPage> {
   List<(String, int)>? _packages;
   Map<String, List<LicenseEntry>>? _licenseMap;
 
+  static const _features = [
+    'Artwork catalogue with photos and metadata',
+    'A4 PDF export — one page per artwork',
+    'Nextcloud WebDAV backup with certificate pinning',
+    'Currency conversion (21 currencies via Frankfurter API)',
+    'Background auto-sync on Android',
+    'Offline-first — no third-party cloud required',
+  ];
+
+  static const _techStack = [
+    ('Framework', 'Flutter (Dart)'),
+    ('State management', 'Riverpod'),
+    ('Database', 'Drift (SQLite)'),
+    ('Navigation', 'go_router'),
+    ('HTTP client', 'Dio'),
+    ('Background sync', 'WorkManager (Android)'),
+    ('Secure storage', 'flutter_secure_storage'),
+    ('Currency rates', 'Frankfurter API'),
+    ('PDF generation', 'pdf + printing'),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -398,18 +420,39 @@ class _AboutPageState extends State<_AboutPage> {
     }
   }
 
+  Widget _sectionHeader(BuildContext context, String label) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.0,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Licenses')),
-      body: Column(
+      appBar: AppBar(title: const Text('About AWoMa')),
+      body: ListView(
         children: [
+          // ── App header ────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
             child: Column(
               children: [
-                Text('AWoMa', style: theme.textTheme.headlineMedium),
+                Text(
+                  'AWoMa',
+                  style: theme.textTheme.headlineLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -417,42 +460,138 @@ class _AboutPageState extends State<_AboutPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Text(
-                      widget.version ?? '',
-                      style: theme.textTheme.bodyMedium,
+                      widget.version != null ? 'v${widget.version}' : '',
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: cs.onSurfaceVariant),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Powered by Flutter'),
+                const SizedBox(height: 8),
+                Text(
+                  'A cross-platform artwork collection manager\n'
+                  'with Nextcloud backup support.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
               ],
             ),
           ),
           const Divider(),
-          if (_packages == null)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: _packages!.length,
-                itemBuilder: (context, i) {
-                  final (name, count) = _packages![i];
-                  return ListTile(
-                    title: Text(name),
-                    subtitle: Text(
-                        '$count license${count == 1 ? '' : 's'}.'),
-                    onTap: () => Navigator.push<void>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => _PackageLicensePage(
-                          packageName: name,
-                          licenses: _licenseMap![name]!,
-                        ),
-                      ),
-                    ),
-                  );
-                },
+
+          // ── Features ─────────────────────────────────────────────
+          _sectionHeader(context, 'FEATURES'),
+          ..._features.map(
+            (f) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(Icons.check_circle_outline,
+                        size: 16, color: cs.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text(f, style: theme.textTheme.bodyMedium)),
+                ],
               ),
             ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+
+          // ── Tech stack ────────────────────────────────────────────
+          _sectionHeader(context, 'TECH STACK'),
+          ..._techStack.map(
+            (row) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 148,
+                    child: Text(
+                      row.$1,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(row.$2, style: theme.textTheme.bodyMedium),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+
+          // ── Platform support ──────────────────────────────────────
+          _sectionHeader(context, 'PLATFORM SUPPORT'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Chip(label: const Text('Android')),
+                Chip(label: const Text('iOS')),
+                Chip(label: const Text('macOS')),
+                Chip(label: const Text('Linux')),
+                Chip(label: const Text('Windows')),
+              ],
+            ),
+          ),
+          const Divider(),
+
+          // ── License & source ──────────────────────────────────────
+          _sectionHeader(context, 'LICENSE & SOURCE'),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: const Text('GPL-3.0 License'),
+            subtitle: const Text('Copyright © 2026 Cythraul89'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.code),
+            title: const Text('Source Code'),
+            subtitle:
+                const Text('github.com/Cythraul89/ArtworksManager'),
+            trailing: Icon(Icons.open_in_new, size: 18, color: cs.onSurfaceVariant),
+            onTap: () => launchUrl(
+              Uri.parse('https://github.com/Cythraul89/ArtworksManager'),
+              mode: LaunchMode.externalApplication,
+            ),
+          ),
+          const Divider(),
+
+          // ── Open-source libraries ─────────────────────────────────
+          _sectionHeader(context, 'OPEN-SOURCE LIBRARIES'),
+          if (_packages == null)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            ..._packages!.map((pkg) {
+              final (name, count) = pkg;
+              return ListTile(
+                title: Text(name),
+                subtitle:
+                    Text('$count license${count == 1 ? '' : 's'}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _PackageLicensePage(
+                      packageName: name,
+                      licenses: _licenseMap![name]!,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: 32),
         ],
       ),
     );
