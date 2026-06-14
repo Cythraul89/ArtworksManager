@@ -73,6 +73,16 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 8;
 
+  // Schema version history:
+  //   v1 — initial: Artworks, ArtworkPhotos, Settings (currency, nextcloud fields, lastSyncAt)
+  //   v2 — added autoSyncEnabled, autoSyncIntervalHours to Settings
+  //   v3 — added lastSyncError to Settings
+  //   v4 — dropped nextcloud_password column (moved to flutter_secure_storage)
+  //   v5 — added condition, provenance to Artworks
+  //   v6 — added nextcloudTrustSelfSigned to Settings (pre-pinning flag, now superseded by v8)
+  //   v7 — added themeMode to Settings
+  //   v8 — added nextcloudCertFingerprint to Settings (SHA-256 pin; conditional ADD COLUMN
+  //         because the column was physically present in some v1–v5 databases already)
   @override
   MigrationStrategy get migration => MigrationStrategy(
     beforeOpen: (details) async {

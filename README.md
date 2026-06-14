@@ -75,6 +75,10 @@ git tag v1.0.0 && git push origin v1.0.0
 
 | Document | Description |
 |----------|-------------|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch conventions, PR checklist, commit style |
+| [`doc/SETUP.md`](doc/SETUP.md) | Platform-specific environment setup (Android, iOS, macOS, Linux, Windows) |
+| [`doc/RELEASE.md`](doc/RELEASE.md) | Release checklist, Android signing, tagging procedure |
+| [`doc/TROUBLESHOOTING.md`](doc/TROUBLESHOOTING.md) | Common errors and how to fix them |
 | [`doc/flutter-architecture.md`](doc/flutter-architecture.md) | Tech stack, data flow, provider conventions, navigation |
 | [`doc/flutter-class-diagram.md`](doc/flutter-class-diagram.md) | Mermaid class diagram of database, DAOs, and services |
 | [`doc/requirements.md`](doc/requirements.md) | Functional and non-functional requirements |

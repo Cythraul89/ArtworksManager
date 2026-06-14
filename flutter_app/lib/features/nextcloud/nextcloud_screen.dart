@@ -13,6 +13,11 @@ import '../../core/services/nextcloud_service.dart';
 import '../../core/services/secure_credentials_service.dart';
 import '../settings/settings_providers.dart';
 
+// Busy-state machine for the Nextcloud screen.
+// idle → testing (Test connection) → idle (on result)
+// idle → backing (Backup now) → idle (on result)
+// idle → restoring (Restore) → idle (on result)
+// idle → saving (Confirm & connect) → pops screen on success
 enum _Op { idle, testing, backing, restoring, saving }
 
 enum _SyncChoice { restore, upload }
