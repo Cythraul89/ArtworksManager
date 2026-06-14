@@ -87,11 +87,13 @@ jobs:
           flutter build apk --release \
             --build-name="$VERSION" \
             --build-number=${{ github.run_number }}
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "AWoMa-${VERSION}-android.apk"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          name: awoma-android-apk
+          path: flutter_app/AWoMa-*-android.apk
 
   build-linux:
     name: Linux .deb
@@ -171,12 +173,12 @@ jobs:
            Cross-platform artwork collection manager with Nextcloud backup support.
           EOF
 
-          dpkg-deb --build --root-owner-group ${PKG} awoma-linux-amd64.deb
+          dpkg-deb --build --root-owner-group ${PKG} "AWoMa-${VERSION}-linux-amd64.deb"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-deb
-          path: flutter_app/awoma-linux-amd64.deb
+          name: awoma-linux-deb
+          path: flutter_app/AWoMa-*-linux-amd64.deb
 
   build-windows:
     name: Windows bundle
@@ -204,12 +206,15 @@ jobs:
             --build-number=${{ github.run_number }}
 
       - name: Archive bundle
-        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath awoma-windows-x64.zip
+        run: |
+          $VERSION = $env:GITHUB_REF_NAME -replace '^v', ''
+          Compress-Archive -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "AWoMa-$VERSION-windows-x64.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-bundle
-          path: flutter_app/awoma-windows-x64.zip
+          name: awoma-windows-zip
+          path: flutter_app/AWoMa-*-windows-x64.zip
 
   build-macos:
     name: macOS app
@@ -270,14 +275,15 @@ jobs:
 
       - name: Archive app bundle
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           ditto -c -k --sequesterRsrc --keepParent \
             build/macos/Build/Products/Release/AWoMa.app \
-            awoma-macos.zip
+            "AWoMa-${VERSION}-macos.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-app
-          path: flutter_app/awoma-macos.zip
+          name: awoma-macos-zip
+          path: flutter_app/AWoMa-*-macos.zip
 
   sbom:
     name: SBOM (CycloneDX)
